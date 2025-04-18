@@ -1,35 +1,47 @@
-FROM unit:1.34.1-php8.3
+# Laravel 10 এবং PHP 8.1 এর জন্য Dockerfile
 
-RUN apt update && apt install -y \
-    curl unzip git libicu-dev libzip-dev libpng-dev libjpeg-dev libfreetype6-dev libssl-dev \
+# অফিসিয়াল PHP 8.1 FPM ইমেজ ব্যবহার করা হয়েছে
+FROM php:8.1-fpm
+
+# কাজের ডিরেক্টরি সেট করা
+WORKDIR /var/www
+
+# প্রয়োজনীয় সিস্টেম প্যাকেজ ইনস্টল করা
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    zip \
+    unzip \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) pcntl opcache pdo pdo_mysql intl zip gd exif ftp bcmath \
-    && pecl install redis \
-    && docker-php-ext-enable redis
+    && docker-php-ext-install \
+    pdo_mysql \
+    bcmath \
+    ctype \
+    fileinfo \
+    mbstring \
+    tokenizer \
+    xml \
+    zip \
+    gd
 
-RUN echo "opcache.enable=1" > /usr/local/etc/php/conf.d/custom.ini \
-    && echo "opcache.jit=tracing" >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo "opcache.jit_buffer_size=256M" >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo "memory_limit=512M" > /usr/local/etc/php/conf.d/custom.ini \        
-    && echo "upload_max_filesize=64M" >> /usr/local/etc/php/conf.d/custom.ini \
-    && echo "post_max_size=64M" >> /usr/local/etc/php/conf.d/custom.ini
+# Composer ইনস্টল করা
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+# Laravel নির্ভরশীলতা ইনস্টল করা
+COPY . /var/www
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-WORKDIR /var/www/html
+# Laravel ক্যাশ ক্লিয়ার করা
+RUN php artisan config:clear && php artisan cache:clear
 
-RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache
+# পোর্ট 9000 এক্সপোজ করা
+EXPOSE 9000
 
-RUN chown -R unit:unit /var/www/html/storage bootstrap/cache && chmod -R 775 /var/www/html/storage
-
-COPY . .
-
-RUN chown -R unit:unit storage bootstrap/cache && chmod -R 775 storage bootstrap/cache
-
-RUN composer install --prefer-dist --optimize-autoloader --no-interaction
-
-COPY unit.json /docker-entrypoint.d/unit.json
-
-EXPOSE 8000
-
-CMD ["unitd", "--no-daemon"]
+# কনটেইনার চালু হলে PHP-FPM চালানো
+CMD ["php-fpm"]
