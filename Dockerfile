@@ -1,7 +1,7 @@
 # Laravel 10 এবং PHP 8.1 এর জন্য Dockerfile
 
-# অফিসিয়াল PHP 8.1 FPM ইমেজ ব্যবহার করা হয়েছে
-FROM php:8.1-fpm
+ # অফিসিয়াল Unit+PHP ইমেজ ব্যবহার করুন
+FROM unit:1.31.1-php8.1 
 
 # কাজের ডিরেক্টরি সেট করা
 WORKDIR /var/www
