@@ -1,29 +1,32 @@
 {
-    "listeners": {
-        "*:8000": {
-            "pass": "routes"
-        }
-    },
-
-    "routes": [
-        {
-            "match": {
-                "uri": "!/index.php"
-            },
-            "action": {
-                "share": "/var/www/html/public$uri",
-                "fallback": {
-                    "pass": "applications/laravel"
-                }
-            }
-        }
-    ],
-
-    "applications": {
-        "laravel": {
-            "type": "php",
-            "root": "/var/www/html/public/",
-            "script": "index.php"
-        }
+  "listeners": {
+    "*:80": {
+      "pass": "routes"
     }
+  },
+  "routes": [
+    {
+      "match": {
+        "uri": "/*"
+      },
+      "action": {
+        "share": "/var/www/html/public$uri",
+        "fallback": {
+          "pass": "applications/php"
+        }
+      }
+    }
+  ],
+  "applications": {
+    "php": {
+      "type": "php",
+      "root": "/var/www/html/public",
+      "options": {
+        "admin": {
+          "memory_limit": "512M",
+          "upload_max_filesize": "64M"
+        }
+      }
+    }
+  }
 }
