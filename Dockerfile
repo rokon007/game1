@@ -44,4 +44,4 @@ RUN php artisan config:clear && php artisan cache:clear
 EXPOSE 9000
 
 # কনটেইনার চালু হলে PHP-FPM চালানো
-CMD ["php-fpm"]
+# CMD ["php-fpm"]
