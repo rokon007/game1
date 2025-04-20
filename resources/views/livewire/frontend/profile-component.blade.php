@@ -1,6 +1,9 @@
 <div>
     @section('meta_description')
-      <meta name="description" content="Altswave Shop">
+        <meta name="title" content="Housieblitz User Profile">
+        <meta name="description" content="Join the ultimate multiplayer Housieblitz Game! Buy tickets, play real-time, and win exciting rewards. Register now!">
+        <meta name="keywords" content="Housieblitz game, multiplayer bingo, play online game, win prizes, real-time game, ticket based game">
+        <meta name="author" content="Housieblitz">
     @endsection
     @section('title')
         <title>{{ config('app.name', 'Laravel') }} | Profile</title>
