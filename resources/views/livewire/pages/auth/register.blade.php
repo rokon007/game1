@@ -54,7 +54,7 @@ new #[Layout('layouts.layout_login')] class extends Component
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-10 col-lg-8">
-                    <img class="big-logo" style="width:50%" src="{{asset('assets/frontend/img/core-img/PNG.png')}}" alt="">
+                    <img class="big-logo" style="width:50%" src="{{asset('assets/frontend/img/core-img/PNG2.png')}}" alt="">
                 <!-- Register Form-->
                     <div class="register-form mt-5">
                         <form wire:submit="register">
