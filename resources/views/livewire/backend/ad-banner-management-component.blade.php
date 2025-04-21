@@ -69,7 +69,7 @@
                                 <div class="card-body text-center">
                                     <div class="card border shadow-none w-100 text-center">
                                         <!-- Show loading spinner during photo upload -->
-                                        <div wire:loading.delay.short wire:target="photo1">
+                                        {{-- <div wire:loading.delay.short wire:target="photo1">
                                             <iframe
                                                 src="https://giphy.com/embed/aqd1tYU4WvlO3FiYvo"
                                                 width="200"
@@ -78,10 +78,10 @@
                                                 class="giphy-embed"
                                                 allowfullscreen>
                                             </iframe>
-                                        </div>
+                                        </div> --}}
 
                                         <!-- Image Preview Section -->
-                                        <div wire:loading.remove wire:target="photo1">
+                                        {{-- <div wire:loading.remove wire:target="photo1">
                                             <center>
                                                 @if ($photo1)
                                                     <img src="{{ $photo1->temporaryUrl() }}" height="200" width="200" alt="Uploaded Image Preview">
@@ -89,7 +89,14 @@
                                                     <img src="{{ asset('backend/upload/image/upload.png') }}" alt="Default Image" height="200" width="200">
                                                 @endif
                                             </center>
-                                        </div>
+                                        </div> --}}
+                                        <center>
+                                            @if ($photo1)
+                                                <img src="{{ $photo1->temporaryUrl() }}" height="200" width="200" alt="Uploaded Image Preview">
+                                            @else
+                                                <img src="{{ asset('backend/upload/image/upload.png') }}" alt="Default Image" height="200" width="200">
+                                            @endif
+                                        </center>
                                     </div>
 
                                     <!-- Form for adding the image -->
