@@ -1,11 +1,7 @@
-*
-# !public/
-# !.gitignore
-
 /storage/*
 !/storage/app/public/
 !/storage/framework/
 /storage/framework/*
 !/storage/framework/cache/
 !/storage/framework/sessions/
-!/storage/framework/views/
+!/storage/framework/views/git pull origin master

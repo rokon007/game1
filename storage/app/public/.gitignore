@@ -1,5 +1,3 @@
-# *
-# !.gitignore
 /storage/*
 !/storage/app/public/
 !/storage/framework/
