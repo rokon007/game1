@@ -188,7 +188,7 @@ new class extends Component
                 }
             </script>
            <img id="Image3"
-           src="{{ $photo ? '' : (auth()->user()->avatar ? asset('uploads/avatars/' . auth()->user()->avatar) : asset('assets/backend/upload/image/user/user.jpg')) }}"
+           src="{{ $photo ? '' : (auth()->user()->avatar ? asset('uploads/' . auth()->user()->avatar) : asset('assets/backend/upload/image/user/user.jpg')) }}"
            alt=""
            style="max-height: 150px;">
           <div class="change-user-thumb">
