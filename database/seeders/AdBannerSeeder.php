@@ -18,7 +18,7 @@ class AdBannerSeeder extends Seeder
             [
                 'title' => '.',
                 'text' => '.',
-                'button_name' => 'Play Now',
+                'button_name' => 'Play now',
                 'image_path' => 'public/banner/67faa90a7f748.jpeg',
                 'url' => null,
                 'is_active' => 1,
