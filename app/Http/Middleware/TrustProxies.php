@@ -12,7 +12,8 @@ class TrustProxies extends Middleware
      *
      * @var array<int, string>|string|null
      */
-    protected $proxies;
+    // protected $proxies;
+    protected $proxies = '*'; // সব প্রক্সিকে বিশ্বাস করুন (অথবা নির্দিষ্ট IP দিতে পারেন)
 
     /**
      * The headers that should be used to detect proxies.
