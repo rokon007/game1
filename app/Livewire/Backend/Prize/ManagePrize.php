@@ -3,8 +3,6 @@
 namespace App\Livewire\Backend\Prize;
 
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Imagick\Driver;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
@@ -14,7 +12,7 @@ class ManagePrize extends Component
 {
     use WithPagination, WithFileUploads;
 
-    public $name, $amount, $description,$image_path, $is_active = true, $prize_id;
+    public $name, $amount, $description, $image_path, $is_active = true, $prize_id;
     public $search = '';
 
     public function store()
@@ -37,23 +35,13 @@ class ManagePrize extends Component
                 }
             }
 
-            // Process and save the new image
+            // Save the original image without resizing
             $imageName = uniqid() . '.' . $this->image_path->getClientOriginalExtension();
-
-            // Use Intervention Image to handle and resize the image
-
-            $img=$this->image_path;
-            $manager = new ImageManager(new Driver());
-            $img1=$manager->read($img);
-            $img1=$img1->resize(300, 300)->toJpeg(80);
-
-            // Save the image to the storage folder
             $filePath = "public/prize/{$imageName}";
-            Storage::put($filePath, $img1->__toString());
+            $this->image_path->storeAs('public/prize', $imageName);
 
-            $imagePath = $filePath; // Store the relative path
+            $imagePath = $filePath;
         }
-
 
         Prize::updateOrCreate(
             ['id' => $this->prize_id],
@@ -67,7 +55,6 @@ class ManagePrize extends Component
         );
 
         session()->flash('message', $this->prize_id ? 'Prize Updated Successfully' : 'Prize Created Successfully');
-
         $this->resetInputFields();
     }
 
@@ -83,25 +70,29 @@ class ManagePrize extends Component
 
     public function delete($id)
     {
-        Prize::find($id)?->delete();
-        session()->flash('message', 'Prize Deleted Successfully');
+        $prize = Prize::find($id);
+        if ($prize) {
+            if ($prize->image_path) {
+                Storage::delete($prize->image_path);
+            }
+            $prize->delete();
+            session()->flash('message', 'Prize Deleted Successfully');
+        }
     }
 
     private function resetInputFields()
     {
-        $this->prize_id = null;
-        $this->name = '';
-        $this->amount = '';
-        $this->description = '';
+        $this->reset(['prize_id', 'name', 'amount', 'description', 'image_path']);
         $this->is_active = true;
     }
 
     public function render()
     {
-        // $prizes = Prize::where('name', 'like', '%' . $this->search . '%')
-        //     ->paginate(10)
-        //     ->withQueryString();
-        $prizes = Prize::latest()->get();
+        $prizes = Prize::when($this->search, function($query) {
+                return $query->where('name', 'like', '%'.$this->search.'%');
+            })
+            ->latest()
+            ->get();
 
         return view('livewire.backend.prize.manage-prize', [
             'prizes' => $prizes,
