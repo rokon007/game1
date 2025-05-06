@@ -5,8 +5,18 @@ use Illuminate\Support\Facades\Redis;
 use App\Livewire\Frontend\Home;
 use App\Livewire\Frontend\ProfileComponent;
 use App\Livewire\Frontend\RifleComponent;
+use App\Livewire\Frontend\NotificationsComponent;
+use App\Livewire\Frontend\UserTransactions;
+use App\Livewire\Frontend\UserWallet;
+use App\Livewire\Frontend\CreditTransferForm;
+use App\Livewire\Frontend\GameLobby;
+use App\Livewire\Frontend\GameRoom;
+use App\Livewire\Frontend\TicketView;
+use App\Livewire\Frontend\UserGameHistory;
+use App\Livewire\Frontend\WithdrawalForm;
 use App\Livewire\Backend\Dashboard;
 use App\Livewire\Backend\AdBannerManagementComponent;
+use App\Livewire\Backend\RifleRequestManagementComponent;
 use App\Livewire\Backend\Prize\ManagePrize;
 
 /*
@@ -28,7 +38,8 @@ Route::get('/', Home::class)->name('home');
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/add-banner', AdBannerManagementComponent::class)->name('addBanner');
-    Route::get('/prizes', ManagePrize::class)->name('prizes');
+    Route::get('/prizes', RifleRequestManagementComponent::class)->name('prizes');
+    Route::get('/rifle-request-management', RifleRequestManagementComponent::class)->name('rifle_request_management');
 });
 
 Route::view('dashboard', 'dashboard')
@@ -37,6 +48,15 @@ Route::view('dashboard', 'dashboard')
 
 Route::middleware(['auth', 'verified'])->group(function(){
     Route::get('/rifle-account', RifleComponent::class)->name('rifleAccount');
+    Route::get('/notifications', NotificationsComponent::class)->name('notifications');
+    Route::get('/transactions', UserTransactions::class)->name('transactions');
+    Route::get('/wallet', UserWallet::class)->name('wallet');
+    Route::get('/creditTransfer', CreditTransferForm::class)->name('creditTransfer');
+    Route::get('/game-lobby', GameLobby::class)->name('gameLobby');
+    Route::get('/game-room', GameRoom::class)->name('gameRoom');
+    Route::get('/ticket', TicketView::class)->name('ticket');
+    Route::get('/game-history', UserGameHistory::class)->name('gameHistory');
+    Route::get('/withdrawal', WithdrawalForm::class)->name('withdrawal');
 });
 
 Route::get('/user-profile', ProfileComponent::class)->name('userProfile');

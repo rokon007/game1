@@ -8,6 +8,6 @@ class GameLobby extends Component
 {
     public function render()
     {
-        return view('livewire.frontend.game-lobby');
+        return view('livewire.frontend.game-lobby')->layout('livewire.layout.frontend.base');
     }
 }

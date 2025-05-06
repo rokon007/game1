@@ -5,19 +5,28 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cookie;
-
 use Livewire\Attributes\On;
 
 new class extends Component
 {
     public $cartCount = 0;
+    public $unreadCount = 0;
 
 
     public function mount()
     {
         // $sessionId = cookie('cart_session_id') ?? session()->getId();
         $sessionId = session()->getId();
+        $this->loadUnreadCount();
 
+    }
+
+    public function loadUnreadCount()
+    {
+        // Logged-in user এর আনরেড নোটিফিকেশন কাউন্ট
+        if(auth()->user()){
+          $this->unreadCount = Auth::user()->unreadNotifications->count();
+        }
     }
 
 }; ?>
@@ -30,7 +39,13 @@ new class extends Component
       <div class="logo-wrapper"><a href="{{route('home')}}"><img style="width:200px" src="{{asset('assets/frontend/img/core-img/PNG.png')}}" alt=""></a></div>
       <div class="navbar-logo-container d-flex align-items-center">
         <!-- Cart Icon -->
-        <div class="cart-icon-wrap"><a href="#"><i class="ti ti-basket-bolt"></i><span>{{$cartCount}}</span></a></div>
+        {{-- <div class="cart-icon-wrap"><a href="#"><i class="ti ti-basket-bolt"></i><span>{{$cartCount}}</span></a></div> --}}
+        @if (Route::has('login'))
+            @auth
+                <!-- User Profile Icon -->
+                <div class="cart-icon-wrap ms-2"><a href="{{route('notifications')}}"><i class="ti ti-bell-ringing lni-tada-effect"></i><span>{{$unreadCount}}</span></a></div>
+            @endauth
+        @endif
         @if (Route::has('login'))
             @auth
                 <!-- User Profile Icon -->

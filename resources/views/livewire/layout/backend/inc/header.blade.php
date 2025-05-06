@@ -193,7 +193,7 @@ new class extends Component
                 @endif
 
                  <li>
-                    <a class="dropdown-item" href="{{route('profile')}}">
+                    <a class="dropdown-item" href="#">
                        <div class="d-flex align-items-center">
                          <div class="setting-icon"><i class="bi bi-person-fill"></i></div>
                          <div class="setting-text ms-3"><span>Profile</span></div>
@@ -331,7 +331,7 @@ new class extends Component
 
                           <a class="dropdown-item"
                                 href="#"
-                                wire:click="markAsReadAndRedirect('{{ $notification->id }}', '{{ auth()->user()->is_admin === 'admin' ? $notification->data['admin_link'] : $notification->data['user_link'] }}')">
+                                wire:click="markAsReadAndRedirect('{{ $notification->id }}', '{{ auth()->user()->role === 'admin' ? $notification->data['admin_link'] : $notification->data['user_link'] }}')">
 
 
                                 <div class="d-flex align-items-center">

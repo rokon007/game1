@@ -60,9 +60,9 @@ new class extends Component
         </a>
     </li>
     <li>
-        <a href="#" class="has-arrow">
+        <a href="{{route('admin.rifle_request_management')}}" class="has-arrow">
             <div class="parent-icon"><i class="bi bi-wallet2"></i></div>
-            <div class="menu-title">Filter Management</div>
+            <div class="menu-title">Rifle Request Management</div>
         </a>
     </li>
     <li>

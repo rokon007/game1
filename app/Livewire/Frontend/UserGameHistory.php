@@ -8,6 +8,6 @@ class UserGameHistory extends Component
 {
     public function render()
     {
-        return view('livewire.frontend.user-game-history');
+        return view('livewire.frontend.user-game-history')->layout('livewire.layout.frontend.base');
     }
 }

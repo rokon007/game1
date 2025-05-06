@@ -3,7 +3,7 @@
       <meta name="description" content="Altswave Shop">
     @endsection
     @section('title')
-        <title>Altswave|Transiction</title>
+        <title>Altswave|Notifications</title>
     @endsection
 
     @section('css')
@@ -49,71 +49,70 @@
         <!-- Notification List -->
         <div class="container" style="display: {{$detailsMode ? 'none' : 'block'}};">
             <div class="section-heading d-flex align-items-center pt-3 justify-content-between rtl-flex-d-row-r">
-                <h6>Transactions(s)</h6>
-
+                <h6>Notification(s)</h6>
+                <span class="text-secondary">Unread: {{ $unreadCount }}</span>
             </div>
             <div class="notification-area pb-2">
                 <div class="list-group">
-                    @foreach($transactions as $transaction)
-                        <a class="list-group-item d-flex align-items-center border-0 readed"
+                    @foreach($notifications as $notification)
+                        <a class="list-group-item d-flex align-items-center border-0
+                            {{ $notification->read_at ? 'readed' : '' }}"
                             style="cursor: pointer"
-                            wire:click="details('{{ $transaction->id }}')">
-
+                            wire:click="details('{{ $notification->id }}')">
                             <span class="noti-icon">
-                                @if($transaction->type === 'credit')
-                                    <i class="ti ti-arrow-down-left text-success"></i>
-                                @elseif($transaction->type === 'debit')
-                                    <i class="ti ti-arrow-up-right text-danger"></i>
-                                @else
-                                    <i class="ti ti-bell"></i>
-                                @endif
+                                <i class="{{ $notification->read_at ? 'ti ti-check' : 'ti ti-bell-ringing' }}"></i>
                             </span>
-
                             <div class="noti-info">
-                                <h6 class="mb-1">{{ ucfirst($transaction->type) ?? 'type' }}</h6>
-                                <span>{{ $transaction->created_at->diffForHumans() }}</span>
-                            </div>
-
-                            <div style="margin-left: 10px;">
-                                <h6 class="mb-1">{{ number_format($transaction->amount, 2) ?? 'amount' }}</h6>
-                                <span>{{ $transaction->details }}</span>
+                                <h6 class="mb-1">{{ $notification->data['title'] ?? 'Notification' }}</h6>
+                                <span>{{ $notification->created_at->diffForHumans() }}</span>
                             </div>
                         </a>
                     @endforeach
-
                 </div>
             </div>
         </div>
 
         <!-- Notification Details -->
         <div class="container" style="display: {{$detailsMode ? 'block' : 'none'}};">
-            @if($selectedTransactions)
+            @if($selectedNotification)
                 <div class="notification-area pt-3 pb-2">
                     <div class="list-group-item d-flex py-3 bg-transparent">
                         <span class="noti-icon">
                             <i class="ti ti-check"></i>
                         </span>
                         <div class="noti-info">
-                            <h6>{{ $selectedTransactions->details ?? 'No Transactions Available' }}</h6>
-                            <p>Amount : {{ $selectedTransactions->amount ?? 'No data available.' }}
-                                <br> Type : {{ $transaction->type ?? 'type' }}
-                                <br>{{ $transaction->created_at->diffForHumans() }}
-                            </p>
-
+                            <h6>{{ $selectedNotification->data['title'] ?? 'Notification Details' }}</h6>
+                            {{-- <p>{{ $selectedNotification->data['text'] ?? 'No details available.' }}</p> --}}
 
                                 {{-- @if(isset($selectedNotification->data['title']))
                                     <h4>{{ $selectedNotification->data['title'] }}</h4>
                                 @endif --}}
 
+                                @if(isset($selectedNotification->data['text']))
+                                    <p>{{ $selectedNotification->data['text'] }}</p>
+                                @endif
 
+                                @if(isset($selectedNotification->data['user']))
+                                    <p><strong>User:</strong> {{ $selectedNotification->data['user'] }}</p>
+                                @endif
 
+                                @if(isset($selectedNotification->data['amount']))
+                                    <p><strong>Amount:</strong> {{ $selectedNotification->data['amount'] }}</p>
+                                @endif
 
+                                @if(isset($selectedNotification->data['method']))
+                                    <p><strong>Method:</strong> {{ $selectedNotification->data['method'] }}</p>
+                                @endif
 
-                            {{-- <a class="btn btn-light" href="#">View More</a> --}}
+                                @if(isset($selectedNotification->data['transaction_id']))
+                                    <p><strong>Transaction ID:</strong> {{ $selectedNotification->data['transaction_id'] }}</p>
+                                @endif
+
+                            <a class="btn btn-light" href="#">View More</a>
                         </div>
                     </div>
                 </div>
-                <button class="btn btn-primary" wire:click="backToList">Back to Transactions</button>
+                <button class="btn btn-primary" wire:click="backToList">Back to Notifications</button>
             @endif
         </div>
     </div>

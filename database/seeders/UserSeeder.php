@@ -16,7 +16,7 @@ class UserSeeder extends Seeder
     {
         User::create([
             'name' => 'Admin User',
-            'email' => 'admin@example.com',
+            'email' => 'info@maxdeposit.my',
             'mobile' => '01700000000',
             'password' => Hash::make('12345678'), // নিরাপত্তার জন্য অবশ্যই হ্যাশ করতে হবে
             'role' => 'admin',

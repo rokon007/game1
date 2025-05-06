@@ -14,6 +14,20 @@ new class extends Component
     public $addressRequireAllart=false;
     public $lowStockAllart=false;
     public $quantityErrorAllart=false;
+    public $rifleRequestAllart=false;
+
+
+    #[On('sentRifleRequest')]
+    public function sent_rifleRequest()
+    {
+        $this->rifleRequestAllart = true;
+        $this->dispatch('rifleRequestAllartMakeFalse');
+    }
+
+    public function rifleRequestAllartMakeFalse()
+    {
+        $this->rifleRequestAllart = false;
+    }
 
     #[On('showNotification')]
     public function show()
@@ -98,6 +112,18 @@ new class extends Component
                 </div>
             </div>
         @endif
+        @if (session()->has('success'))
+            <div class="toast pwa-install-alert shadow bg-white" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000" data-bs-autohide="true">
+                <div class="toast-body">
+                    <img style="width: 150px" src="{{asset('assets/frontend/img/core-img/PNG.png')}}" alt="">
+                    <div class="content d-flex align-items-center mb-2">
+                        <h6 class="mb-0">{{ session('success') }}</h6>
+                        <button class="btn-close ms-auto" type="button" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    {{-- <span class="mb-0 d-block">Click the<strong class="mx-1">Add to Home Screen</strong>button &amp; enjoy it like a regular app.</span> --}}
+                </div>
+            </div>
+        @endif
         @if ($addCartNotificationMood)
             <div class="pwa-install-alert shadow bg-white" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000" data-bs-autohide="true">
                 <div class="toast-body bg-success">
@@ -107,6 +133,18 @@ new class extends Component
                         <button class="btn-close ms-auto" type="button" data-bs-dismiss="toast" aria-label="Close"></button>
                     </div>
                     {{-- <span class="mb-0 d-block">Click the<strong class="mx-1">Add to Home Screen</strong>button &amp; enjoy it like a regular app.</span> --}}
+                </div>
+            </div>
+        @endif
+
+        @if ($rifleRequestAllart)
+            <div class="pwa-install-alert shadow bg-white" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000" data-bs-autohide="true">
+                <div class="toast-body bg-success">
+                    <div class="content d-flex align-items-center mb-2">
+                        <img style="width:150px" src="{{asset('assets/frontend/img/core-img/cart.png')}}" alt="">
+                        <h6 class="mb-0 text-white">Rifle request sent successfully</h6>
+                        <button class="btn-close ms-auto" type="button" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
                 </div>
             </div>
         @endif

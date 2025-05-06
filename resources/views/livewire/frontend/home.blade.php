@@ -61,7 +61,7 @@
                             <div class="card-body px-2">
                                 <a href="catagory.html">
                                     {{-- <img src="{{asset('assets/frontend/img/core-img/woman-clothes.png')}}" alt=""> --}}
-                                    $0
+                                    {{$cradit}} Tk
                                     <span>Current Balance</span>
                                 </a>
                             </div>
