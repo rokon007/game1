@@ -96,106 +96,74 @@ class BuyTicketSheet extends Component
     }
 
     private function generateHousieTicket()
-{
-    $ticket = array_fill(0, 3, array_fill(0, 9, null));
-    $usedNumbers = [];
+    {
+        static $usedNumbers = []; // সমস্ত শীটে ব্যবহৃত সংখ্যা ট্র্যাক করবে
 
-    // 1. Generate all possible numbers grouped by columns
-    $columns = [];
-    for ($i = 0; $i < 9; $i++) {
-        $start = $i * 10 + 1;
-        $end = ($i == 8) ? 90 : ($i + 1) * 10;
-        $columns[$i] = range($start, $end);
-        shuffle($columns[$i]);
-    }
+        $ticket = array_fill(0, 3, array_fill(0, 9, null));
+        $availableNumbers = array_diff(range(1, 90), $usedNumbers);
 
-    // 2. First pass: ensure at least one number per column
-    for ($col = 0; $col < 9; $col++) {
-        $row = rand(0, 2);
-        $number = array_pop($columns[$col]);
-        $ticket[$row][$col] = $number;
-        $usedNumbers[] = $number;
-    }
+        // যদি পর্যাপ্ত সংখ্যা না থাকে, রিসেট করুন
+        if (count($availableNumbers) < 15) {
+            $usedNumbers = [];
+            $availableNumbers = range(1, 90);
+        }
 
-    // 3. Second pass: fill remaining numbers (total 15 per ticket)
-    $numbersToAdd = 6; // 15 total - 9 already placed
-    $attempts = 0;
+        // সংখ্যাগুলো কলাম অনুযায়ী গ্রুপ করুন
+        $columnNumbers = array_fill(0, 9, []);
+        foreach ($availableNumbers as $number) {
+            $col = min(8, floor(($number - 1) / 10));
+            $columnNumbers[$col][] = $number;
+        }
 
-    while ($numbersToAdd > 0 && $attempts < 50) {
-        $attempts++;
-        $col = rand(0, 8);
+        // প্রতিটি কলাম থেকে সংখ্যা নিন
+        foreach ($columnNumbers as &$numbers) {
+            shuffle($numbers);
+        }
 
-        if (!empty($columns[$col])) {
-            $number = array_pop($columns[$col]);
+        // ১. প্রতিটি কলামে কমপক্ষে ১টি সংখ্যা রাখুন
+        for ($col = 0; $col < 9; $col++) {
+            if (empty($columnNumbers[$col])) continue;
 
-            // Find suitable row
-            $availableRows = [];
-            for ($row = 0; $row < 3; $row++) {
-                if (is_null($ticket[$row][$col]) &&
-                    count(array_filter($ticket[$row])) < 5) {
-                    $availableRows[] = $row;
+            $row = rand(0, 2);
+            $number = array_pop($columnNumbers[$col]);
+            $ticket[$row][$col] = $number;
+            $usedNumbers[] = $number;
+        }
+
+        // ২. বাকি ৬টি সংখ্যা পূরণ করুন (মোট ১৫টি)
+        $numbersToAdd = 6;
+        $attempts = 0;
+        $maxAttempts = 100;
+
+        while ($numbersToAdd > 0 && $attempts < $maxAttempts) {
+            $attempts++;
+            $col = rand(0, 8);
+
+            if (!empty($columnNumbers[$col])) {
+                $number = array_pop($columnNumbers[$col]);
+
+                // উপযুক্ত সারি খুঁজুন
+                $availableRows = array_filter([0, 1, 2], function($row) use ($ticket, $col) {
+                    return is_null($ticket[$row][$col]) &&
+                        count(array_filter($ticket[$row])) < 5;
+                });
+
+                if (!empty($availableRows)) {
+                    $row = $availableRows[array_rand($availableRows)];
+                    $ticket[$row][$col] = $number;
+                    $usedNumbers[] = $number;
+                    $numbersToAdd--;
                 }
             }
-
-            if (!empty($availableRows)) {
-                $row = $availableRows[array_rand($availableRows)];
-                $ticket[$row][$col] = $number;
-                $usedNumbers[] = $number;
-                $numbersToAdd--;
-            }
         }
+
+        // কলাম অনুযায়ী সাজান
+        foreach ($ticket as &$row) {
+            ksort($row);
+        }
+
+        return $ticket;
     }
-
-    // 4. Sort numbers in each row
-    foreach ($ticket as &$row) {
-        ksort($row);
-    }
-
-    return $ticket;
-}
-
-
-
-
-    // private function generateHousieTicket()
-    // {
-    //     $ticket = array_fill(0, 3, array_fill(0, 9, null));
-
-    //     // Step 1: প্রতিটি কলামের জন্য সংখ্যা রেঞ্জ নির্ধারণ
-    //     $columns = [];
-    //     for ($i = 0; $i < 9; $i++) {
-    //         $start = $i * 10 + 1;
-    //         $end = ($i == 0) ? 9 : (($i == 8) ? 90 : $i * 10 + 10 - 1);
-    //         $range = range($start, $end);
-    //         shuffle($range);
-    //         $columns[$i] = array_slice($range, 0, 3); // প্রতিটি কলাম থেকে ৩টি সংখ্যা নিব
-    //     }
-
-    //     // Step 2: এখন 15টি সংখ্যা বেছে নেওয়া হবে (3x5)
-    //     $filled = 0;
-    //     while ($filled < 15) {
-    //         for ($row = 0; $row < 3; $row++) {
-    //             $filledInRow = array_filter($ticket[$row], fn($v) => !is_null($v));
-    //             if (count($filledInRow) >= 5) continue;
-
-    //             $col = rand(0, 8);
-    //             if (is_null($ticket[$row][$col]) && !empty($columns[$col])) {
-    //                 $ticket[$row][$col] = array_pop($columns[$col]);
-    //                 $filled++;
-    //                 if ($filled >= 15) break;
-    //             }
-    //         }
-    //     }
-
-    //     // Step 3: কলাম অনুযায়ী sort করে দিন
-    //     for ($row = 0; $row < 3; $row++) {
-    //         ksort($ticket[$row]);
-    //     }
-
-    //     return $ticket;
-    // }
-
-
 
     public function render()
     {

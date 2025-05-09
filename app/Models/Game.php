@@ -13,6 +13,12 @@ class Game extends Model
      'ticket_price', 'is_active'
     ];
 
+    protected $casts = [
+    'scheduled_at' => 'datetime',
+    'created_at' => 'datetime',
+    'updated_at' => 'datetime'
+    ];
+
     // A game can have many players
     public function players()
     {

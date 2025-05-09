@@ -119,7 +119,7 @@
 
             @else
                 <!-- শীট ডিটেইল ভিউ - টিকেটগুলো একের নিচে এক -->
-                <div class="mb-4">
+                {{-- <div class="mb-4">
                     <button wire:click="backToList" class="btn btn-sm btn-outline-primary mb-3">
                         <i class="fas fa-arrow-left me-1"></i> Back
                     </button>
@@ -138,7 +138,7 @@
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span>
                                             <i class="fas fa-ticket-alt me-2"></i>
-                                             {{-- Ticket #{{ explode('-', $ticket['number'])[2] }} --}}
+
                                              Ticket #{{ explode('-', $ticket['number'])[1] }}
                                         </span>
                                         @if($ticket['is_winner'])
@@ -163,15 +163,153 @@
                                         </tbody>
                                     </table>
                                 </div>
-
-                                {{-- <div class="card-footer bg-light py-2 small">
-                                    <i class="fas fa-clock me-1"></i>
-                                    {{ $ticket['created_at'] }}
-                                </div> --}}
                             </div>
                         </div>
                     @endforeach
+                </div> --}}
+
+                <!-- শীট ডিটেইল ভিউ -->
+                <div class="mb-4">
+                    <button wire:click="backToList" class="btn btn-sm btn-outline-primary mb-3">
+                        <i class="fas fa-arrow-left me-1"></i> Back
+                    </button>
+                    @if ($selectedSheet)
+                        <div class="sheet-header card mb-0">
+                            <div class="card-header bg-primary text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0 text-white">
+                                        <i class="fas fa-ticket-alt me-2"></i>
+                                         {{ $selectedSheet }}
+                                    </h5>
+                                    <span class="badge bg-light text-dark">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        {{ \Carbon\Carbon::parse($sheetTickets[0]['game']['scheduled_at'])->format('d M Y h:i A') }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body py-2" style="background-color: cornsilk">
+                                <div class="d-flex justify-content-between">
+                                    <span>
+                                        <i class="fas fa-gamepad me-1"></i>
+                                        {{ $sheetTickets[0]['game']['title'] }}
+                                    </span>
+                                    <span class="badge bg-info">
+                                        {{ count($sheetTickets) }} Tickets
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
+
+                <!-- টিকেট কন্টেইনার -->
+                <div class="sheet-container card" style="background-color: cornsilk">
+                    <div class="card-body p-3"> <!-- padding যোগ করা হয়েছে -->
+                        <div class="tickets-grid">
+                            @foreach($sheetTickets as $ticket)
+                                <div class="ticket-item mb-4"> <!-- mb-4 ক্লাস যোগ করা হয়েছে -->
+                                    <table class="table table-bordered mb-0">
+                                        <tbody>
+                                            @foreach($ticket['numbers'] as $row)
+                                                <tr>
+                                                    @foreach($row as $cell)
+                                                        <td class="text-center {{ $cell ? 'bg-light' : '' }}"
+                                                            style="width: 11%; height: 40px;">
+                                                            {{ $cell ?: '' }}
+                                                        </td>
+                                                    @endforeach
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                    @if($ticket['is_winner'])
+                                        <div class="winner-badge">
+                                            <span class="badge bg-success">Winner</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                @push('styles')
+                <style>
+                    .tickets-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                        gap: 1.5rem; /* গ্যাপ বড় করা হয়েছে */
+                        padding: 1rem;
+                    }
+
+                    .ticket-item {
+                        position: relative;
+                        border: 1px solid #dee2e6;
+                        border-radius: 6px;
+                        overflow: hidden;
+                        transition: all 0.3s ease;
+                        padding: 0.5rem; /* টিকেটের ভিতরে প্যাডিং */
+                        background-color: white;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* সূক্ষ্ম শ্যাডো */
+                    }
+
+                    .ticket-item:hover {
+                        transform: translateY(-3px);
+                        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                    }
+
+                    /* টিকেটের মধ্যে আরও স্পেস */
+                    .ticket-item + .ticket-item {
+                        margin-top: 1.5rem;
+                    }
+                </style>
+                @endpush
+
+                @push('styles')
+                <style>
+                    .sheet-header {
+                        border-radius: 8px;
+                        overflow: hidden;
+                    }
+
+                    .sheet-container {
+                        border: 1px solid #dee2e6;
+                        border-radius: 8px;
+                        overflow: hidden;
+                    }
+
+                    .tickets-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                        gap: 1rem;
+                        padding: 1rem;
+                    }
+
+                    .ticket-item {
+                        position: relative;
+                        border: 1px solid #dee2e6;
+                        border-radius: 6px;
+                        overflow: hidden;
+                        transition: all 0.3s ease;
+                    }
+
+                    .ticket-item:hover {
+                        transform: translateY(-3px);
+                        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                    }
+
+                    .winner-badge {
+                        position: absolute;
+                        top: 5px;
+                        right: 5px;
+                    }
+
+                    table td {
+                        font-weight: bold;
+                        padding: 0.5rem;
+                    }
+                </style>
+                @endpush
             @endif
         </div>
 
