@@ -14,9 +14,11 @@ use App\Livewire\Frontend\GameRoom;
 use App\Livewire\Frontend\TicketView;
 use App\Livewire\Frontend\UserGameHistory;
 use App\Livewire\Frontend\WithdrawalForm;
+use App\Livewire\Frontend\BuyTicketSheet;
 use App\Livewire\Backend\Dashboard;
 use App\Livewire\Backend\AdBannerManagementComponent;
 use App\Livewire\Backend\RifleRequestManagementComponent;
+use App\Livewire\Backend\Game\ManageGame;
 use App\Livewire\Backend\Prize\ManagePrize;
 
 /*
@@ -38,8 +40,9 @@ Route::get('/', Home::class)->name('home');
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/add-banner', AdBannerManagementComponent::class)->name('addBanner');
-    Route::get('/prizes', RifleRequestManagementComponent::class)->name('prizes');
+    Route::get('/prizes', ManagePrize::class)->name('prizes');
     Route::get('/rifle-request-management', RifleRequestManagementComponent::class)->name('rifle_request_management');
+    Route::get('/manage-game', ManageGame::class)->name('manage_game');
 });
 
 Route::view('dashboard', 'dashboard')
@@ -57,6 +60,7 @@ Route::middleware(['auth', 'verified'])->group(function(){
     Route::get('/ticket', TicketView::class)->name('ticket');
     Route::get('/game-history', UserGameHistory::class)->name('gameHistory');
     Route::get('/withdrawal', WithdrawalForm::class)->name('withdrawal');
+    Route::get('/buy-ticket', BuyTicketSheet::class)->name('buy_ticket');
 });
 
 Route::get('/user-profile', ProfileComponent::class)->name('userProfile');

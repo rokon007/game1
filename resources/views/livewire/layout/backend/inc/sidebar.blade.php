@@ -66,9 +66,9 @@ new class extends Component
         </a>
     </li>
     <li>
-        <a href="#" class="has-arrow">
+        <a href="{{route('admin.manage_game')}}" class="has-arrow">
             <div class="parent-icon"><i class="bi bi-wallet2"></i></div>
-            <div class="menu-title">Brand Management</div>
+            <div class="menu-title">Manage Game</div>
         </a>
     </li>
     <li>

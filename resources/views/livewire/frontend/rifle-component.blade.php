@@ -248,9 +248,15 @@
                     <div class="card-body ">
                         <center>
                             @if ($data_id)
-                              <button type="submit" class="btn btn-primary">Resubmit</button>
+                              <button type="submit" class="btn btn-primary">
+                                <span wire:loading.delay.long wire:target="updateRifleRequests" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                Resubmit
+                            </button>
                             @else
-                                <button type="submit" class="btn btn-primary">Submit</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <span wire:loading.delay.long wire:target="saveRifleRequests" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    Submit
+                                </button>
                             @endif
                         </center>
                     </div>

@@ -9,7 +9,9 @@ class Game extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'max_players', 'status', 'start_time'];
+    protected $fillable = ['title', 'scheduled_at',
+     'ticket_price', 'is_active'
+    ];
 
     // A game can have many players
     public function players()
@@ -26,6 +28,6 @@ class Game extends Model
     // A game can have many tickets
     public function tickets()
     {
-        return $this->hasManyThrough(Ticket::class, Player::class);
+        return $this->hasMany(Ticket::class);
     }
 }

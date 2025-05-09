@@ -13,8 +13,11 @@ return new class extends Migration
     {
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('player_id')->constrained()->onDelete('cascade');
-            $table->json('numbers'); // 2D ticket array as JSON
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('game_id')->constrained()->onDelete('cascade');
+            $table->string('ticket_number'); // যেটি প্লেয়ারের টিকিটের জন্য প্রয়োজন
+            $table->json('numbers')->nullable();
+            $table->boolean('is_winner')->default(false);
             $table->timestamps();
         });
     }

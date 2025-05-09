@@ -71,7 +71,10 @@ new #[Layout('layouts.layout_login')] class extends Component
                         <span></span>
                     </div>
 
-                    <button class="btn btn-warning btn-lg w-100" type="submit">{{ __('Log in') }}</button>
+                    <button class="btn btn-warning btn-lg w-100" type="submit">
+                        <span wire:loading.delay.long wire:target="login" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        {{ __('Log in') }}
+                    </button>
                     </form>
                 </div>
                 <!-- Login Meta-->

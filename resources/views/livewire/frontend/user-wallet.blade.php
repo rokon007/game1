@@ -3,7 +3,7 @@
       <meta name="description" content="Altswave Shop">
     @endsection
     @section('title')
-        <title>Altswave|Notifications</title>
+        <title>Housieblitz|Wallet</title>
     @endsection
 
     @section('css')

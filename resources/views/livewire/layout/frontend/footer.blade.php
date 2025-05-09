@@ -44,9 +44,9 @@
     <div class="suha-footer-nav">
         <ul class="h-100 d-flex align-items-center justify-content-between ps-0 d-flex rtl-flex-d-row-r">
             <li><a href="{{route('home')}}"><i class="ti ti-home"></i><span>Home</span></a></li>
-            <li><a href="pages.html"><i class="ti ti-heart"></i><span>Pages</span></a></li>
-            <li><a href="#"><i class="ti ti-basket"></i><span>Cart</span></a></li>
-            <li><a href="#"><i class="ti ti-settings"></i><span>Settings</span></a></li>
+            <li><a href="{{ route('rifleAccount') }}"><i class="ti ti-adjustments-horizontal"></i><span>Rifle</span></a></li>
+            <li><a href="{{ route('wallet') }}"><i class="ti ti-wallet"></i><span>Wallet</span></a></li>
+            <li><a href="{{ route('ticket') }}"><i class="ti ti-ticket"></i><span>Ticket</span></a></li>
             <li>
                 <input type="checkbox" id="rokon" class="d-none">
                 <label for="rokon" class="dark-mode-toggle d-flex flex-column align-items-center">
@@ -56,50 +56,7 @@
             </li>
         </ul>
     </div>
-    {{-- <script>
-        // থিম এবং আইকন ম্যানেজমেন্ট
-        var rokonSwitch = document.getElementById('rokon');
-        var themeIcon = document.getElementById('themeIcon');
-        var themeText = document.querySelector('.dark-mode-toggle span');
-        var currencyText=document.getElementByClassname(currency-icon);
 
-        // থিম স্টোরেজ থেকে পাওয়া
-        var currentTheme = localStorage.getItem('theme');
-
-        // পেজ লোডের সময় সঠিক থিম এবং স্টাইল সেট করা
-        if (currentTheme) {
-            document.documentElement.setAttribute('theme-color', currentTheme);
-            if (currentTheme === 'dark') {
-                rokonSwitch.checked = true;
-                themeIcon.classList.remove('ti-moon');
-                themeIcon.classList.add('ti-sun', 'active');
-                themeText.classList.add('active');
-                currencyText.classList.add('active');
-            }
-        }
-
-        // থিম চেঞ্জ করার ফাংশন
-        function switchTheme(e) {
-            if (e.target.checked) {
-                document.documentElement.setAttribute('theme-color', 'dark');
-                localStorage.setItem('theme', 'dark');
-                themeIcon.classList.remove('ti-moon');
-                themeIcon.classList.add('ti-sun', 'active');
-                themeText.classList.add('active');
-            } else {
-                document.documentElement.setAttribute('theme-color', 'light');
-                localStorage.setItem('theme', 'light');
-                themeIcon.classList.remove('ti-sun', 'active');
-                themeIcon.classList.add('ti-moon');
-                themeText.classList.remove('active');
-            }
-        }
-
-        // ইভেন্ট লিসেনার যোগ করা
-        if (rokonSwitch) {
-            rokonSwitch.addEventListener('change', switchTheme, false);
-        }
-    </script> --}}
     <script>
         // থিম এবং আইকন ম্যানেজমেন্ট
         var rokonSwitch = document.getElementById('rokon');

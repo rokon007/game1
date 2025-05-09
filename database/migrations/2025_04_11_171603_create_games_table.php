@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('games', function (Blueprint $table) {
             $table->id();
             $table->string('title')->nullable();
-            $table->integer('max_players')->default(10);
-            $table->enum('status', ['waiting', 'running', 'finished'])->default('waiting');
-            $table->timestamp('start_time')->nullable();
+            $table->dateTime('scheduled_at'); // কখন গেমটি শুরু হবে
+            $table->decimal('ticket_price', 10, 2);
+            $table->boolean('is_active')->default(true); // গেমটি সক্রিয় কিনা
             $table->timestamps();
         });
     }

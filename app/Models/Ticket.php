@@ -9,11 +9,23 @@ class Ticket extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['player_id', 'numbers'];
+    protected $fillable = [
+        'user_id', 'game_id',
+        'ticket_number', 'is_winner','numbers'
+    ];
 
     // A ticket belongs to a player
-    public function player()
+    public function user()
     {
-        return $this->belongsTo(Player::class);
+        return $this->belongsTo(User::class);
+    }
+
+    public function game()
+    {
+        return $this->belongsTo(Game::class);
+    }
+    public function getMorphClass()
+    {
+        return 'ticket';
     }
 }

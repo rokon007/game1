@@ -72,6 +72,7 @@ new class extends Component
                 <li><a href="{{ route('ticket') }}"><i class="ti ti-ticket"></i> Ticket</a></li>
                 <li><a href="{{ route('gameHistory') }}"><i class="ti ti-history"></i> Game History</a></li>
                 <li><a href="{{ route('withdrawal') }}"><i class="ti ti-cash-out"></i> Withdrawal</a></li>
+                <li><a href="{{ route('buy_ticket') }}"><i class="ti ti-cash-out"></i> Buy Ticket</a></li>
                 <li><a class="text-white" style="cursor: pointer" wire:click="logout"><i class="ti ti-logout"></i>Log Out</a></li>
             @else
                 <li><a href="{{ route('login') }}"><i class="ti ti-logout"></i>Log in</a></li>

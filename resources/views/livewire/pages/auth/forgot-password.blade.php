@@ -57,7 +57,10 @@ new #[Layout('layouts.layout_login')] class extends Component
                             <input class="form-control" wire:model="email" id="email"type="email" name="email" placeholder="Email" required autofocus>
                             @error('email')<small class="text-danger mt-2">{{$message}}</small> @enderror
                         </div>
-                        <button class="btn btn-warning btn-lg w-100" type="submit">Email Password Reset Link</button>
+                        <button class="btn btn-warning btn-lg w-100" type="submit">
+                            <span wire:loading.delay.long wire:target="sendPasswordResetLink" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            Email Password Reset Link
+                        </button>
                         </form>
                     </div>
                     </div>

@@ -57,6 +57,7 @@ new #[Layout('layouts.layout_login')] class extends Component
           <!-- Go Back Button-->
             <div class="mt-4 flex items-center justify-between">
                 <button wire:click="sendVerification" type="submit" class="btn btn-primary btn-lg" >
+                     <span wire:loading.delay.long wire:target="sendVerification" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                     {{ __('Resend Verification Email') }}
                 </button>
                 <button wire:click="logout" type="submit" class="btn btn-warning btn-lg" >
