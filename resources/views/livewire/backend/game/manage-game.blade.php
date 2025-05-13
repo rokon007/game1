@@ -104,7 +104,7 @@
                          <table class="table align-middle">
                            <thead class="table-light">
                              <tr>
-
+                                <th>Announced</th>
                                 <th>Game Title</th>
                                 <th>Scheduled At</th>
                                 <th>Ticket Price</th>
@@ -116,6 +116,18 @@
                             @if($games && $games->count())
                                 @foreach($games as $game)
                                     <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-3 fs-6">
+                                                <a href="{{ route('admin.number_announcer', ['gameId' => $game->id]) }}"
+                                                class="text-warning"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="bottom"
+                                                title="Edit info"
+                                                aria-label="Edit Number Announcer">
+                                                <i class="bi bi-pencil-fill"></i>
+                                                </a>
+                                            </div>
+                                        </td>
                                         <td>{{ $game->title }}</td>
                                         <td>{{ \Carbon\Carbon::parse($game->scheduled_at)->format('l, j F Y - h:i A') }}</td>
                                         <td>{{ $game->ticket_price }}</td>

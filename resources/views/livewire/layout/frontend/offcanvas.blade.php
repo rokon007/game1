@@ -68,7 +68,7 @@ new class extends Component
                 <li><a href="{{ route('wallet') }}"><i class="ti ti-wallet"></i> Wallet</a></li>
                 <li><a href="{{ route('creditTransfer') }}"><i class="ti ti-transfer"></i> Credit Transfer</a></li>
                 <li><a href="{{ route('gameLobby') }}"><i class="ti ti-grid-dots"></i> Game Lobby</a></li>
-                <li><a href="{{ route('gameRoom') }}"><i class="ti ti-dice-3"></i> Game Room</a></li>
+                {{-- <li><a href="{{ route('gameRoom') }}"><i class="ti ti-dice-3"></i> Game Room</a></li> --}}
                 <li><a href="{{ route('ticket') }}"><i class="ti ti-ticket"></i> Ticket</a></li>
                 <li><a href="{{ route('gameHistory') }}"><i class="ti ti-history"></i> Game History</a></li>
                 <li><a href="{{ route('withdrawal') }}"><i class="ti ti-cash-out"></i> Withdrawal</a></li>

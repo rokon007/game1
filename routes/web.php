@@ -20,6 +20,7 @@ use App\Livewire\Backend\AdBannerManagementComponent;
 use App\Livewire\Backend\RifleRequestManagementComponent;
 use App\Livewire\Backend\Game\ManageGame;
 use App\Livewire\Backend\Prize\ManagePrize;
+use App\Livewire\Backend\NumberAnnouncer;
 
 /*
 |--------------------------------------------------------------------------
@@ -43,6 +44,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::get('/prizes', ManagePrize::class)->name('prizes');
     Route::get('/rifle-request-management', RifleRequestManagementComponent::class)->name('rifle_request_management');
     Route::get('/manage-game', ManageGame::class)->name('manage_game');
+    Route::get('/number-announcer/{gameId}', NumberAnnouncer::class)->name('number_announcer');
 });
 
 Route::view('dashboard', 'dashboard')
@@ -56,7 +58,8 @@ Route::middleware(['auth', 'verified'])->group(function(){
     Route::get('/wallet', UserWallet::class)->name('wallet');
     Route::get('/creditTransfer', CreditTransferForm::class)->name('creditTransfer');
     Route::get('/game-lobby', GameLobby::class)->name('gameLobby');
-    Route::get('/game-room', GameRoom::class)->name('gameRoom');
+    // Route::get('/game-room/{gameId}', GameRoom::class)->name('gameRoom');
+    Route::get('/game-room/{gameId}/{sheetId?}', GameRoom::class)->name('gameRoom');
     Route::get('/ticket', TicketView::class)->name('ticket');
     Route::get('/game-history', UserGameHistory::class)->name('gameHistory');
     Route::get('/withdrawal', WithdrawalForm::class)->name('withdrawal');

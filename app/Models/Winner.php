@@ -5,32 +5,34 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Ticket extends Model
+class Winner extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
         'game_id',
-        'ticket_number',
-        'numbers',
-        'is_winner',
-        'winning_patterns', // Add this to fillable
+        'ticket_id',
+        'pattern',
+        'won_at'
     ];
 
     protected $casts = [
-        'numbers' => 'array',
-        'is_winner' => 'boolean',
-        'winning_patterns' => 'array', // Add this to casts
+        'won_at' => 'datetime'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function game()
     {
         return $this->belongsTo(Game::class);
     }
 
-    public function user()
+    public function ticket()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Ticket::class);
     }
 }

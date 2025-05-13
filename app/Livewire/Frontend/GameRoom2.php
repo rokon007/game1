@@ -6,10 +6,8 @@ use App\Models\Announcement;
 use App\Models\Ticket;
 use App\Models\Winner;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Livewire\Component;
+use Livewire\Attributes\On;
 
 class GameRoom extends Component
 {
@@ -21,8 +19,8 @@ class GameRoom extends Component
     public $winningPatterns = [];
 
     protected $listeners = [
-        'echo:game.*,number.announced' => 'handleNumberAnnounced',
-        'numberAnnounced' => 'onNumberReceived'
+        'numberReceived' => 'onNumberReceived',
+        'echo:game.*,number.announced' => 'handleNumberAnnounced'
     ];
 
     public function mount($gameId, $sheetId = null)
@@ -64,76 +62,26 @@ class GameRoom extends Component
         ];
     }
 
-    // Updated method signature for Livewire 3
-    public function handleNumberAnnounced($payload = null)
+    public function handleNumberAnnounced($event)
     {
-        // Log for debugging
-        Log::info('Number announced event received', ['payload' => $payload]);
-
-        // Extract number from payload
-        $number = null;
-        if (is_array($payload) && isset($payload['number'])) {
-            $number = $payload['number'];
-        } elseif (is_object($payload) && isset($payload->number)) {
-            $number = $payload->number;
-        }
-
-        // Add the new number to announced numbers if valid
-        if ($number && !in_array($number, $this->announcedNumbers)) {
-            $this->announcedNumbers[] = $number;
-        }
-
-        // Reload all numbers from database to ensure consistency
         $this->loadNumbers();
-
-        // Check for winners
         $this->checkWinners();
-
-        // Dispatch browser event for UI updates - Using dispatch for Livewire 3
-        if ($number) {
-            $this->dispatch('numberAnnounced', number: $number);
-        }
     }
 
-    // Updated method signature for Livewire 3
-    public function onNumberReceived($number = null)
+    public function onNumberReceived($number)
     {
-        // Log for debugging
-        Log::info('Number received via Livewire event', ['number' => $number]);
-
-        // Handle both array and direct value formats
-        if (is_array($number) && isset($number['number'])) {
-            $number = $number['number'];
-        }
-
-        if ($number && !in_array($number, $this->announcedNumbers)) {
-            $this->announcedNumbers[] = $number;
-            $this->loadNumbers();
-            $this->checkWinners();
-
-            // Dispatch browser event for UI updates - Using dispatch for Livewire 3
-            $this->dispatch('numberAnnounced', number: $number);
-        }
+        $this->announcedNumbers[] = $number;
+        $this->checkWinners();
     }
 
     public function loadNumbers()
     {
-        $this->announcedNumbers = Announcement::where('game_id', $this->games_Id)
-            ->pluck('number')
-            ->toArray();
-
+        $this->announcedNumbers = Announcement::where('game_id', $this->games_Id)->pluck('number')->toArray();
         $this->sheetTickets = Ticket::where('user_id', Auth::id())
             ->where('ticket_number', 'LIKE', $this->sheet_Id . '-%')
             ->orderBy('ticket_number')
             ->get()
             ->map(function($ticket) {
-                $winningPatterns = [];
-                if (Schema::hasColumn('tickets', 'winning_patterns') && $ticket->winning_patterns) {
-                    $winningPatterns = is_string($ticket->winning_patterns)
-                        ? json_decode($ticket->winning_patterns, true)
-                        : $ticket->winning_patterns;
-                }
-
                 return [
                     'id' => $ticket->id,
                     'number' => $ticket->ticket_number,
@@ -141,7 +89,7 @@ class GameRoom extends Component
                                 ? json_decode($ticket->numbers, true)
                                 : $ticket->numbers,
                     'is_winner' => $ticket->is_winner,
-                    'winning_patterns' => $winningPatterns,
+                    'winning_patterns' => $ticket->winning_patterns ?? [],
                     'created_at' => $ticket->created_at->format('d M Y h:i A'),
                     'game' => $ticket->game,
                 ];
@@ -191,11 +139,11 @@ class GameRoom extends Component
                 foreach ($winningPatterns as $pattern) {
                     if (isset($this->winningPatterns[$pattern]) && !$this->winningPatterns[$pattern]['claimed']) {
                         $this->winningPatterns[$pattern]['claimed'] = true;
-
-                        // Using dispatch for Livewire 3 instead of dispatchBrowserEvent
-                        $this->dispatch('winner-alert', title: 'Congratulations!',
-                            message: 'You won ' . $this->winningPatterns[$pattern]['name'] . '!',
-                            pattern: $pattern);
+                        $this->dispatchBrowserEvent('winner-alert', [
+                            'title' => 'Congratulations!',
+                            'message' => 'You won ' . $this->winningPatterns[$pattern]['name'] . '!',
+                            'pattern' => $pattern
+                        ]);
                     }
                 }
             }
@@ -276,46 +224,26 @@ class GameRoom extends Component
         $ticket = Ticket::find($ticketId);
 
         if ($ticket) {
-            try {
-                // Check if the winning_patterns column exists
-                if (Schema::hasColumn('tickets', 'winning_patterns')) {
-                    $ticket->is_winner = true;
-                    $ticket->winning_patterns = $winningPatterns; // This will be automatically JSON encoded
-                    $ticket->save();
-                } else {
-                    // If column doesn't exist, just update is_winner
-                    $ticket->is_winner = true;
-                    $ticket->save();
+            $ticket->is_winner = true;
+            $ticket->winning_patterns = json_encode($winningPatterns);
+            $ticket->save();
 
-                    // Log the issue
-                    Log::warning('winning_patterns column does not exist in tickets table. Please run the migration.');
+            // Optionally record the win in a winners table
+            foreach ($winningPatterns as $pattern) {
+                // Check if this win is already recorded
+                $existingWin = Winner::where('ticket_id', $ticketId)
+                    ->where('pattern', $pattern)
+                    ->first();
+
+                if (!$existingWin) {
+                    Winner::create([
+                        'user_id' => Auth::id(),
+                        'game_id' => $this->games_Id,
+                        'ticket_id' => $ticketId,
+                        'pattern' => $pattern,
+                        'won_at' => now()
+                    ]);
                 }
-
-                // Optionally record the win in a winners table
-                foreach ($winningPatterns as $pattern) {
-                    // Check if this win is already recorded
-                    $existingWin = Winner::where('ticket_id', $ticketId)
-                        ->where('pattern', $pattern)
-                        ->first();
-
-                    if (!$existingWin) {
-                        Winner::create([
-                            'user_id' => Auth::id(),
-                            'game_id' => $this->games_Id,
-                            'ticket_id' => $ticketId,
-                            'pattern' => $pattern,
-                            'won_at' => now()
-                        ]);
-                    }
-                }
-            } catch (\Exception $e) {
-                // Log the error
-                Log::error('Error updating ticket winning status: ' . $e->getMessage());
-
-                // Try a simpler update
-                DB::table('tickets')
-                    ->where('id', $ticketId)
-                    ->update(['is_winner' => true]);
             }
         }
     }

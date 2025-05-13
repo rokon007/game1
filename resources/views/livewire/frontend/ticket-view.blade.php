@@ -121,82 +121,84 @@
                 <!-- শীট ডিটেইল ভিউ - টিকেটগুলো একের নিচে এক -->
 
                 <div class="mb-4">
-    <button wire:click="backToList" class="btn btn-sm btn-outline-primary mb-3">
-        <i class="fas fa-arrow-left me-1"></i> Back
-    </button>
-    @if ($selectedSheet)
-        <div class="sheet-container card shadow-sm mb-0"> <!-- mb-0 যোগ করা হয়েছে -->
-            <!-- হেডার কার্ড বডির ভিতরে নিয়ে আসা হয়েছে -->
-            {{-- <div class="card-header bg-primary text-white py-2 border-bottom-0"> <!-- border-bottom-0 যোগ করা হয়েছে -->
-                <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 text-white fs-5">
-                        <i class="fas fa-ticket-alt me-2"></i>
-                        {{ $selectedSheet }}
-                    </h6>
-                    <span class="badge bg-light text-dark fs-6">
-                        <i class="fas fa-calendar-alt me-1"></i>
-                        {{ \Carbon\Carbon::parse($sheetTickets[0]['game']['scheduled_at'])->format('d M Y h:i A') }}
-                    </span>
+                    <button wire:click="backToList" class="btn btn-sm btn-outline-primary mb-3">
+                        <i class="fas fa-arrow-left me-1"></i> Back
+                    </button>
+                    <a href="{{ route('gameRoom', ['gameId' => $sheetTickets[0]['game']['id'], 'sheetId' => $selectedSheet]) }}" class="btn btn-sm btn-primary">Game Room</a>
                 </div>
-            </div> --}}
-            <div class="card-header bg-primary text-white py-2 border-bottom-0">
-                <div class="d-flex justify-content-between align-items-center flex-wrap"> <!-- flex-wrap যোগ করা হয়েছে -->
-                    <h6 class="mb-0 text-white fs-5 text-nowrap pe-2"> <!-- text-nowrap এবং pe-2 যোগ করা হয়েছে -->
-                        <i class="fas fa-ticket-alt me-2"></i>
-                        {{ Str::limit($selectedSheet, 15) }} <!-- টেক্সট লিমিট করা হয়েছে -->
-                    </h6>
-                    <span class="badge bg-light text-dark fs-6 text-nowrap mt-1 mt-sm-0"> <!-- text-nowrap এবং mt ক্লাস যোগ করা হয়েছে -->
-                        <i class="fas fa-calendar-alt me-1"></i>
-                        {{ \Carbon\Carbon::parse($sheetTickets[0]['game']['scheduled_at'])->format('d M Y h:i A') }}
-                    </span>
-                </div>
-            </div>
-            <div class="card-body py-2" style="background-color: #f8f9fa; border-top: 1px solid rgba(0,0,0,.125);"> <!-- border-top যোগ করা হয়েছে -->
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted fs-6">
-                        <i class="fas fa-gamepad me-1"></i>
-                        {{ $sheetTickets[0]['game']['title'] }}
-                    </span>
-                    <span class="badge bg-info text-white fs-6">
-                        {{ count($sheetTickets) }} Tickets
-                    </span>
-                </div>
-            </div>
-
-            <!-- টিকেট কন্টেইনার -->
-            <div class="card-body p-2 p-md-3" style="background-color: #f8f9fa;"> <!-- একই ব্যাকগ্রাউন্ড কালার -->
-                <div class="tickets-grid">
-                    @foreach($sheetTickets as $ticket)
-                        <div class="ticket-item mb-3 shadow-sm">
-                            <table class="table table-bordered mb-0">
-                                <tbody>
-                                    @foreach($ticket['numbers'] as $row)
-                                        <tr>
-                                            @foreach($row as $cell)
-                                                <td class="text-center {{ $cell ? 'bg-white' : '' }}"
-                                                    style="width: 11%; height: 35px; font-size: 0.9rem;">
-                                                    {{ $cell ?: '' }}
-                                                </td>
-                                            @endforeach
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                            @if($ticket['is_winner'])
-                                <div class="winner-badge">
-                                    <span class="badge bg-success rounded-pill">Winner</span>
+                    @if ($selectedSheet)
+                        <div class="sheet-container card shadow-sm mb-0"> <!-- mb-0 যোগ করা হয়েছে -->
+                            <!-- হেডার কার্ড বডির ভিতরে নিয়ে আসা হয়েছে -->
+                            {{-- <div class="card-header bg-primary text-white py-2 border-bottom-0"> <!-- border-bottom-0 যোগ করা হয়েছে -->
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0 text-white fs-5">
+                                        <i class="fas fa-ticket-alt me-2"></i>
+                                        {{ $selectedSheet }}
+                                    </h6>
+                                    <span class="badge bg-light text-dark fs-6">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        {{ \Carbon\Carbon::parse($sheetTickets[0]['game']['scheduled_at'])->format('d M Y h:i A') }}
+                                    </span>
                                 </div>
-                            @endif
-                            {{-- <div class="ticket-footer text-center py-1 bg-light">
-                                <small class="text-muted">#{{ explode('-', $ticket['ticket_number'])[1] }}</small>
                             </div> --}}
+                            <div class="card-header bg-primary text-white py-2 border-bottom-0">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap"> <!-- flex-wrap যোগ করা হয়েছে -->
+                                    <h6 class="mb-0 text-white fs-5 text-nowrap pe-2"> <!-- text-nowrap এবং pe-2 যোগ করা হয়েছে -->
+                                        <i class="fas fa-ticket-alt me-2"></i>
+                                        {{ Str::limit($selectedSheet, 15) }} <!-- টেক্সট লিমিট করা হয়েছে -->
+                                    </h6>
+                                    <span class="badge bg-light text-dark fs-6 text-nowrap mt-1 mt-sm-0"> <!-- text-nowrap এবং mt ক্লাস যোগ করা হয়েছে -->
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        {{ \Carbon\Carbon::parse($sheetTickets[0]['game']['scheduled_at'])->format('d M Y h:i A') }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card-body py-2" style="background-color: #f8f9fa; border-top: 1px solid rgba(0,0,0,.125);"> <!-- border-top যোগ করা হয়েছে -->
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted fs-6">
+                                        <i class="fas fa-gamepad me-1"></i>
+                                        {{ $sheetTickets[0]['game']['title'] }}
+                                    </span>
+                                    <span class="badge bg-info text-white fs-6">
+                                        {{ count($sheetTickets) }} Tickets
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- টিকেট কন্টেইনার -->
+                            <div class="card-body p-2 p-md-3" style="background-color: #f8f9fa;"> <!-- একই ব্যাকগ্রাউন্ড কালার -->
+                                <div class="tickets-grid">
+                                    @foreach($sheetTickets as $ticket)
+                                        <div class="ticket-item mb-3 shadow-sm">
+                                            <table class="table table-bordered mb-0">
+                                                <tbody>
+                                                    @foreach($ticket['numbers'] as $row)
+                                                        <tr>
+                                                            @foreach($row as $cell)
+                                                                <td class="text-center {{ $cell ? 'bg-white' : '' }}"
+                                                                    style="width: 11%; height: 35px; font-size: 0.9rem;">
+                                                                    {{ $cell ?: '' }}
+                                                                </td>
+                                                            @endforeach
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                            @if($ticket['is_winner'])
+                                                <div class="winner-badge">
+                                                    <span class="badge bg-success rounded-pill">Winner</span>
+                                                </div>
+                                            @endif
+                                            {{-- <div class="ticket-footer text-center py-1 bg-light">
+                                                <small class="text-muted">#{{ explode('-', $ticket['ticket_number'])[1] }}</small>
+                                            </div> --}}
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
                         </div>
-                    @endforeach
+                    @endif
                 </div>
-            </div>
-        </div>
-    @endif
-</div>
 
 @push('styles')
 <style>

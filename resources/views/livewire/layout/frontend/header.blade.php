@@ -5,11 +5,12 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cookie;
-use Livewire\Attributes\On;
+use App\Models\Ticket;
+// use Livewire\Attributes\On;
 
 new class extends Component
 {
-    public $cartCount = 0;
+    // public $cartCount = 0;
     public $unreadCount = 0;
 
 
@@ -19,6 +20,11 @@ new class extends Component
         $sessionId = session()->getId();
         $this->loadUnreadCount();
 
+    }
+
+    public function loadNumbers()
+    {
+        $this->dispatch('load_numbers');
     }
 
     public function loadUnreadCount()

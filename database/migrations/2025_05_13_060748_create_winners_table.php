@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tickets', function (Blueprint $table) {
+        Schema::create('winners', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('game_id')->constrained()->onDelete('cascade');
-            $table->string('ticket_number'); // যেটি প্লেয়ারের টিকিটের জন্য প্রয়োজন
-            $table->json('numbers')->nullable();
-            $table->boolean('is_winner')->default(false);
-            $table->json('winning_patterns')->nullable();
+            $table->foreignId('ticket_id')->constrained()->onDelete('cascade');
+            $table->string('pattern'); // corner, top_line, middle_line, bottom_line, full_house
+            $table->timestamp('won_at');
             $table->timestamps();
+
+            // Ensure a user can only win each pattern once per ticket
+            $table->unique(['ticket_id', 'pattern']);
         });
     }
 
@@ -28,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tickets');
+        Schema::dropIfExists('winners');
     }
 };

@@ -71,12 +71,7 @@ new class extends Component
             <div class="menu-title">Manage Game</div>
         </a>
     </li>
-    <li>
-        <a href="#" class="has-arrow">
-            <div class="parent-icon"><i class="bi bi-wallet2"></i></div>
-            <div class="menu-title">Order Management</div>
-        </a>
-    </li>
+
     <li>
         <a href="#" class="has-arrow">
             <div class="parent-icon"><i class="bi bi-wallet2"></i></div>
