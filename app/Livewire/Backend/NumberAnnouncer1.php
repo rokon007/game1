@@ -4,11 +4,11 @@ namespace App\Livewire\Backend;
 
 use App\Models\Announcement;
 use App\Models\Game;
+use App\Events\NumberAnnounced;
 use Illuminate\Support\Facades\Broadcast;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
-// use Livewire\Attributes\On;
-
+use Illuminate\Support\Facades\Log;
 
 class NumberAnnouncer extends Component
 {
@@ -18,68 +18,84 @@ class NumberAnnouncer extends Component
     public $selectedNumber;
     public $game;
 
-        // #[On('number-announced')]
-        public function announceNumber()
-        {
-            $number=$this->selectedNumber;
+    public function mount($gameId)
+    {
+        $this->gameId = $gameId;
+        $this->game = Game::find($gameId);
+        // Load already called numbers
+        $this->calledNumbers = Announcement::where('game_id', $gameId)->pluck('number')->toArray();
+    }
 
-            // চেক করো এই নাম্বার আগে ঘোষণা করা হয়েছে কি না
-            $exists = Announcement::where('game_id', $this->gameId)
-                ->where('number', $number)
-                ->exists();
+    public function announceNumber()
+    {
+        $number = $this->selectedNumber;
 
-            if ($exists) {
-                session()->flash('error', 'This number has already been announced.');
-                return;
-            }
+        if (!$number) {
+            session()->flash('error', 'Please select a number first.');
+            return;
+        }
 
+        // চেক করো এই নাম্বার আগে ঘোষণা করা হয়েছে কি না
+        $exists = Announcement::where('game_id', $this->gameId)
+            ->where('number', $number)
+            ->exists();
+
+        if ($exists) {
+            session()->flash('error', 'This number has already been announced.');
+            return;
+        }
+
+        try {
             // ঘোষণা তৈরি করো
             Announcement::create([
                 'game_id' => $this->gameId,
                 'number' => $number,
             ]);
-            event(new \App\Events\NumberAnnounced($this->gameId, $this->selectedNumber));
-        }
 
-        public function mount($gameId)
-        {
-            $this->gameId=$gameId;
-            $this->game = Game::find($gameId);
-        }
-
-        // public function mount($gameId)
-        // {
-        //     $this->gameId = $gameId;
-        //     $this->calledNumbers = Announcement::where('game_id', $gameId)->pluck('number')->toArray();
-        // }
-
-        public function callNextNumber()
-        {
-            $available = collect(range(1, 90))->diff($this->calledNumbers)->values();
-
-            if ($available->isEmpty()) {
-                session()->flash('error', 'All numbers have been announced.');
-                return;
+            // Add to called numbers array
+            if (!in_array($number, $this->calledNumbers)) {
+                $this->calledNumbers[] = $number;
             }
 
-            $this->nextNumber = $available->random();
-            $this->calledNumbers[] = $this->nextNumber;
+            // Clear selected number
+            $this->selectedNumber = null;
 
-            Announcement::create([
-                'game_id' => $this->gameId,
-                'number' => $this->nextNumber,
-            ]);
+            // Broadcast the event
+            broadcast(new NumberAnnounced($this->gameId, $number))->toOthers();
 
-            // event(new \App\Events\NumberAnnounced($this->gameId, $this->nextNumber));
+            // Also dispatch for the current user using Livewire 3 syntax
+            $this->dispatch('numberAnnounced', number: $number);
 
-            // broadcast(new \App\Events\NumberAnnounced($this->gameId, $this->nextNumber))->toOthers();
-        }
+            // Log success
+            Log::info("Number $number announced successfully for game {$this->gameId}");
 
-
-        public function render()
-        {
-
-            return view('livewire.backend.number-announcer')->layout('livewire.backend.base');
-
+            session()->flash('success', "Number $number has been announced successfully!");
+        } catch (\Exception $e) {
+            Log::error("Error announcing number: " . $e->getMessage());
+            session()->flash('error', "Error announcing number: " . $e->getMessage());
         }
     }
+
+    public function callNextNumber()
+    {
+        $available = collect(range(1, 90))->diff($this->calledNumbers)->values();
+
+        if ($available->isEmpty()) {
+            session()->flash('error', 'All numbers have been announced.');
+            return;
+        }
+
+        $this->nextNumber = $available->random();
+
+        // Set as selected number
+        $this->selectedNumber = $this->nextNumber;
+
+        // Announce it
+        $this->announceNumber();
+    }
+
+    public function render()
+    {
+        return view('livewire.backend.number-announcer')->layout('livewire.backend.base');
+    }
+}

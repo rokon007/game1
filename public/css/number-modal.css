@@ -1,0 +1,190 @@
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
+  overflow: auto;
+}
+
+.modal-dialog {
+  position: relative;
+  width: auto;
+  margin: 1.75rem auto;
+  max-width: 500px;
+}
+
+.modal-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  border-radius: 0.3rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-body {
+  position: relative;
+  flex: 1 1 auto;
+  padding: 1rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem;
+  border-top: 1px solid #dee2e6;
+}
+
+/* Number Announcement Styles */
+.number-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+.spinner-border {
+  width: 5rem;
+  height: 5rem;
+  border-width: 0.5rem;
+}
+
+.announced-number {
+  font-size: 8rem;
+  font-weight: bold;
+  text-align: center;
+  color: #007bff;
+  animation: numberReveal 1s ease-in-out;
+}
+
+@keyframes numberReveal {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Winner Modal Styles */
+.winner-modal-content {
+  text-align: center;
+  padding: 2rem;
+}
+
+.winner-title {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #28a745;
+}
+
+.winner-message {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.trophy-icon {
+  font-size: 4rem;
+  color: gold;
+  margin-bottom: 1rem;
+  animation: trophyBounce 1s infinite alternate;
+}
+
+@keyframes trophyBounce {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.2);
+  }
+}
+
+/* Pattern-specific styles */
+.pattern-corner .winner-title {
+  color: #17a2b8;
+}
+.pattern-top_line .winner-title {
+  color: #007bff;
+}
+.pattern-middle_line .winner-title {
+  color: #28a745;
+}
+.pattern-bottom_line .winner-title {
+  color: #ffc107;
+}
+.pattern-full_house .winner-title {
+  color: #dc3545;
+}
+
+/* Modal open styles */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Make sure modals are visible when shown */
+.modal.show,
+.modal[style*="display: block"] {
+  display: block !important;
+}
+
+/* Confetti animation for winner modal */
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: #f00;
+  animation: confetti-fall 5s linear infinite;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(500px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+  
+  .announced-number {
+    font-size: 5rem;
+  }
+  
+  .winner-title {
+    font-size: 1.5rem;
+  }
+  
+  .winner-message {
+    font-size: 1.2rem;
+  }
+  
+  .trophy-icon {
+    font-size: 3rem;
+  }
+}

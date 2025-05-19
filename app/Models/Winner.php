@@ -21,6 +21,8 @@ class Winner extends Model
         'won_at' => 'datetime'
     ];
 
+    protected $dates = ['won_at', 'created_at', 'updated_at'];
+
     public function user()
     {
         return $this->belongsTo(User::class);

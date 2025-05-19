@@ -121,10 +121,19 @@
                 <!-- শীট ডিটেইল ভিউ - টিকেটগুলো একের নিচে এক -->
 
                 <div class="mb-4">
-                    <button wire:click="backToList" class="btn btn-sm btn-outline-primary mb-3">
+                    {{-- <button wire:click="backToList" class="btn btn-sm btn-outline-primary mb-3">
                         <i class="fas fa-arrow-left me-1"></i> Back
                     </button>
-                    <a href="{{ route('gameRoom', ['gameId' => $sheetTickets[0]['game']['id'], 'sheetId' => $selectedSheet]) }}" class="btn btn-sm btn-primary">Game Room</a>
+                    <a href="{{ route('gameRoom', ['gameId' => $sheetTickets[0]['game']['id'], 'sheetId' => $selectedSheet]) }}" class="btn btn-sm btn-primary">Enter Your Game Room For Partisipet</a> --}}
+                    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+                        <button wire:click="backToList" class="btn btn-sm btn-outline-primary mb-2 mb-sm-0">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Sheets
+                        </button>
+                        <a href="{{ route('gameRoom', ['gameId' => $sheetTickets[0]['game']['id'], 'sheetId' => $selectedSheet]) }}"
+                        class="btn btn-sm btn-primary">
+                            <i class="fas fa-door-open me-1"></i> Enter Game Room
+                        </a>
+                    </div>
                 </div>
                     @if ($selectedSheet)
                         <div class="sheet-container card shadow-sm mb-0"> <!-- mb-0 যোগ করা হয়েছে -->

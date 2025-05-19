@@ -27,6 +27,28 @@
                 vertical-align: middle;
                 margin-right: 1px;
             }
+
+
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 9999;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .modal-content {
+                background: white;
+                padding: 2rem;
+                border-radius: 0.5rem;
+                max-width: 90%;
+                width: 500px;
+                text-align: center;
+            }
         </style>
     @endsection
 
@@ -405,6 +427,328 @@ x-init="
             </style>
         @endpush
     </div>
+
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            // Audio for announced numbers
+            @this.on('play-number-audio', (data) => {
+                const number = data.number;
+                playNumberAudio(number);
+            });
+
+            // Audio for winning patterns
+            @this.on('play-winner-audio', (data) => {
+                const pattern = data.pattern;
+                playWinnerAudio(pattern);
+            });
+
+            // Function to play audio for announced numbers
+            function playNumberAudio(number) {
+                console.log(`Playing audio for number: ${number}`);
+
+                // Map number to audio file name (you can use a more efficient approach for all 90 numbers)
+                const numberWords = [
+                    'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+                    'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen',
+                    'twenty', 'twenty-one', 'twenty-two', 'twenty-three', 'twenty-four', 'twenty-five', 'twenty-six', 'twenty-seven', 'twenty-eight', 'twenty-nine',
+                    'thirty', 'thirty-one', 'thirty-two', 'thirty-three', 'thirty-four', 'thirty-five', 'thirty-six', 'thirty-seven', 'thirty-eight', 'thirty-nine',
+                    'forty', 'forty-one', 'forty-two', 'forty-three', 'forty-four', 'forty-five', 'forty-six', 'forty-seven', 'forty-eight', 'forty-nine',
+                    'fifty', 'fifty-one', 'fifty-two', 'fifty-three', 'fifty-four', 'fifty-five', 'fifty-six', 'fifty-seven', 'fifty-eight', 'fifty-nine',
+                    'sixty', 'sixty-one', 'sixty-two', 'sixty-three', 'sixty-four', 'sixty-five', 'sixty-six', 'sixty-seven', 'sixty-eight', 'sixty-nine',
+                    'seventy', 'seventy-one', 'seventy-two', 'seventy-three', 'seventy-four', 'seventy-five', 'seventy-six', 'seventy-seven', 'seventy-eight', 'seventy-nine',
+                    'eighty', 'eighty-one', 'eighty-two', 'eighty-three', 'eighty-four', 'eighty-five', 'eighty-six', 'eighty-seven', 'eighty-eight', 'eighty-nine',
+                    'ninety'
+                ];
+
+                // Get the audio file name based on the number
+                const audioFileName = number >= 0 && number <= 90 ? `${numberWords[number]}.mp3` : null;
+
+                if (audioFileName) {
+                    const audioPath = `/sounds/numbers/${audioFileName}`;
+                    playAudio(audioPath);
+                }
+            }
+
+            // Function to play audio for winning patterns
+            function playWinnerAudio(pattern) {
+                console.log(`Playing audio for winning pattern: ${pattern}`);
+
+                // Map pattern to audio file name
+                const patternAudioMap = {
+                    'corner': 'corner_numbers.mp3',
+                    'top_line': 'top_line.mp3',
+                    'middle_line': 'middle_line.mp3',
+                    'bottom_line': 'bottom_line.mp3',
+                    'full_house': 'full_house.mp3'
+                };
+
+                const audioFileName = patternAudioMap[pattern] || null;
+
+                if (audioFileName) {
+                    const audioPath = `/sounds/winners/${audioFileName}`;
+                    playAudio(audioPath);
+                }
+            }
+
+            // Helper function to play audio
+            function playAudio(audioPath) {
+                console.log(`Playing audio file: ${audioPath}`);
+
+                // Create and play audio element
+                const audio = new Audio(audioPath);
+
+                // Add error handling
+                audio.onerror = function() {
+                    console.error(`Error playing audio file: ${audioPath}`);
+                };
+
+                // Play the audio
+                audio.play().catch(error => {
+                    console.error('Error playing audio:', error);
+                });
+            }
+        });
+    </script>
+
+    <!-- game-room.blade.php -->
+        <div x-data="{
+                    showNumberModal: false,
+                    currentNumber: null,
+                    callNumber: null,
+                    showSpin: true,
+                    init() {
+                        console.log('Alpine component initialized');
+
+                        window.Echo.channel('game.{{ $games_Id }}')
+                            .listen('.number.announced', (e) => {
+                                console.log('Event received:', e);
+                                this.showNumberModal = true;
+                                this.currentNumber = e.number;
+                                this.callNumber = e.number;
+                                this.showSpin = true;
+
+                                setTimeout(() => {
+                                    this.showSpin = false;
+                                    console.log('Spin animation stopped');
+                                }, 3000);
+
+                                setTimeout(() => {
+                                    this.showNumberModal = false;
+                                    console.log('Modal closed');
+                                    $wire.handleNumberAnnounced(e);
+                                }, 6000);
+                            });
+                    }
+                }">
+            <!-- Debug Modal State -->
+            <div x-show="showNumberModal"
+                x-transition.opacity.duration.300ms
+                class="modal-overlay">
+                <div class="modal-content">
+                    {{-- <template x-if="showSpin">
+                        <div class="text-8xl py-8 text-blue-500">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </template> --}}
+                     <template x-if="showSpin">
+                        <div class="text-center p-8 bg-white rounded-xl shadow-2xl">
+                            <div class="mb-6 text-2xl font-bold text-blue-600">
+                                Number is being selected...
+                            </div>
+                            <div class="flex justify-center">
+                                <img
+                                    src="https://media2.giphy.com/media/LL5FiPJnlFnjy/giphy.gif"
+                                    alt="Spinning wheel"
+                                    class="w-64 h-64 object-contain border-4 border-blue-100 rounded-full shadow-inner"
+                                >
+                            </div>
+                            <div class="mt-6 text-gray-500">
+                                Please wait while we pick your lucky number
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="!showSpin">
+                        <div style="font-size: 32px; font-weight: 900; color: #dc3545;"
+                        x-text="currentNumber"></div>
+
+                    </template>
+                </div>
+            </div>
+
+            <!-- Debug Console -->
+            {{-- <div class="fixed bottom-0 left-0 bg-black text-white p-2 text-xs">
+                <div>Modal State: <span x-text="showNumberModal ? 'Open' : 'Closed'"></span></div>
+                <div>Current Number: <span x-text="currentNumber || 'None'"></span></div>
+                <div>Spin State: <span x-text="showSpin ? 'Showing' : 'Hidden'"></span></div>
+            </div> --}}
+        </div>
+
+                {{-- <div x-data="{
+                            showNumberModal: false,
+                            currentNumber: null,
+                            callNumber: null,
+                            showSpin: true,
+                            randomCounter: null,
+                            counterInterval: null,
+                            init() {
+                                console.log('Alpine component initialized');
+
+                                window.Echo.channel('game.{{ $games_Id }}')
+                                    .listen('.number.announced', (e) => {
+                                        console.log('Event received:', e);
+                                        this.showNumberModal = true;
+                                        this.currentNumber = e.number;
+                                        this.callNumber = e.number;
+                                        this.showSpin = true;
+
+                                        // Start random counter
+                                        this.startRandomCounter();
+
+                                        setTimeout(() => {
+                                            this.showSpin = false;
+                                            this.stopRandomCounter();
+                                            console.log('Counter stopped');
+                                        }, 6000);
+
+                                        setTimeout(() => {
+                                            this.showNumberModal = false;
+                                            console.log('Modal closed');
+                                            $wire.handleNumberAnnounced(e);
+                                        }, 9000);
+                                    });
+                            },
+                            startRandomCounter() {
+                                this.randomCounter = Math.floor(Math.random() * 90) + 1;
+                                this.counterInterval = setInterval(() => {
+                                    this.randomCounter = Math.floor(Math.random() * 90) + 1;
+                                }, 100); // Change number every 100ms
+                            },
+                            stopRandomCounter() {
+                                clearInterval(this.counterInterval);
+                                this.randomCounter = null;
+                            }
+                        }">
+                    <!-- Number Announcement Modal -->
+                    <div x-show="showNumberModal"
+                        x-transition.opacity.duration.300ms
+                        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                        <div class="bg-white rounded-lg p-8 max-w-md w-full text-center">
+                            <template x-if="showSpin">
+                                <div class="text-8xl py-8 text-blue-500 font-mono">
+                                    <span x-text="randomCounter" class="counter-number"></span>
+                                </div>
+                            </template>
+                            <template x-if="!showSpin">
+                                <div class="text-8xl py-8 font-bold text-green-600"
+                                    x-text="currentNumber"></div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Debug Console (Optional) -->
+                    <div class="fixed bottom-0 left-0 bg-black text-white p-2 text-xs">
+                        <div>Modal State: <span x-text="showNumberModal ? 'Open' : 'Closed'"></span></div>
+                        <div>Current Number: <span x-text="currentNumber || 'None'"></span></div>
+                        <div>Counter State: <span x-text="showSpin ? 'Running' : 'Stopped'"></span></div>
+                    </div>
+                </div>
+
+                <style>
+                    .counter-number {
+                        display: inline-block;
+                        min-width: 120px;
+                        text-align: center;
+                    }
+                </style> --}}
+
+                {{-- <div x-data="numberModalComponent()" x-init="init()">
+                    <!-- Number Announcement Modal -->
+                    <div x-show="showNumberModal"
+                        x-transition.opacity.duration.300ms
+                        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                        <div class="bg-white rounded-lg p-8 max-w-md w-full text-center">
+                            <template x-if="showSpin">
+                                <div class="text-8xl py-8 text-blue-500 font-mono">
+                                    <span x-text="randomCounter" class="counter-number"></span>
+                                </div>
+                            </template>
+                            <template x-if="!showSpin">
+                                <div class="text-8xl py-8 font-bold text-green-600"
+                                    x-text="currentNumber"></div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Debug Console (Optional) -->
+                    <div class="fixed bottom-0 left-0 bg-black text-white p-2 text-xs">
+                        <div>Modal State: <span x-text="showNumberModal ? 'Open' : 'Closed'"></span></div>
+                        <div>Current Number: <span x-text="currentNumber || 'None'"></span></div>
+                        <div>Counter State: <span x-text="showSpin ? 'Running' : 'Stopped'"></span></div>
+                    </div>
+                </div>
+
+                <style>
+                    .counter-number {
+                        display: inline-block;
+                        min-width: 120px;
+                        text-align: center;
+                    }
+                </style>
+
+                <script>
+                    function numberModalComponent() {
+                        return {
+                            showNumberModal: false,
+                            currentNumber: null,
+                            callNumber: null,
+                            showSpin: true,
+                            randomCounter: null,
+                            counterInterval: null,
+
+                            init() {
+                                console.log('Alpine component initialized');
+
+                                window.Echo.channel('game.{{ $games_Id }}')
+                                    .listen('.number.announced', (e) => {
+                                        console.log('Event received:', e);
+                                        this.showNumberModal = true;
+                                        this.currentNumber = e.number;
+                                        this.callNumber = e.number;
+                                        this.showSpin = true;
+
+                                        this.startRandomCounter();
+
+                                        setTimeout(() => {
+                                            this.showSpin = false;
+                                            this.stopRandomCounter();
+                                            console.log('Counter stopped');
+                                        }, 6000);
+
+                                        setTimeout(() => {
+                                            this.showNumberModal = false;
+                                            console.log('Modal closed');
+                                            $wire.handleNumberAnnounced(e);
+                                        }, 9000);
+                                    });
+                            },
+
+                            startRandomCounter() {
+                                this.randomCounter = Math.floor(Math.random() * 90) + 1;
+                                this.counterInterval = setInterval(() => {
+                                    this.randomCounter = Math.floor(Math.random() * 90) + 1;
+                                }, 100);
+                            },
+
+                            stopRandomCounter() {
+                                clearInterval(this.counterInterval);
+                                this.counterInterval = null;
+                                this.randomCounter = null;
+                            }
+                        }
+                    }
+                </script> --}}
+
+
 </div>
 
     @section('footer')

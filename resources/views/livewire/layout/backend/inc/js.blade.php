@@ -43,12 +43,23 @@
   <script src="{{ asset('backend/assets/plugins/notifications/js/lobibox.min.js') }}"></script>
 	<script src="{{ asset('backend/assets/plugins/notifications/js/notifications.min.js') }}"></script>
 	<!--<script src="{{ asset('backend/assets/plugins/notifications/js/notification-custom-script.js') }}"></script>-->
-  <script src="{{ asset('backend/assets/js/pace.min.js') }}"></script>
+  {{-- <script src="{{ asset('backend/assets/js/pace.min.js') }}"></script> --}}
   <!--Toster JS-->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
   <!--Sweetalert JS-->
   {{-- <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script> --}}
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+
+
+
+
+
+
+
+
+
 
 
 
