@@ -12,7 +12,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        $schedule->call(function () {
+            \App\Models\User::where('last_seen_at', '<', now()->subMinutes(5))
+                ->update(['is_online' => false]);
+        })->everyMinute();
     }
 
     /**

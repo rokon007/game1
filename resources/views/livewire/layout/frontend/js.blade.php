@@ -12,4 +12,4 @@
 <script src="{{asset('assets/frontend/js/theme-switching.js')}}"></script>
 <script src="{{asset('assets/frontend/js/no-internet.js')}}"></script>
 <script src="{{asset('assets/frontend/js/active.js')}}"></script>
-<script src="{{asset('assets/frontend/js/pwa.js')}}"></script>
+{{-- <script src="{{asset('assets/frontend/js/pwa.js')}}"></script> --}}

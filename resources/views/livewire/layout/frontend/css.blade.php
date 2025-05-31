@@ -18,4 +18,4 @@
 <!-- Stylesheet -->
 <link rel="stylesheet" href="{{asset('style.css')}}">
 <!-- Web App Manifest -->
-<link rel="manifest" href="{{asset('manifest.json')}}">
+{{-- <link rel="manifest" href="{{asset('manifest.json')}}"> --}}

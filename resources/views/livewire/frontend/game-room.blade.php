@@ -49,6 +49,29 @@
                 width: 500px;
                 text-align: center;
             }
+             .gameOver-container {
+                position: relative;
+                /* height: 170px; */
+                overflow: hidden;
+            }
+            .gameOver-container .gameOver-text {
+                position: absolute;
+                top: 50%; /* কন্টেইনারের মাঝখানে সেট করা */
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(-15deg); /* হালকা ঘুরিয়ে দেওয়া */
+                font-size: 36px; /* টেক্সটের আকার */
+                color:black; /* স্টাম্পের জন্য হালকা লাল রঙ */
+                font-weight: bold;
+                text-transform: uppercase; /* টেক্সটকে বড়হাতের করে দেওয়া */
+                white-space: nowrap; /* এক লাইনে রাখার জন্য */
+                pointer-events: none; /* টেক্সটকে ক্লিক করা নিষিদ্ধ */
+                background-color: hsl(45, 100%, 51%);
+                border: 1px solid black; /* স্টাম্পের বর্ডার */
+                border-radius: 50%; /* গোলাকার আকৃতি */
+                padding: 20px 40px; /* স্টাম্পের জায়গা ঠিক করার জন্য প্যাডিং */
+                box-shadow: 0 0 15px rgba(255, 0, 0, 0.3); /* হালকা শেডো */
+
+            }
         </style>
     @endsection
 
@@ -122,7 +145,7 @@ x-init="
     });
 ">
     <!-- Winner Alert -->
-    <div x-show="showWinnerAlert"
+    {{-- <div x-show="showWinnerAlert"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 transform scale-90"
          x-transition:enter-end="opacity-100 transform scale-100"
@@ -143,7 +166,54 @@ x-init="
         <button @click="showWinnerAlert = false" class="absolute top-2 right-2 text-white">
             <i class="fas fa-times"></i>
         </button>
-    </div>
+    </div> --}}
+
+    <!-- Bootstrap CSS -->
+{{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> --}}
+
+    <!-- Alpine.js -->
+    {{-- <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script> --}}
+
+    <!-- Font Awesome (optional for trophy icon) -->
+    {{-- <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+    <div x-data="{
+            showWinnerAlert: false,
+            winTitle: 'You Won!',
+            winMessage: 'Congratulations on winning the game!',
+            openModal() {
+                this.showWinnerAlert = true;
+                const modal = new bootstrap.Modal(this.$refs.winnerModal);
+                modal.show();
+            }
+        }" x-init="openModal()">
+
+        <!-- Bootstrap Modal -->
+        <div class="modal fade" tabindex="-1" x-ref="winnerModal">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-success text-white">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title">
+                            <i class="fas fa-trophy me-2 text-warning"></i>
+                            <span x-text="winTitle"></span>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                            @click="showWinnerAlert = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p x-text="winMessage"></p>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" @click="showWinnerAlert = false">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> --}}
+
+    <!-- Bootstrap JS Bundle (with Popper) -->
+    {{-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> --}}
+
 
     <div class="page-content-wrapper">
         <div class="container px-3 py-3">
@@ -190,7 +260,10 @@ x-init="
                         </h6>
                         <small class="text-muted">Total: {{ count($announcedNumbers) }}</small>
                     </div>
-                    <div class="called-numbers-container bg-white p-3 rounded shadow-sm" style="min-height: 80px;">
+                    <div class="gameOver-container called-numbers-container bg-white p-3 rounded shadow-sm" style="min-height: 80px;">
+                        @if ($gameOver==1)
+                           <div class="gameOver-text">Game Over</div>
+                        @endif
                         @if(count($announcedNumbers) > 0)
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach($announcedNumbers as $num)

@@ -66,13 +66,43 @@
 
                          <div class="col-12">
                           <label for="scheduled_at" class="form-label">Scheduled At</label>
-                          <input class="form-control" type="datetime-local" wire:model.live="scheduled_at" >
+                          <input class="form-control" type="datetime-local" wire:model="scheduled_at" >
                           @error('scheduled_at') <small class="text-danger">{{ $message }}</small> @enderror
                         </div>
                         <div class="col-12">
                             <label for="ticket_price" class="form-label">Ticket Price</label>
                             <input class="form-control" type="number" step="0.01" wire:model="ticket_price" >
                             @error('ticket_price') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+                        <div class="col-12">
+                            <hr>
+                            <h6>Winer price</h6>
+                            <hr>
+                        </div>
+                        <div class="col-12">
+                            <label for="corner_prize" class="form-label">Corner Price</label>
+                            <input class="form-control" type="number" step="0.01" wire:model="corner_prize" >
+                            @error('corner_prize') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+                        <div class="col-12">
+                            <label for="top_line_prize" class="form-label">Top line Price</label>
+                            <input class="form-control" type="number" step="0.01" wire:model="top_line_prize" >
+                            @error('top_line_prize') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+                        <div class="col-12">
+                            <label for="middle_line_prize" class="form-label">Middle line Price</label>
+                            <input class="form-control" type="number" step="0.01" wire:model="middle_line_prize" >
+                            @error('middle_line_prize') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+                        <div class="col-12">
+                            <label for="bottom_line_prize" class="form-label">Bottom line Price</label>
+                            <input class="form-control" type="number" step="0.01" wire:model="bottom_line_prize" >
+                            @error('bottom_line_prize') <small class="text-danger">{{ $message }}</small> @enderror
+                        </div>
+                        <div class="col-12">
+                            <label for="full_house_prize" class="form-label">Full house Price</label>
+                            <input class="form-control" type="number" step="0.01" wire:model="full_house_prize" >
+                            @error('full_house_prize') <small class="text-danger">{{ $message }}</small> @enderror
                         </div>
                         <div class="col-12">
 

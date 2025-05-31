@@ -18,6 +18,29 @@
                 .fa-spinner {
                     color: #4a5568;
                 }
+                .gameOver-container {
+                    position: relative;
+                    /* height: 170px; */
+                    overflow: hidden;
+                }
+                .gameOver-container .gameOver-text {
+                    position: absolute;
+                    top: 50%; /* কন্টেইনারের মাঝখানে সেট করা */
+                    left: 50%;
+                    transform: translate(-50%, -50%) rotate(-15deg); /* হালকা ঘুরিয়ে দেওয়া */
+                    font-size: 36px; /* টেক্সটের আকার */
+                    color:black; /* স্টাম্পের জন্য হালকা লাল রঙ */
+                    font-weight: bold;
+                    text-transform: uppercase; /* টেক্সটকে বড়হাতের করে দেওয়া */
+                    white-space: nowrap; /* এক লাইনে রাখার জন্য */
+                    pointer-events: none; /* টেক্সটকে ক্লিক করা নিষিদ্ধ */
+                    background-color: hsl(45, 100%, 51%);
+                    border: 1px solid black; /* স্টাম্পের বর্ডার */
+                    border-radius: 50%; /* গোলাকার আকৃতি */
+                    padding: 20px 40px; /* স্টাম্পের জায়গা ঠিক করার জন্য প্যাডিং */
+                    box-shadow: 0 0 15px rgba(255, 0, 0, 0.3); /* হালকা শেডো */
+
+                }
             </style>
     @endsection
 
@@ -138,7 +161,10 @@
                                 <small class="text-muted">Latest: {{ end($calledNumbers) ?: 'None' }}</small>
                             </h5>
                             <div class="overflow-auto">
-                                <div class="d-flex flex-wrap gap-2">
+                                <div class="gameOver-container d-flex flex-wrap gap-2">
+                                    @if ($gameOver==1)
+                                        <div class="gameOver-text">Game Over</div>
+                                    @endif
                                     @foreach($calledNumbers as $number)
                                         <span class="badge bg-primary rounded-pill p-2">{{ $number }}</span>
                                     @endforeach

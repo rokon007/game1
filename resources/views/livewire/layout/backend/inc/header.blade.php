@@ -329,9 +329,12 @@ new class extends Component
                     @if($notifications)
                         @forelse ($notifications as $notification)
 
-                          <a class="dropdown-item"
+                          {{-- <a class="dropdown-item"
                                 href="#"
-                                wire:click="markAsReadAndRedirect('{{ $notification->id }}', '{{ auth()->user()->role === 'admin' ? $notification->data['admin_link'] : $notification->data['user_link'] }}')">
+                                wire:click="markAsReadAndRedirect('{{ $notification->id }}', '{{ auth()->user()->role === 'admin' ? $notification->data['admin_link'] : $notification->data['user_link'] }}')"> --}}
+                                <a class="dropdown-item"
+                                    href="#"
+                                    wire:click="markAsReadAndRedirect('{{ $notification->id }}', '{{ auth()->user()->role === 'admin' ? ($notification->data['admin_link'] ?? '#') : ($notification->data['user_link'] ?? '#') }}')">
 
 
                                 <div class="d-flex align-items-center">

@@ -30,6 +30,7 @@ class NumberAnnouncer extends Component
 
     public $showNumberModal = false;
     public $currentAnnouncedNumber = null;
+    public $gameOver=false;
 
     public function mount($gameId)
     {
@@ -37,6 +38,20 @@ class NumberAnnouncer extends Component
         $this->game = Game::findOrFail($gameId);
         $this->calledNumbers = Announcement::where('game_id', $gameId)->pluck('number')->toArray();
         $this->loadStatistics();
+        $this->checkGameOver();
+    }
+
+    private function checkGameOver()
+    {
+        // Count how many patterns have been claimed in this game
+        $claimedPatternsCount = Winner::where('game_id', $this->gameId)
+            ->distinct('pattern')
+            ->count('pattern');
+
+        // If all 5 patterns are claimed, the game is over
+        $this->gameOver = ($claimedPatternsCount >= 5);
+
+        return $this->gameOver;
     }
 
     protected function loadStatistics()
@@ -85,6 +100,12 @@ class NumberAnnouncer extends Component
     public function announceNumber()
     {
         $number = $this->selectedNumber;
+        $this->checkGameOver();
+
+        if($this->gameOver){
+            session()->flash('error', 'Gamr Over.');
+            return;
+        }
 
         if (!$number) {
             session()->flash('error', 'Please select a number first.');
@@ -253,6 +274,11 @@ class NumberAnnouncer extends Component
     public function callNextNumber()
     {
         $available = collect(range(1, 90))->diff($this->calledNumbers)->values();
+
+        if($this->gameOver){
+            session()->flash('error', 'Gamr Over.');
+            return;
+        }
 
         if ($available->isEmpty()) {
             session()->flash('error', 'All numbers have been announced.');

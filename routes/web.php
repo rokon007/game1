@@ -15,12 +15,15 @@ use App\Livewire\Frontend\TicketView;
 use App\Livewire\Frontend\UserGameHistory;
 use App\Livewire\Frontend\WithdrawalForm;
 use App\Livewire\Frontend\BuyTicketSheet;
+use App\Livewire\Frontend\Chat\Chat;
 use App\Livewire\Backend\Dashboard;
 use App\Livewire\Backend\AdBannerManagementComponent;
 use App\Livewire\Backend\RifleRequestManagementComponent;
 use App\Livewire\Backend\Game\ManageGame;
 use App\Livewire\Backend\Prize\ManagePrize;
 use App\Livewire\Backend\NumberAnnouncer;
+use App\Livewire\Backend\AgentComponent;
+use App\Livewire\Frontend\NewChat\Main;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,6 +48,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::get('/rifle-request-management', RifleRequestManagementComponent::class)->name('rifle_request_management');
     Route::get('/manage-game', ManageGame::class)->name('manage_game');
     Route::get('/number-announcer/{gameId}', NumberAnnouncer::class)->name('number_announcer');
+    Route::get('/agent', AgentComponent::class)->name('agent');
 });
 
 Route::view('dashboard', 'dashboard')
@@ -65,6 +69,8 @@ Route::middleware(['auth', 'verified'])->group(function(){
     Route::get('/withdrawal', WithdrawalForm::class)->name('withdrawal');
     Route::get('/buy-ticket', BuyTicketSheet::class)->name('buy_ticket');
 });
+
+Route::get('/chat', Main::class)->name('chat');
 
 Route::get('/user-profile', ProfileComponent::class)->name('userProfile');
 Route::view('profile', 'profile')

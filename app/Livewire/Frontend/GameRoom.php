@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\Game;
+use App\Models\Transaction;
+use App\Models\User;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\CreditTransferred;
 use Livewire\Component;
 
 class GameRoom extends Component
@@ -86,105 +91,6 @@ class GameRoom extends Component
         return $this->gameOver;
     }
 
-    // Updated method signature for Livewire 3
-    // public function handleNumberAnnounced($payload = null)
-    // {
-    //     // If game is over, don't process any more numbers
-    //     if ($this->gameOver) {
-    //         return;
-    //     }
-
-    //     // Log for debugging
-    //     Log::info('Number announced event received', ['payload' => $payload]);
-
-    //     // Extract number from payload
-    //     $number = null;
-    //     if (is_array($payload) && isset($payload['number'])) {
-    //         $number = $payload['number'];
-    //     } elseif (is_object($payload) && isset($payload->number)) {
-    //         $number = $payload->number;
-    //     }
-
-    //     // Add the new number to announced numbers if valid
-    //     if ($number && !in_array($number, $this->announcedNumbers)) {
-    //         $this->announcedNumbers[] = $number;
-    //     }
-
-    //     // Reload all numbers from database to ensure consistency
-    //     $this->loadNumbers();
-
-    //     // Check for winners
-    //     $this->checkWinners();
-
-    //     // Dispatch browser event for UI updates - Using dispatch for Livewire 3
-    //     if ($number) {
-    //         $this->dispatch('numberAnnounced', number: $number);
-    //     }
-    // }
-
-    // public function handleNumberAnnounced($payload = null)
-    // {
-    //     // If game is over, don't process any more numbers
-    //     if ($this->gameOver) {
-    //         return;
-    //     }
-
-    //     // Log for debugging
-    //     Log::info('Number announced event received', ['payload' => $payload]);
-
-    //     // Extract number from payload
-    //     $number = null;
-    //     if (is_array($payload) && isset($payload['number'])) {
-    //         $number = $payload['number'];
-    //     } elseif (is_object($payload) && isset($payload->number)) {
-    //         $number = $payload->number;
-    //     }
-
-    //     // Add the new number to announced numbers if valid
-    //     if ($number && !in_array($number, $this->announcedNumbers)) {
-    //         $this->announcedNumbers[] = $number;
-
-    //         // Dispatch event to play number audio
-    //         $this->dispatch('play-number-audio', number: $number);
-    //     }
-
-    //     // Reload all numbers from database to ensure consistency
-    //     $this->loadNumbers();
-
-    //     // Check for winners
-    //     $this->checkWinners();
-
-    //     // Dispatch browser event for UI updates - Using dispatch for Livewire 3
-    //     if ($number) {
-    //         $this->dispatch('numberAnnounced', number: $number);
-    //     }
-    // }
-
-    // Updated method signature for Livewire 3
-    // public function onNumberReceived($number = null)
-    // {
-    //     // If game is over, don't process any more numbers
-    //     if ($this->gameOver) {
-    //         return;
-    //     }
-
-    //     // Log for debugging
-    //     Log::info('Number received via Livewire event', ['number' => $number]);
-
-    //     // Handle both array and direct value formats
-    //     if (is_array($number) && isset($number['number'])) {
-    //         $number = $number['number'];
-    //     }
-
-    //     if ($number && !in_array($number, $this->announcedNumbers)) {
-    //         $this->announcedNumbers[] = $number;
-    //         $this->loadNumbers();
-    //         $this->checkWinners();
-
-    //         // Dispatch browser event for UI updates - Using dispatch for Livewire 3
-    //         $this->dispatch('numberAnnounced', number: $number);
-    //     }
-    // }
 
     // Updated method signature for Livewire 3
     public function handleNumberAnnounced($payload = null)
@@ -208,7 +114,7 @@ class GameRoom extends Component
         // Add the new number to announced numbers if valid
         if ($number && !in_array($number, $this->announcedNumbers)) {
             $this->announcedNumbers[] = $number;
-            
+
             // Dispatch event to play number audio
             $this->dispatch('play-number-audio', number: $number);
         }
@@ -242,10 +148,10 @@ class GameRoom extends Component
 
         if ($number && !in_array($number, $this->announcedNumbers)) {
             $this->announcedNumbers[] = $number;
-            
+
             // Dispatch event to play number audio
             $this->dispatch('play-number-audio', number: $number);
-            
+
             $this->loadNumbers();
             $this->checkWinners();
 
@@ -323,13 +229,13 @@ class GameRoom extends Component
                 foreach ($winningPatterns as $pattern) {
                     // Dispatch event to play winner audio
                     $this->dispatch('play-winner-audio', pattern: $pattern);
-                    
+
                     // Using dispatch for Livewire 3 instead of dispatchBrowserEvent
                     $this->dispatch('winner-alert', title: 'Congratulations!',
                         message: 'You won ' . $this->winningPatterns[$pattern]['name'] . '!',
                         pattern: $pattern);
                 }
-                
+
                 // Check if game is over after this win
                 if ($this->checkGameOver()) {
                     $this->dispatch('game-over', message: 'Game Over! All patterns have been claimed.');
@@ -372,181 +278,77 @@ class GameRoom extends Component
             ->toArray();
     }
 
-    // public function checkWinners()
+
+
+    // private function checkCornerNumbers($numbers)
     // {
-    //     // If game is over, don't check for more winners
-    //     if ($this->checkGameOver()) {
-    //         return;
-    //     }
+    //     // Get the 4 corners of the ticket
+    //     $corners = [
+    //         $numbers[0][0],  // Top-left
+    //         $numbers[0][8],  // Top-right
+    //         $numbers[2][0],  // Bottom-left
+    //         $numbers[2][8]   // Bottom-right
+    //     ];
 
-    //     foreach ($this->sheetTickets as $index => $ticket) {
-    //         $ticketId = $ticket['id'];
-    //         $numbers = $ticket['numbers'];
-    //         $winningPatterns = [];
+    //     // Filter out null values (empty cells)
+    //     $corners = array_filter($corners, function($value) {
+    //         return $value !== null;
+    //     });
 
-    //         // Check for corner numbers
-    //         if ($this->checkCornerNumbers($numbers)) {
-    //             // Only add if not already claimed by anyone in the game
-    //             if (!$this->isPatternClaimedInGame('corner')) {
-    //                 $winningPatterns[] = 'corner';
-    //                 $this->winningPatterns['corner']['claimed'] = true;
-    //             }
-    //         }
-
-    //         // Check for top line
-    //         if ($this->checkTopLine($numbers)) {
-    //             // Only add if not already claimed by anyone in the game
-    //             if (!$this->isPatternClaimedInGame('top_line')) {
-    //                 $winningPatterns[] = 'top_line';
-    //                 $this->winningPatterns['top_line']['claimed'] = true;
-    //             }
-    //         }
-
-    //         // Check for middle line
-    //         if ($this->checkMiddleLine($numbers)) {
-    //             // Only add if not already claimed by anyone in the game
-    //             if (!$this->isPatternClaimedInGame('middle_line')) {
-    //                 $winningPatterns[] = 'middle_line';
-    //                 $this->winningPatterns['middle_line']['claimed'] = true;
-    //             }
-    //         }
-
-    //         // Check for bottom line
-    //         if ($this->checkBottomLine($numbers)) {
-    //             // Only add if not already claimed by anyone in the game
-    //             if (!$this->isPatternClaimedInGame('bottom_line')) {
-    //                 $winningPatterns[] = 'bottom_line';
-    //                 $this->winningPatterns['bottom_line']['claimed'] = true;
-    //             }
-    //         }
-
-    //         // Check for full house
-    //         if ($this->checkFullHouse($numbers)) {
-    //             // Only add if not already claimed by anyone in the game
-    //             if (!$this->isPatternClaimedInGame('full_house')) {
-    //                 $winningPatterns[] = 'full_house';
-    //                 $this->winningPatterns['full_house']['claimed'] = true;
-    //             }
-    //         }
-
-    //         // Update ticket if it's a winner
-    //         if (!empty($winningPatterns)) {
-    //             $this->updateTicketWinningStatus($ticketId, $winningPatterns);
-    //             $this->sheetTickets[$index]['is_winner'] = true;
-    //             $this->sheetTickets[$index]['winning_patterns'] = $winningPatterns;
-
-    //             // Show notification for each winning pattern
-    //             foreach ($winningPatterns as $pattern) {
-    //                 // Using dispatch for Livewire 3 instead of dispatchBrowserEvent
-    //                 $this->dispatch('winner-alert', title: 'Congratulations!',
-    //                     message: 'You won ' . $this->winningPatterns[$pattern]['name'] . '!',
-    //                     pattern: $pattern);
-    //             }
-
-    //             // Check if game is over after this win
-    //             if ($this->checkGameOver()) {
-    //                 $this->dispatch('game-over', message: 'Game Over! All patterns have been claimed.');
-    //                 break; // Exit the loop as game is over
-    //             }
+    //     // Check if all corners are in announced numbers
+    //     foreach ($corners as $corner) {
+    //         if (!in_array($corner, $this->announcedNumbers)) {
+    //             return false;
     //         }
     //     }
-    // }
 
-    // public function checkWinners()
-    // {
-    //     // If game is over, don't check for more winners
-    //     if ($this->checkGameOver()) {
-    //         return;
-    //     }
-
-    //     foreach ($this->sheetTickets as $index => $ticket) {
-    //         $ticketId = $ticket['id'];
-    //         $numbers = $ticket['numbers'];
-    //         $winningPatterns = [];
-
-    //         // Check for corner numbers
-    //         if ($this->checkCornerNumbers($numbers)) {
-    //             // Only add if not already claimed by anyone in the game
-    //             if (!$this->isPatternClaimedInGame('corner')) {
-    //                 $winningPatterns[] = 'corner';
-    //                 $this->winningPatterns['corner']['claimed'] = true;
-    //             }
-    //         }
-
-    //         // Check for top line
-    //         if ($this->checkTopLine($numbers)) {
-    //             // Only add if not already claimed by anyone in the game
-    //             if (!$this->isPatternClaimedInGame('top_line')) {
-    //                 $winningPatterns[] = 'top_line';
-    //                 $this->winningPatterns['top_line']['claimed'] = true;
-    //             }
-    //         }
-
-    //         // Check for middle line
-    //         if ($this->checkMiddleLine($numbers)) {
-    //             // Only add if not already claimed by anyone in the game
-    //             if (!$this->isPatternClaimedInGame('middle_line')) {
-    //                 $winningPatterns[] = 'middle_line';
-    //                 $this->winningPatterns['middle_line']['claimed'] = true;
-    //             }
-    //         }
-
-    //         // Check for bottom line
-    //         if ($this->checkBottomLine($numbers)) {
-    //             // Only add if not already claimed by anyone in the game
-    //             if (!$this->isPatternClaimedInGame('bottom_line')) {
-    //                 $winningPatterns[] = 'bottom_line';
-    //                 $this->winningPatterns['bottom_line']['claimed'] = true;
-    //             }
-    //         }
-
-    //         // Check for full house
-    //         if ($this->checkFullHouse($numbers)) {
-    //             // Only add if not already claimed by anyone in the game
-    //             if (!$this->isPatternClaimedInGame('full_house')) {
-    //                 $winningPatterns[] = 'full_house';
-    //                 $this->winningPatterns['full_house']['claimed'] = true;
-    //             }
-    //         }
-
-    //         // Update ticket if it's a winner
-    //         if (!empty($winningPatterns)) {
-    //             $this->updateTicketWinningStatus($ticketId, $winningPatterns);
-    //             $this->sheetTickets[$index]['is_winner'] = true;
-    //             $this->sheetTickets[$index]['winning_patterns'] = $winningPatterns;
-
-    //             // Show notification for each winning pattern
-    //             foreach ($winningPatterns as $pattern) {
-    //                 // Dispatch event to play winner audio
-    //                 $this->dispatch('play-winner-audio', pattern: $pattern);
-
-    //                 // Using dispatch for Livewire 3 instead of dispatchBrowserEvent
-    //                 $this->dispatch('winner-alert', title: 'Congratulations!',
-    //                     message: 'You won ' . $this->winningPatterns[$pattern]['name'] . '!',
-    //                     pattern: $pattern);
-    //             }
-
-    //             // Check if game is over after this win
-    //             if ($this->checkGameOver()) {
-    //                 $this->dispatch('game-over', message: 'Game Over! All patterns have been claimed.');
-    //                 break; // Exit the loop as game is over
-    //             }
-    //         }
-    //     }
+    //     return true;
     // }
 
     private function checkCornerNumbers($numbers)
     {
-        // Get the 4 corners of the ticket
-        $corners = [
-            $numbers[0][0],  // Top-left
-            $numbers[0][8],  // Top-right
-            $numbers[2][0],  // Bottom-left
-            $numbers[2][8]   // Bottom-right
-        ];
+        // Find actual corners by getting first and last non-null values
+        $topRow = $numbers[0];
+        $bottomRow = $numbers[2];
 
-        // Filter out null values (empty cells)
-        $corners = array_filter($corners, function($value) {
+        // Find top-left (first non-null value in top row)
+        $topLeft = null;
+        for ($i = 0; $i < 9; $i++) {
+            if ($topRow[$i] !== null) {
+                $topLeft = $topRow[$i];
+                break;
+            }
+        }
+
+        // Find top-right (last non-null value in top row)
+        $topRight = null;
+        for ($i = 8; $i >= 0; $i--) {
+            if ($topRow[$i] !== null) {
+                $topRight = $topRow[$i];
+                break;
+            }
+        }
+
+        // Find bottom-left (first non-null value in bottom row)
+        $bottomLeft = null;
+        for ($i = 0; $i < 9; $i++) {
+            if ($bottomRow[$i] !== null) {
+                $bottomLeft = $bottomRow[$i];
+                break;
+            }
+        }
+
+        // Find bottom-right (last non-null value in bottom row)
+        $bottomRight = null;
+        for ($i = 8; $i >= 0; $i--) {
+            if ($bottomRow[$i] !== null) {
+                $bottomRight = $bottomRow[$i];
+                break;
+            }
+        }
+
+        // Collect all corner numbers (excluding nulls)
+        $corners = array_filter([$topLeft, $topRight, $bottomLeft, $bottomRight], function($value) {
             return $value !== null;
         });
 
@@ -604,53 +406,141 @@ class GameRoom extends Component
         return true;
     }
 
+    // private function updateTicketWinningStatus($ticketId, $winningPatterns)
+    // {
+    //     $ticket = Ticket::find($ticketId);
+
+    //     if ($ticket) {
+    //         try {
+    //             // Check if the winning_patterns column exists
+    //             if (Schema::hasColumn('tickets', 'winning_patterns')) {
+    //                 $ticket->is_winner = true;
+    //                 $ticket->winning_patterns = $winningPatterns; // This will be automatically JSON encoded
+    //                 $ticket->save();
+    //             } else {
+    //                 // If column doesn't exist, just update is_winner
+    //                 $ticket->is_winner = true;
+    //                 $ticket->save();
+
+    //                 // Log the issue
+    //                 Log::warning('winning_patterns column does not exist in tickets table. Please run the migration.');
+    //             }
+
+    //             // Record the win in the winners table
+    //             foreach ($winningPatterns as $pattern) {
+    //                 // First check if this pattern is already claimed in the game
+    //                 $patternClaimed = Winner::where('game_id', $this->games_Id)
+    //                     ->where('pattern', $pattern)
+    //                     ->exists();
+
+    //                 if (!$patternClaimed) {
+    //                     Winner::create([
+    //                         'user_id' => Auth::id(),
+    //                         'game_id' => $this->games_Id,
+    //                         'ticket_id' => $ticketId,
+    //                         'pattern' => $pattern,
+    //                         'won_at' => now()
+    //                     ]);
+    //                 }
+    //             }
+    //         } catch (\Exception $e) {
+    //             // Log the error
+    //             Log::error('Error updating ticket winning status: ' . $e->getMessage());
+
+    //             // Try a simpler update
+    //             DB::table('tickets')
+    //                 ->where('id', $ticketId)
+    //                 ->update(['is_winner' => true]);
+    //         }
+    //     }
+    // }
+
     private function updateTicketWinningStatus($ticketId, $winningPatterns)
     {
         $ticket = Ticket::find($ticketId);
+        $game = Game::find($this->games_Id);
 
-        if ($ticket) {
+        if ($ticket && $game) {
             try {
-                // Check if the winning_patterns column exists
-                if (Schema::hasColumn('tickets', 'winning_patterns')) {
+                DB::transaction(function () use ($ticket, $winningPatterns, $game) {
+                    // Update ticket status
                     $ticket->is_winner = true;
-                    $ticket->winning_patterns = $winningPatterns; // This will be automatically JSON encoded
-                    $ticket->save();
-                } else {
-                    // If column doesn't exist, just update is_winner
-                    $ticket->is_winner = true;
-                    $ticket->save();
-
-                    // Log the issue
-                    Log::warning('winning_patterns column does not exist in tickets table. Please run the migration.');
-                }
-
-                // Record the win in the winners table
-                foreach ($winningPatterns as $pattern) {
-                    // First check if this pattern is already claimed in the game
-                    $patternClaimed = Winner::where('game_id', $this->games_Id)
-                        ->where('pattern', $pattern)
-                        ->exists();
-
-                    if (!$patternClaimed) {
-                        Winner::create([
-                            'user_id' => Auth::id(),
-                            'game_id' => $this->games_Id,
-                            'ticket_id' => $ticketId,
-                            'pattern' => $pattern,
-                            'won_at' => now()
-                        ]);
+                    if (Schema::hasColumn('tickets', 'winning_patterns')) {
+                        $ticket->winning_patterns = $winningPatterns;
                     }
-                }
-            } catch (\Exception $e) {
-                // Log the error
-                Log::error('Error updating ticket winning status: ' . $e->getMessage());
+                    $ticket->save();
 
-                // Try a simpler update
-                DB::table('tickets')
-                    ->where('id', $ticketId)
-                    ->update(['is_winner' => true]);
+                    foreach ($winningPatterns as $pattern) {
+                        // Check if this specific pattern is already claimed in the game
+                        $patternAlreadyWon = Winner::where('game_id', $this->games_Id)
+                            ->where('pattern', $pattern)
+                            ->exists();
+
+                        if (!$patternAlreadyWon) {
+                            $prizeAmount = $this->getPrizeAmountForPattern($game, $pattern);
+
+                            // Only process if prize amount is valid
+                            if ($prizeAmount > 0) {
+                                $this->processPrize($ticket, $game, $pattern, $prizeAmount);
+                            }
+
+                            // Always create winner record even if prize is 0
+                            Winner::create([
+                                'user_id' => $ticket->user_id,
+                                'game_id' => $this->games_Id,
+                                'ticket_id' => $ticket->id,
+                                'pattern' => $pattern,
+                                'won_at' => now(),
+                                'prize_amount' => $prizeAmount
+                            ]);
+                        }
+                    }
+                });
+            } catch (\Exception $e) {
+                Log::error('Error in updateTicketWinningStatus: '.$e->getMessage());
+                // Fallback to minimal update
+                $ticket->is_winner = true;
+                $ticket->save();
             }
         }
+    }
+
+    private function processPrize($ticket, $game, $pattern, $prizeAmount)
+    {
+        $systemUser = User::where('is_admin', true)->first();
+        $winnerUser = User::find($ticket->user_id);
+
+        if (!$systemUser || !$winnerUser) {
+            throw new \Exception('System or winner user not found');
+        }
+
+        // Transfer credits
+        $systemUser->decrement('credit', $prizeAmount);
+        $winnerUser->increment('credit', $prizeAmount);
+
+        // Create transactions
+        Transaction::create([
+            'user_id' => $systemUser->id,
+            'type' => 'debit',
+            'amount' => $prizeAmount,
+            'details' => 'Prize for '.$pattern.' in game: '.$game->title,
+        ]);
+
+        Transaction::create([
+            'user_id' => $winnerUser->id,
+            'type' => 'credit',
+            'amount' => $prizeAmount,
+            'details' => 'Won '.$pattern.' in game: '.$game->title,
+        ]);
+
+        // Send notifications
+        Notification::send($systemUser, new CreditTransferred(
+            'Prize of '.$prizeAmount.' credits awarded to '.$winnerUser->name.' for '.$pattern
+        ));
+
+        Notification::send($winnerUser, new CreditTransferred(
+            'You won '.$prizeAmount.' credits for '.$pattern.' in game: '.$game->title
+        ));
     }
 
     /**

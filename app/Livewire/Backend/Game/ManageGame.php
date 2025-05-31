@@ -12,6 +12,11 @@ class ManageGame extends Component
     use WithPagination, WithFileUploads;
 
     public $title, $scheduled_at, $ticket_price, $is_active = true, $game_id;
+    public $corner_prize;
+    public $top_line_prize;
+    public $middle_line_prize;
+    public $bottom_line_prize;
+    public $full_house_prize;
     public $search = '';
 
     public function edit($id)
@@ -19,9 +24,15 @@ class ManageGame extends Component
         $game = Game::findOrFail($id);
         $this->game_id = $game->id;
         $this->title = $game->title;
-        $this->scheduled_at = $game->scheduled_at;
+        $this->scheduled_at = \Carbon\Carbon::parse($game->scheduled_at)->format('Y-m-d\TH:i');
         $this->ticket_price = $game->ticket_price;
         $this->is_active = $game->is_active ? 1 : 0;
+
+        $this->corner_prize = $game->corner_prize;
+        $this->top_line_prize = $game->top_line_prize;
+        $this->middle_line_prize = $game->middle_line_prize;
+        $this->bottom_line_prize = $game->bottom_line_prize;
+        $this->full_house_prize = $game->full_house_prize;
     }
 
     public function delete($id)
@@ -45,14 +56,14 @@ class ManageGame extends Component
             'title' => 'required|string|max:255',
             'scheduled_at' => 'required|date',
             'ticket_price' => 'required|numeric|min:0',
+
+            'corner_prize' => 'required|numeric|min:0',
+            'top_line_prize' => 'required|numeric|min:0',
+            'middle_line_prize' => 'required|numeric|min:0',
+            'bottom_line_prize' => 'required|numeric|min:0',
+            'full_house_prize' => 'required|numeric|min:0',
         ]);
 
-        // Game::create([
-        //     'title' => $this->title,
-        //     'scheduled_at' => $this->scheduled_at,
-        //     'ticket_price' => $this->ticket_price,
-        //     'is_active' => $this->is_active,
-        // ]);
 
         Game::updateOrCreate(
             ['id' => $this->game_id],
@@ -61,12 +72,18 @@ class ManageGame extends Component
                 'scheduled_at' => $this->scheduled_at,
                 'ticket_price' => $this->ticket_price,
                 'is_active' => $this->is_active,
+
+                'corner_prize' => $this->corner_prize,
+                'top_line_prize' => $this->top_line_prize,
+                'middle_line_prize' => $this->middle_line_prize,
+                'bottom_line_prize' => $this->bottom_line_prize,
+                'full_house_prize' => $this->full_house_prize,
             ]
         );
 
         $this->game_id=false;
         session()->flash('message', $this->game_id ? 'Game Updated Successfully' : 'Game Created Successfully');
-        $this->reset(['title', 'scheduled_at', 'ticket_price', 'is_active']);
+        $this->reset(['title', 'scheduled_at', 'ticket_price', 'is_active', 'corner_prize', 'top_line_prize', 'middle_line_prize', 'bottom_line_prize', 'full_house_prize']);
     }
 
     public function render()

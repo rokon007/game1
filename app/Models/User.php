@@ -27,6 +27,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'credit',
         'status',
         'is_online',
+        'last_seen_at',
     ];
 
     /**
@@ -47,8 +48,11 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-        'last_seen' => 'datetime',
+        'last_seen_at' => 'datetime',
+        'is_online' => 'boolean',
     ];
+
+
 
     public function transactions()
     {
@@ -62,5 +66,42 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(Winner::class);
     }
+
+    //relations
+    public function messageRelation()
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    public function userRelation()
+    {
+        return $this->hasMany(Conversation::class);
+
+    }
+
+    // ইউজারের সাথে ডাইরেক্ট কনভারসেশন খুঁজে বের করা
+    // public function getConversationWith($userId)
+    // {
+    //     return $this->conversations()
+    //         ->whereHas('users', function ($query) use ($userId) {
+    //             $query->where('users.id', $userId);
+    //         })
+    //         ->where('is_group', false)
+    //         ->first();
+    // }
+
+    // ইউজারের অপঠিত মেসেজ সংখ্যা
+    // public function unreadMessagesCount()
+    // {
+    //     return Message::whereHas('conversation.users', function ($query) {
+    //         $query->where('users.id', $this->id);
+    //     })
+    //     ->where('user_id', '!=', $this->id)
+    //     ->where(function ($query) {
+    //         $query->whereRaw('messages.created_at > (SELECT last_read_at FROM conversation_user WHERE conversation_id = messages.conversation_id AND user_id = ?)', [$this->id])
+    //             ->orWhereNull('last_read_at');
+    //     })
+    //     ->count();
+    // }
 
 }

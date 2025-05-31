@@ -48,8 +48,28 @@ new class extends Component
         {{-- <div class="cart-icon-wrap"><a href="#"><i class="ti ti-basket-bolt"></i><span>{{$cartCount}}</span></a></div> --}}
         @if (Route::has('login'))
             @auth
-                <!-- User Profile Icon -->
-                <div class="cart-icon-wrap ms-2"><a href="{{route('notifications')}}"><i class="ti ti-bell-ringing lni-tada-effect"></i><span>{{$unreadCount}}</span></a></div>
+            <!-- User notifications Icon -->
+                <div class="cart-icon-wrap ms-2">
+                    <a href="{{route('notifications')}}">
+                        <i class="ti ti-bell-ringing lni-tada-effect"></i>
+                        {{-- <span wire:poll.1s> --}}
+                        <span>
+                            @php
+                                $unreadCount1 = auth()->check() ? auth()->user()->unreadNotifications->count() : 0;
+                            @endphp
+                            {{$unreadCount1}}
+                        </span>
+                    </a>
+                </div>
+                <!-- User massege Icon -->
+                <div class="cart-icon-wrap ms-2">
+                    <a href="{{ route('chat') }}">
+                        <i class="ti ti-message-circle"></i>
+
+                        <livewire:frontend.header.unread-chat-count />
+                    </a>
+
+                </div>
             @endauth
         @endif
         @if (Route::has('login'))

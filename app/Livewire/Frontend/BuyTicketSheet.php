@@ -4,6 +4,7 @@ namespace App\Livewire\Frontend;
 
 use App\Models\Transaction;
 use App\Models\Game;
+use App\Models\User;
 use App\Models\Ticket;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
@@ -48,7 +49,7 @@ class BuyTicketSheet extends Component
     public function buySheet()
     {
         $user = Auth::user();
-
+        $systemUser = User::where('role','admin')->first();
         $game = Game::where('id', $this->selectedGameId)
                     ->where('is_active', true)
                     ->first();
@@ -65,6 +66,7 @@ class BuyTicketSheet extends Component
 
         // ক্রেডিট কর্তন
         $user->decrement('credit', $game->ticket_price);
+        $systemUser->increment('credit', $game->ticket_price);
 
         // ট্রান্সাকশন লগ
         Transaction::create([
@@ -72,6 +74,13 @@ class BuyTicketSheet extends Component
             'type' => 'debit',
             'amount' => $game->ticket_price,
             'details' => 'Ticket Sheet purchase for game ID: ' . $game->id,
+        ]);
+
+        Transaction::create([
+            'user_id' => $systemUser->id,
+            'type' => 'credit',
+            'amount' => $game->ticket_price,
+            'details' => 'Ticket Sheet purchase for game ID: ' . $game->id . ' by ' . $user->name,
         ]);
 
         // ইউনিক শীট নাম্বার

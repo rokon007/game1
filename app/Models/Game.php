@@ -9,8 +9,16 @@ class Game extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'scheduled_at',
-     'ticket_price', 'is_active'
+    protected $fillable = [
+        'title',
+        'scheduled_at',
+        'ticket_price',
+        'is_active',
+        'corner_prize',
+        'top_line_prize',
+        'middle_line_prize',
+        'bottom_line_prize',
+        'full_house_prize'
     ];
 
     protected $casts = [
