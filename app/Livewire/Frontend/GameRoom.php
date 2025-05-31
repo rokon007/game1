@@ -14,6 +14,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\CreditTransferred;
+use App\Events\NotificationRefresh;
 use Livewire\Component;
 
 class GameRoom extends Component
@@ -25,6 +26,7 @@ class GameRoom extends Component
     public $sheetTickets = [];
     public $winningPatterns = [];
     public $gameOver = false;
+    public $textNote;
 
     protected $listeners = [
         'echo:game.*,number.announced' => 'handleNumberAnnounced',
@@ -507,7 +509,7 @@ class GameRoom extends Component
 
     private function processPrize($ticket, $game, $pattern, $prizeAmount)
     {
-        $systemUser = User::where('is_admin', true)->first();
+        $systemUser = User::where('role','admin')->first();
         $winnerUser = User::find($ticket->user_id);
 
         if (!$systemUser || !$winnerUser) {
@@ -541,6 +543,20 @@ class GameRoom extends Component
         Notification::send($winnerUser, new CreditTransferred(
             'You won '.$prizeAmount.' credits for '.$pattern.' in game: '.$game->title
         ));
+        $this->textNote='You won '.$prizeAmount.' credits for '.$pattern.' in game: '.$game->title;
+        broadcast(new NotificationRefresh(auth()->user(), $this->textNote));
+    }
+
+    private function getPrizeAmountForPattern($game, $pattern)
+    {
+        return match($pattern) {
+            'corner' => $game->corner_prize,
+            'top_line' => $game->top_line_prize,
+            'middle_line' => $game->middle_line_prize,
+            'bottom_line' => $game->bottom_line_prize,
+            'full_house' => $game->full_house_prize,
+            default => 0,
+        };
     }
 
     /**

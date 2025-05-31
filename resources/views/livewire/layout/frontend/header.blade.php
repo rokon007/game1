@@ -14,6 +14,22 @@ new class extends Component
     public $unreadCount = 0;
 
 
+    public function getListeners()
+    {
+        $auth_id = auth()->user()->id;
+            return [
+            "echo-private:notRefresh.{$auth_id},MessageSent"=>"broadcastedNotReceived",
+        ];
+    }
+
+    public function broadcastedNotReceived($event)
+    {
+        dd($event);
+        $this->loadUnreadCount();
+        //$this->dispatch($event);
+    }
+
+
     public function mount()
     {
         // $sessionId = cookie('cart_session_id') ?? session()->getId();
