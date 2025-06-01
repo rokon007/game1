@@ -140,7 +140,7 @@
         <div class="featured-products-wrapper py-3">
             <div class="container">
               <div class="section-heading d-flex align-items-center justify-content-between dir-rtl">
-                <h6>Prize Categories</h6><a class="btn btn-sm btn-light" href="featured-products.html">Rules<i class="ms-1 ti ti-arrow-right"></i></a>
+                <h6>Other Games</h6><a class="btn btn-sm btn-light" href="featured-products.html">Rules<i class="ms-1 ti ti-arrow-right"></i></a>
               </div>
               <div class="row g-2">
                 <!-- Featured Product Card-->
@@ -157,12 +157,12 @@
                             <a class="product-thumbnail d-block" href="single-product.html">
                                 <img src="{{ Storage::url($prize->image_path) }}" alt="">
                             </a>
-                            <a style="font-size: 12px; color: black; font-weight: bold;" href="#">
+                            {{-- <a style="font-size: 12px; color: black; font-weight: bold;" href="#">
                                 {{ $prize->name }}
                             </a>
                             <p class="sale-price">
                                 TK {{ $prize->amount }}
-                            </p>
+                            </p> --}}
                         </div>
 
                         </div>
