@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\CreditTransferred;
+use App\Events\WinnerAnnouncedEvent;
 
 class Dashboard extends Component
 {
@@ -23,6 +24,11 @@ class Dashboard extends Component
     {
         $this->getCredit();
         $this->rechargeUser_id=auth()->user()->id;
+    }
+
+    public function testClick()
+    {
+        event(new \App\Events\GameOverEvent(23));
     }
 
     public function addMony()

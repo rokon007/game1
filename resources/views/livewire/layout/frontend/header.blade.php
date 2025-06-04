@@ -6,32 +6,12 @@ use Livewire\Volt\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cookie;
 use App\Models\Ticket;
-// use Livewire\Attributes\On;
+ use Livewire\Attributes\On;
 
 new class extends Component
 {
     // public $cartCount = 0;
     public $unreadCount = 0;
-
-
-    // public function getListeners()
-    // {
-    //     if(auth()->user()){
-    //         $auth_id = auth()->user()->id;
-    //             return [
-    //             "echo-private:notRefresh.{$auth_id},MessageSent"=>"broadcastedNotReceived",
-    //         ];
-    //     }
-
-    // }
-
-    public function broadcastedNotReceived($event)
-    {
-        dd('ok');
-        $this->loadUnreadCount();
-        //$this->dispatch($event);
-    }
-
 
     public function mount()
     {
@@ -46,6 +26,7 @@ new class extends Component
         $this->dispatch('load_numbers');
     }
 
+    #[On('notificationRefresh')]
     public function loadUnreadCount()
     {
         // Logged-in user এর আনরেড নোটিফিকেশন কাউন্ট

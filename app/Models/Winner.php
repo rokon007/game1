@@ -14,6 +14,7 @@ class Winner extends Model
         'game_id',
         'ticket_id',
         'pattern',
+        'prize_amount',
         'won_at'
     ];
 

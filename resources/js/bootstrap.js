@@ -40,5 +40,21 @@ window.Echo = new Echo({
     broadcaster: 'pusher',
     key: import.meta.env.VITE_PUSHER_APP_KEY,
     cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-    forceTLS: true
+    forceTLS: true,
+    //enabledTransports: ['ws', 'wss'] // গুরুত্বপূর্ণ
 });
+
+window.Echo.channel(`game.redirect.${gameId}`)
+    .listen('.game.redirect', (data) => {
+        const userData = data.redirect_data[userId];
+        if (userData) {
+            window.location.href = `/game-room/${data.game_id}/${userData.sheet_id}`;
+        }
+        console.log("Got event winner: ", data);
+    });
+// এখানে ডিবাগ কোড দাও
+// window.Echo.channel('win.32')
+//     .listen('.win.winner', (e) => {
+//         Livewire.dispatch('handleWinnerAnnounced', e);
+//          console.log("Got event winner: ", e);
+//     });

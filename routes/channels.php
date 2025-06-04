@@ -21,6 +21,14 @@ Broadcast::channel('chat.{receiver}', function ($user, $receiver) {
     return (int) $user->id === (int) $receiver;
 });
 
+// Broadcast::channel('game.{gameId}', function ($user, $gameId) {
+//     return true; // সকল ইউজারের জন্য অ্যাক্সেস
+// });
+
+// Broadcast::channel('win.{gameId}', function ($user, $gameId) {
+//     return true; // সকল ইউজারের জন্য অ্যাক্সেস
+// });
+
 // Broadcast::channel('online-users', function ($user) {
 //     return [
 //         'id' => $user->id,

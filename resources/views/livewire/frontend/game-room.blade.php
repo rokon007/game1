@@ -28,7 +28,6 @@
                 margin-right: 1px;
             }
 
-
             .modal-overlay {
                 position: fixed;
                 top: 0;
@@ -51,32 +50,40 @@
             }
              .gameOver-container {
                 position: relative;
-                /* height: 170px; */
                 overflow: hidden;
             }
             .gameOver-container .gameOver-text {
                 position: absolute;
-                top: 50%; /* কন্টেইনারের মাঝখানে সেট করা */
+                top: 50%;
                 left: 50%;
-                transform: translate(-50%, -50%) rotate(-15deg); /* হালকা ঘুরিয়ে দেওয়া */
-                font-size: 36px; /* টেক্সটের আকার */
-                color:black; /* স্টাম্পের জন্য হালকা লাল রঙ */
+                transform: translate(-50%, -50%) rotate(-15deg);
+                font-size: 36px;
+                color:black;
                 font-weight: bold;
-                text-transform: uppercase; /* টেক্সটকে বড়হাতের করে দেওয়া */
-                white-space: nowrap; /* এক লাইনে রাখার জন্য */
-                pointer-events: none; /* টেক্সটকে ক্লিক করা নিষিদ্ধ */
+                text-transform: uppercase;
+                white-space: nowrap;
+                pointer-events: none;
                 background-color: hsl(45, 100%, 51%);
-                border: 1px solid black; /* স্টাম্পের বর্ডার */
-                border-radius: 50%; /* গোলাকার আকৃতি */
-                padding: 20px 40px; /* স্টাম্পের জায়গা ঠিক করার জন্য প্যাডিং */
-                box-shadow: 0 0 15px rgba(255, 0, 0, 0.3); /* হালকা শেডো */
-
+                border: 1px solid black;
+                border-radius: 50%;
+                padding: 20px 40px;
+                box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
             }
+            #gameTimer {
+                    font-family: 'Courier New', monospace;
+                    font-weight: bold;
+                    animation: pulse 1s infinite;
+                }
+
+                @keyframes pulse {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                    100% { opacity: 1; }
+                }
         </style>
     @endsection
 
     @section('preloader')
-        {{-- <livewire:layout.frontend.preloader /> --}}
     @endsection
 
     @section('header')
@@ -90,147 +97,92 @@
     @section('pwa_alart')
         <livewire:layout.frontend.pwa_alart />
     @endsection
-        <div x-data="{
-    showWinnerAlert: false,
-    winTitle: '',
-    winMessage: '',
-    winPattern: '',
-    lastAnnouncedNumber: null
-}"
-x-init="
-    Echo.channel('game.{{ $games_Id }}')
-        .listen('.number.announced', (e) => {
-            console.log('Received via Echo:', e);
-            lastAnnouncedNumber = e.number;
-            $wire.handleNumberAnnounced(e);
-        });
-
-    // Livewire 3 event listeners
-    Livewire.on('numberAnnounced', (data) => {
-        console.log('Number announced event:', data);
-        lastAnnouncedNumber = data.number;
-
-        // Play sound for new number
-        let numberSound = new Audio('/sounds/number-called.mp3');
-        numberSound.play();
-
-        // Highlight the new number with animation
-        setTimeout(() => {
-            const numberElements = document.querySelectorAll('.called-number');
-            numberElements.forEach(el => {
-                if (el.textContent.trim() == lastAnnouncedNumber) {
-                    el.classList.add('highlight-new');
-                    setTimeout(() => {
-                        el.classList.remove('highlight-new');
-                    }, 3000);
-                }
-            });
-        }, 500);
-    });
-
-    Livewire.on('winner-alert', (data) => {
-        winTitle = data.title;
-        winMessage = data.message;
-        winPattern = data.pattern;
-        showWinnerAlert = true;
-
-        // Play winning sound
-        let winSound = new Audio('/sounds/winner.mp3');
-        winSound.play();
-
-        // Auto hide after 5 seconds
-        setTimeout(() => {
-            showWinnerAlert = false;
-        }, 5000);
-    });
-">
-    <!-- Winner Alert -->
-    {{-- <div x-show="showWinnerAlert"
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 transform scale-90"
-         x-transition:enter-end="opacity-100 transform scale-100"
-         x-transition:leave="transition ease-in duration-300"
-         x-transition:leave-start="opacity-100 transform scale-100"
-         x-transition:leave-end="opacity-0 transform scale-90"
-         class="fixed top-20 right-5 z-50 bg-success text-white p-4 rounded-lg shadow-lg max-w-md"
-         style="display: none;">
-        <div class="flex items-center">
-            <div class="mr-3">
-                <i class="fas fa-trophy fa-2x"></i>
-            </div>
-            <div>
-                <h5 class="font-bold text-lg" x-text="winTitle"></h5>
-                <p x-text="winMessage"></p>
-            </div>
-        </div>
-        <button @click="showWinnerAlert = false" class="absolute top-2 right-2 text-white">
-            <i class="fas fa-times"></i>
-        </button>
-    </div> --}}
-
-    <!-- Bootstrap CSS -->
-{{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> --}}
-
-    <!-- Alpine.js -->
-    {{-- <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script> --}}
-
-    <!-- Font Awesome (optional for trophy icon) -->
-    {{-- <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 
     <div x-data="{
-            showWinnerAlert: false,
-            winTitle: 'You Won!',
-            winMessage: 'Congratulations on winning the game!',
-            openModal() {
-                this.showWinnerAlert = true;
-                const modal = new bootstrap.Modal(this.$refs.winnerModal);
-                modal.show();
-            }
-        }" x-init="openModal()">
+        showWinnerAlert: false,
+        winTitle: '',
+        winMessage: '',
+        winPattern: '',
+        lastAnnouncedNumber: null
+    }"
+    x-init="
+        // Echo listener for number announced
+        Echo.channel('game.{{ $games_Id }}')
+            .listen('.number.announced', (e) => {
+                console.log('Number announced via Echo:', e);
+                lastAnnouncedNumber = e.number;
+                $wire.handleNumberAnnounced(e);
+            })
+            .listen('.game.winner', (e) => {
+                console.log('Winner announced via Echo:', e);
+                $wire.handleWinnerAnnounced(e);
+            });
 
-        <!-- Bootstrap Modal -->
-        <div class="modal fade" tabindex="-1" x-ref="winnerModal">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content bg-success text-white">
-                    <div class="modal-header border-0">
-                        <h5 class="modal-title">
-                            <i class="fas fa-trophy me-2 text-warning"></i>
-                            <span x-text="winTitle"></span>
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
-                            @click="showWinnerAlert = false"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p x-text="winMessage"></p>
-                    </div>
-                    <div class="modal-footer border-0">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" @click="showWinnerAlert = false">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> --}}
+        // Livewire event listeners
+        Livewire.on('numberAnnounced', (data) => {
+            console.log('Number announced event:', data);
+            lastAnnouncedNumber = data.number;
 
-    <!-- Bootstrap JS Bundle (with Popper) -->
-    {{-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> --}}
+            let numberSound = new Audio('/sounds/number-called.mp3');
+            numberSound.play();
 
+            setTimeout(() => {
+                const numberElements = document.querySelectorAll('.called-number');
+                numberElements.forEach(el => {
+                    if (el.textContent.trim() == lastAnnouncedNumber) {
+                        el.classList.add('highlight-new');
+                        setTimeout(() => {
+                            el.classList.remove('highlight-new');
+                        }, 3000);
+                    }
+                });
+            }, 500);
+        });
+
+        Livewire.on('winner-alert', (data) => {
+            winTitle = data.title;
+            winMessage = data.message;
+            winPattern = data.pattern;
+            showWinnerAlert = true;
+
+            let winSound = new Audio('/sounds/winner.mp3');
+            winSound.play();
+
+            setTimeout(() => {
+                showWinnerAlert = false;
+            }, 5000);
+        });
+
+        Livewire.on('winnerAnnounced', (data) => {
+            console.log('Winner announced via Livewire:', data);
+            // আপনার UI আপডেট লজিক এখানে যোগ করুন
+        });
+    ">
 
     <div class="page-content-wrapper">
         <div class="container px-3 py-3">
+            <!-- ডিবাগ বাটন যোগ করুন -->
+            {{-- <div class="mb-3">
+                <button wire:click="testWinnerHandler" class="btn btn-warning btn-sm">Test Winner Handler</button>
+                <button wire:click="winnerSelfAnnounced" class="btn btn-info btn-sm">Test Winner Alert</button>
+            </div> --}}
+
             <!-- Game Header Section -->
             <div class="game-header mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
                     <h6 class="mb-0 text-primary">
                         <i class="fas fa-dice me-2"></i>Game Room
                     </h6>
                     <div class="d-flex align-items-center">
-                        <span class="badge bg-danger me-2 fs-6">
-                            <i class="fas fa-clock me-1"></i>
-                            <span id="gameTimer">00:00</span>
-                        </span>
+                        <div wire:poll.1000ms="updateTimer">
+                            <span class="badge bg-danger me-2 fs-6">
+                                <i class="fas fa-clock me-1"></i>
+                                {{ $remainingTime }}
+                            </span>
+                        </div>
                         <span class="badge bg-dark fs-6">
                             <i class="fas fa-users me-1"></i>
-                            <span id="playerCount">10</span> Players
+                            <span id="playerCount">{{$totalParticipants}}</span> Players
                         </span>
                     </div>
                 </div>
@@ -243,10 +195,19 @@ x-init="
                         </h6>
                     </div>
                     <div class="patterns-container d-flex flex-wrap gap-2">
-                        @foreach(['corner' => 'Corner', 'top_line' => 'Top Line', 'middle_line' => 'Middle Line', 'bottom_line' => 'Bottom Line', 'full_house' => 'Full House'] as $key => $pattern)
-                            <div class="pattern-badge p-2 rounded {{ $this->hasWonPattern($key) ? 'bg-success text-white' : 'bg-light text-muted' }}">
-                                <i class="fas {{ $this->hasWonPattern($key) ? 'fa-check-circle' : 'fa-circle' }} me-1"></i>
-                                {{ $pattern }}
+                        @foreach($winnerPattarns as $pattern)
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-{{ $this->getPatternColor($pattern->pattern) }}">
+                                    @if($pattern->pattern == 'corner') Corner
+                                    @elseif($pattern->pattern == 'top_line') Top
+                                    @elseif($pattern->pattern == 'middle_line') Middle
+                                    @elseif($pattern->pattern == 'bottom_line') Bottom
+                                    @elseif($pattern->pattern == 'full_house') Full house
+                                    @endif
+                                </span>
+                                {{-- <span class="badge bg-primary rounded-pill text-white">
+                                    {{ $pattern->prize_amount }} Credit
+                                </span> --}}
                             </div>
                         @endforeach
                     </div>
@@ -373,7 +334,6 @@ x-init="
 
         @push('styles')
             <style>
-                /* Custom Styles */
                 .called-number {
                     transition: all 0.3s ease;
                 }
@@ -421,7 +381,6 @@ x-init="
                     border-right: 2px solid #dee2e6;
                 }
 
-                /* Corner cells highlight */
                 .corner-cell {
                     position: relative;
                 }
@@ -439,7 +398,6 @@ x-init="
                     border-color: #ffc107;
                 }
 
-                /* Line highlighting */
                 .top-row.completed td,
                 .middle-row.completed td,
                 .bottom-row.completed td {
@@ -458,7 +416,6 @@ x-init="
                     z-index: 1;
                 }
 
-                /* Pattern badges */
                 .pattern-badge {
                     transition: all 0.3s ease;
                     font-size: 0.85rem;
@@ -467,7 +424,6 @@ x-init="
                     box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
                 }
 
-                /* Responsive adjustments */
                 @media (max-width: 768px) {
                     .called-number {
                         width: 32px !important;
@@ -480,15 +436,13 @@ x-init="
                     }
                 }
 
-                /* Ensure full width for single column layout */
                 .ticket-table {
                     table-layout: fixed;
                 }
                 .ticket-table td {
-                    width: 11.11%; /* Equal width for 9 columns */
+                    width: 11.11%;
                 }
 
-                /* Winner animation */
                 @keyframes winner-glow {
                     0% { box-shadow: 0 0 5px rgba(40, 167, 69, 0.5); }
                     50% { box-shadow: 0 0 20px rgba(40, 167, 69, 0.8); }
@@ -583,7 +537,7 @@ x-init="
         });
     </script>
 
-    <!-- game-room.blade.php -->
+    <!-- Modal -->
         <div x-data="{
                     showNumberModal: false,
                     currentNumber: null,
@@ -648,190 +602,204 @@ x-init="
                 </div>
             </div>
 
-            <!-- Debug Console -->
-            {{-- <div class="fixed bottom-0 left-0 bg-black text-white p-2 text-xs">
-                <div>Modal State: <span x-text="showNumberModal ? 'Open' : 'Closed'"></span></div>
-                <div>Current Number: <span x-text="currentNumber || 'None'"></span></div>
-                <div>Spin State: <span x-text="showSpin ? 'Showing' : 'Hidden'"></span></div>
-            </div> --}}
+
         </div>
 
-                {{-- <div x-data="{
-                            showNumberModal: false,
-                            currentNumber: null,
-                            callNumber: null,
-                            showSpin: true,
-                            randomCounter: null,
-                            counterInterval: null,
+    <!-- Winner Modal -->
+    @if ($winnerAllart)
+    <div x-data="{
+                            transferProgress: 0,
                             init() {
-                                console.log('Alpine component initialized');
+                                // ইভেন্ট লিসেনার
+                                Livewire.on('progressUpdated', (progress) => {
+                                    this.transferProgress = progress;
+                                });
 
-                                window.Echo.channel('game.{{ $games_Id }}')
-                                    .listen('.number.announced', (e) => {
-                                        console.log('Event received:', e);
-                                        this.showNumberModal = true;
-                                        this.currentNumber = e.number;
-                                        this.callNumber = e.number;
-                                        this.showSpin = true;
+                                // প্রগেস বার অ্যানিমেশন
+                                const interval = setInterval(() => {
+                                    if(this.transferProgress < 100) {
+                                        this.transferProgress += Math.floor(Math.random() * 10) + 1;
+                                        if(this.transferProgress > 100) this.transferProgress = 100;
 
-                                        // Start random counter
-                                        this.startRandomCounter();
-
-                                        setTimeout(() => {
-                                            this.showSpin = false;
-                                            this.stopRandomCounter();
-                                            console.log('Counter stopped');
-                                        }, 6000);
-
-                                        setTimeout(() => {
-                                            this.showNumberModal = false;
-                                            console.log('Modal closed');
-                                            $wire.handleNumberAnnounced(e);
-                                        }, 9000);
-                                    });
-                            },
-                            startRandomCounter() {
-                                this.randomCounter = Math.floor(Math.random() * 90) + 1;
-                                this.counterInterval = setInterval(() => {
-                                    this.randomCounter = Math.floor(Math.random() * 90) + 1;
-                                }, 100); // Change number every 100ms
-                            },
-                            stopRandomCounter() {
-                                clearInterval(this.counterInterval);
-                                this.randomCounter = null;
+                                        // Livewire এ প্রগেস আপডেট করুন
+                                        @this.dispatch('updateProgress', { progress: this.transferProgress });
+                                    } else {
+                                        clearInterval(interval);
+                                        this.dispatch('transfer-completed');
+                                    }
+                                }, 80);
+                                // ইভেন্ট লিসেনার
+                                this.$el.addEventListener('transfer-completed', () => {
+                                    this.dispatch('progressCompleted');
+                                });
                             }
                         }">
-                    <!-- Number Announcement Modal -->
-                    <div x-show="showNumberModal"
-                        x-transition.opacity.duration.300ms
-                        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                        <div class="bg-white rounded-lg p-8 max-w-md w-full text-center">
-                            <template x-if="showSpin">
-                                <div class="text-8xl py-8 text-blue-500 font-mono">
-                                    <span x-text="randomCounter" class="counter-number"></span>
+        <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.7)">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow" style="background: linear-gradient(135deg, #7f0d00 0%, #2c3e50 100%);">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title text-white">Winner Announcement</h5>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3 mb-4">
+                            @if($games_Id && isset($winners))
+                                <div class="col-12">
+                                    <div class="list-group">
+                                        @foreach($winners->take(5) as $winner)
+                                            <a class="list-group-item list-group-item-action d-flex align-items-start gap-3 mb-3">
+                                                <div class="position-relative">
+                                                    @if($winner->user->avatar)
+                                                        <img src="{{ $winner->user->avatar }}" class="rounded-circle" width="48" height="48">
+                                                    @else
+                                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                                            {{ strtoupper(substr($winner->user->name, 0, 1)) }}
+                                                        </div>
+                                                    @endif
+                                                    <span class="position-absolute bottom-0 end-0 translate-middle p-1 bg-success border border-white rounded-circle" style="display: {{ $winner->user->is_online ? 'block' : 'none' }};"></span>
+                                                </div>
+
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <strong>{{ $winner->user->name }}</strong>
+                                                        <small class="text-muted">{{ $winner->won_at->diffForHumans() }}</small>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <span class="badge bg-{{ $this->getPatternColor($winner->pattern) }}">
+                                                            @if($winner->pattern == 'corner') Four Corner
+                                                            @elseif($winner->pattern == 'top_line') Top line
+                                                            @elseif($winner->pattern == 'middle_line') Middle line
+                                                            @elseif($winner->pattern == 'bottom_line') Bottom line
+                                                            @elseif($winner->pattern == 'full_house') Full house
+                                                            @endif
+                                                        </span>
+                                                        <span class="badge bg-primary rounded-pill text-white">
+                                                            {{ $winner->prize_amount }} Credit
+                                                        </span>
+                                                    </div>
+                                                    @if($loop->first)
+                                                        <div class="mt-2">
+                                                            <div class="d-flex justify-content-between mb-1">
+                                                                <small>Credit Transfer Progress</small>
+                                                                {{-- <small>
+                                                                    <span x-text="transferProgress">0</span>%
+                                                                </small> --}}
+                                                                <small x-text="typeof transferProgress === 'number' ? transferProgress + '%' : '100%'"></small>
+                                                            </div>
+                                                            <div class="progress" style="height: 8px;">
+                                                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                                    role="progressbar"
+                                                                    x-bind:style="'width: ' + transferProgress + '%'"
+                                                                    x-bind:aria-valuenow="transferProgress"
+                                                                    aria-valuemin="0"
+                                                                    aria-valuemax="100">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            </a>
+                                        @endforeach
+                                    </div>
                                 </div>
-                            </template>
-                            <template x-if="!showSpin">
-                                <div class="text-8xl py-8 font-bold text-green-600"
-                                    x-text="currentNumber"></div>
-                            </template>
+                            @endif
                         </div>
                     </div>
-
-                    <!-- Debug Console (Optional) -->
-                    <div class="fixed bottom-0 left-0 bg-black text-white p-2 text-xs">
-                        <div>Modal State: <span x-text="showNumberModal ? 'Open' : 'Closed'"></span></div>
-                        <div>Current Number: <span x-text="currentNumber || 'None'"></span></div>
-                        <div>Counter State: <span x-text="showSpin ? 'Running' : 'Stopped'"></span></div>
+                    <div class="modal-footer border-0">
+                        <button wire:click="$set('winnerAllart', false)" class="btn btn-primary">Close</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
-                <style>
-                    .counter-number {
-                        display: inline-block;
-                        min-width: 120px;
-                        text-align: center;
-                    }
-                </style> --}}
+    <script>
+            document.addEventListener('winnerAllartMakeFalse', () => {
+                setTimeout(() => {
+                    @this.call('winnerAllartMakeFalseMethod');
+                    @this.call('manageNotification');
+                }, 10000); // ৫ সেকেন্ড বিলম্ব
+            });
 
-                {{-- <div x-data="numberModalComponent()" x-init="init()">
-                    <!-- Number Announcement Modal -->
-                    <div x-show="showNumberModal"
-                        x-transition.opacity.duration.300ms
-                        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                        <div class="bg-white rounded-lg p-8 max-w-md w-full text-center">
-                            <template x-if="showSpin">
-                                <div class="text-8xl py-8 text-blue-500 font-mono">
-                                    <span x-text="randomCounter" class="counter-number"></span>
+            document.addEventListener('openGameoverModal', () => {
+                setTimeout(() => {
+                    @this.call('oprenGameoverModalAfterdelay');
+                }, 19000); // ৫ সেকেন্ড বিলম্ব
+            });
+    </script>
+
+    <!-- Game Over Modal -->
+    @if ($gameOverAllart)
+        <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.7)">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow" style="background: linear-gradient(135deg, #7f0d00 0%, #2c3e50 100%);">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title text-white">Game Over</h5>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3 mb-4">
+                            @if($games_Id && isset($winners))
+                                <div class="col-12">
+                                    <div class="list-group">
+                                        @foreach($winners->take(5) as $winner)
+                                            <a class="list-group-item list-group-item-action d-flex align-items-start gap-3 mb-3">
+                                                <div class="position-relative">
+                                                    @if($winner->user->avatar)
+                                                        <img src="{{ $winner->user->avatar }}" class="rounded-circle" width="48" height="48">
+                                                    @else
+                                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                                            {{ strtoupper(substr($winner->user->name, 0, 1)) }}
+                                                        </div>
+                                                    @endif
+                                                    <span class="position-absolute bottom-0 end-0 translate-middle p-1 bg-success border border-white rounded-circle" style="display: {{ $winner->user->is_online ? 'block' : 'none' }};"></span>
+                                                </div>
+
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <strong>{{ $winner->user->name }}</strong>
+                                                        <small class="text-muted">{{ $winner->won_at->diffForHumans() }}</small>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <span class="badge bg-{{ $this->getPatternColor($winner->pattern) }}">
+                                                            @if($winner->pattern == 'corner') Four Corner
+                                                            @elseif($winner->pattern == 'top_line') Top line
+                                                            @elseif($winner->pattern == 'middle_line') Middle line
+                                                            @elseif($winner->pattern == 'bottom_line') Bottom line
+                                                            @elseif($winner->pattern == 'full_house') Full house
+                                                            @endif
+                                                        </span>
+                                                        <span class="badge bg-primary rounded-pill text-white">
+                                                            {{ $winner->prize_amount }} Credit
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        @endforeach
+                                    </div>
                                 </div>
-                            </template>
-                            <template x-if="!showSpin">
-                                <div class="text-8xl py-8 font-bold text-green-600"
-                                    x-text="currentNumber"></div>
-                            </template>
+                            @endif
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <h6 class="text-white">Try your luck again by purchasing a sheet for the upcoming event!</h6>
+                            <a href="{{route('buy_ticket')}}" class="btn btn-sm btn-round btn-primary">Buy now</a>
                         </div>
                     </div>
-
-                    <!-- Debug Console (Optional) -->
-                    <div class="fixed bottom-0 left-0 bg-black text-white p-2 text-xs">
-                        <div>Modal State: <span x-text="showNumberModal ? 'Open' : 'Closed'"></span></div>
-                        <div>Current Number: <span x-text="currentNumber || 'None'"></span></div>
-                        <div>Counter State: <span x-text="showSpin ? 'Running' : 'Stopped'"></span></div>
+                    <div class="modal-footer border-0">
+                        <button wire:click="$set('gameOverAllart', false)" class="btn btn-primary">Close</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    @endif
 
-                <style>
-                    .counter-number {
-                        display: inline-block;
-                        min-width: 120px;
-                        text-align: center;
-                    }
-                </style>
-
-                <script>
-                    function numberModalComponent() {
-                        return {
-                            showNumberModal: false,
-                            currentNumber: null,
-                            callNumber: null,
-                            showSpin: true,
-                            randomCounter: null,
-                            counterInterval: null,
-
-                            init() {
-                                console.log('Alpine component initialized');
-
-                                window.Echo.channel('game.{{ $games_Id }}')
-                                    .listen('.number.announced', (e) => {
-                                        console.log('Event received:', e);
-                                        this.showNumberModal = true;
-                                        this.currentNumber = e.number;
-                                        this.callNumber = e.number;
-                                        this.showSpin = true;
-
-                                        this.startRandomCounter();
-
-                                        setTimeout(() => {
-                                            this.showSpin = false;
-                                            this.stopRandomCounter();
-                                            console.log('Counter stopped');
-                                        }, 6000);
-
-                                        setTimeout(() => {
-                                            this.showNumberModal = false;
-                                            console.log('Modal closed');
-                                            $wire.handleNumberAnnounced(e);
-                                        }, 9000);
-                                    });
-                            },
-
-                            startRandomCounter() {
-                                this.randomCounter = Math.floor(Math.random() * 90) + 1;
-                                this.counterInterval = setInterval(() => {
-                                    this.randomCounter = Math.floor(Math.random() * 90) + 1;
-                                }, 100);
-                            },
-
-                            stopRandomCounter() {
-                                clearInterval(this.counterInterval);
-                                this.counterInterval = null;
-                                this.randomCounter = null;
-                            }
-                        }
-                    }
-                </script> --}}
-
-
-</div>
+    </div>
 
     @section('footer')
     <livewire:layout.frontend.footer />
     @endsection
 
-
     @section('JS')
         @include('livewire.layout.frontend.js')
-        {{-- <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script> --}}
-
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     @endsection
 </div>

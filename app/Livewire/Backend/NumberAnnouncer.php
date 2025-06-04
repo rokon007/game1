@@ -10,6 +10,7 @@ use App\Models\Announcement;
 use App\Events\NumberAnnounced;
 use Livewire\Component;
 use Illuminate\Support\Facades\Log;
+use App\Events\GameRedirectEvent;
 
 class NumberAnnouncer extends Component
 {
@@ -31,6 +32,88 @@ class NumberAnnouncer extends Component
     public $showNumberModal = false;
     public $currentAnnouncedNumber = null;
     public $gameOver=false;
+
+    public $textNote;
+    public $gameOverAllart=false;
+    public $winnerAllart=false;
+    public $redirectUrl;
+
+     protected $listeners = [
+        'echo:game.*,game.winner' => 'handleWinnerAnnounced',
+        'echo:game.*,game.over' => 'handleGameOver',
+        'updateProgress' => 'updateTransferProgress',
+        'transfer-completed' => 'onTransferCompleted'
+    ];
+
+    public function redirectAllPlayers()
+    {
+        $tickets = Ticket::where('game_id', $this->gameId)
+                    ->selectRaw("user_id, SUBSTRING_INDEX(ticket_number, '-', 1) as sheet_id")
+                    ->pluck('sheet_id', 'user_id')
+                    ->toArray();
+
+        event(new GameRedirectEvent($this->gameId, $tickets));
+
+        //return back()->with('success', 'সকল প্লেয়ারকে রিডাইরেক্ট করা হচ্ছে');
+    }
+
+    public function handleWinnerAnnounced($payload = null)
+    {
+        // ডিবাগ লগ যোগ করুন
+        Log::info('handleWinnerAnnounced called', [
+            'payload' => $payload,
+            'game_id' => $this->games_Id,
+            'method' => 'handleWinnerAnnounced'
+        ]);
+
+        // গেমের সকল উইনার লোড করুন
+        $this->winners = Winner::where('game_id', $this->games_Id)
+            ->with('user')
+            ->orderByDesc('won_at')
+            ->get();
+
+        Log::info('Winners loaded', ['winners_count' => $this->winners->count()]);
+
+        $this->winnerAllart = true;
+
+        // UI আপডেট করুন
+        $this->dispatch('winnerAnnounced', ['winners' => $this->winners]);
+        $this->dispatch('winnerAllartMakeFalse');
+    }
+
+    public function handleGameOver($data)
+    {
+         Log::info('Winner announced event received', ['payload' => $data]);
+        // গেমের সকল উইনার লোড করুন
+        $this->winners = Winner::where('game_id', $this->games_Id)
+            ->with('user')
+            ->orderByDesc('won_at')
+            ->get();
+
+        $this->dispatch('openGameoverModal');
+    }
+
+    public function updateTransferProgress($progress)
+    {
+        $this->dispatch('progressUpdated', progress: $progress);
+    }
+
+    public function onTransferCompleted()
+    {
+        $this->dispatch('transfer-completed');
+    }
+
+    public function manageNotification()
+    {
+        $this->dispatch('notificationText', text: $this->textNote);
+        $this->dispatch('notificationRefresh');
+    }
+
+    public function oprenGameoverModalAfterdelay()
+    {
+        $this->gameOverAllart=true;
+        $this->gameOver=true;
+    }
 
     public function mount($gameId)
     {
@@ -80,7 +163,18 @@ class NumberAnnouncer extends Component
         $this->totalSalesAmount = $this->totalSheetsSold * $this->game->ticket_price;
 
         // Calculate total prize amount from active prizes
-        $this->totalPrizeAmount = Prize::where('is_active', true)->sum('amount');
+       $game = Game::find($this->gameId);
+
+        if ($game) {
+            $this->totalPrizeAmount =
+                ($game->corner_prize ?? 0) +
+                ($game->top_line_prize ?? 0) +
+                ($game->middle_line_prize ?? 0) +
+                ($game->bottom_line_prize ?? 0) +
+                ($game->full_house_prize ?? 0);
+        }else{
+            $this->totalPrizeAmount =0;
+        }
 
         // Load participants with their tickets
         $this->participants = Ticket::with(['user', 'game'])

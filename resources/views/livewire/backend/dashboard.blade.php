@@ -91,6 +91,13 @@
                 </div>
             </div>
         </section>
+        <section>
+            <div class="row">
+                <div class="col-md-4">
+                    <button wire:click='testClick' class="btn btn-primary">Click</button>
+                </div>
+            </div>
+        </section>
             @if ($rechargeModal)
                 <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5)">
                     <div class="modal-dialog" role="document">

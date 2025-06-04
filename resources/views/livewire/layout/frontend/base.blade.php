@@ -51,18 +51,14 @@
     @yield('JS')
 
       @livewireScripts
-      {{-- <script>
-        window.Echo.join('online-users')
-            .here((users) => {
-                console.log('Online users:', users);
-            })
-            .joining((user) => {
-                console.log('User joined:', user.name);
-            })
-            .leaving((user) => {
-                console.log('User left:', user.name);
-            });
-      </script> --}}
+      <script>
+        const currentUserId = {{ auth()->id() }};
+        const currentGameId = {{ $game->id ?? 'null' }};
+
+        // বিকল্প: PHP থেকে সরাসরি sheet_id পাঠানো
+        const userSheetId = "{{ auth()->check() ?
+                            explode('-', auth()->user()->current_ticket)[0] : '' }}";
+    </script>
 
       @stack('scripts')
       @vite(['resources/js/app.js'])

@@ -154,7 +154,7 @@
                         </span> --}}
                         <div class="product-thumbnail-side">
                             <!-- Thumbnail -->
-                            <a class="product-thumbnail d-block" href="single-product.html">
+                            <a class="product-thumbnail d-block" href="#">
                                 <img src="{{ Storage::url($prize->image_path) }}" alt="">
                             </a>
                             {{-- <a style="font-size: 12px; color: black; font-weight: bold;" href="#">

@@ -15,6 +15,8 @@ new class extends Component
     public $lowStockAllart=false;
     public $quantityErrorAllart=false;
     public $rifleRequestAllart=false;
+    public $noteText;
+    public $noteMood=false;
 
 
     #[On('sentRifleRequest')]
@@ -27,6 +29,21 @@ new class extends Component
     public function rifleRequestAllartMakeFalse()
     {
         $this->rifleRequestAllart = false;
+    }
+
+    #[On('notificationText')]
+    public function showNote($text)
+    {
+        $this->noteText=$text;
+        $this->noteMood = true;
+
+        // ৫ সেকেন্ডের বিলম্বের পরে newNotificationMoodMakeFalse() কল করবে sleep(5); // ৫ সেকেন্ড বিলম্ব
+        $this->dispatch('newNotificationMoodMakeFalse');
+    }
+
+    public function newNotificationMoodMakeFalse()
+    {
+        $this->noteMood = false;
     }
 
     #[On('showNotification')]
@@ -137,6 +154,18 @@ new class extends Component
             </div>
         @endif
 
+        @if ($noteMood)
+            <div class="pwa-install-alert shadow bg-white" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000" data-bs-autohide="true">
+                <div class="toast-body bg-success">
+                    <div class="content d-flex align-items-center mb-2">
+                         <img style="width:150px" src="{{asset('assets/frontend/img/core-img/alert.png')}}" alt="">
+                        <h6 class="mb-0 text-white">{{$noteText}}</h6>
+                        <button class="btn-close ms-auto" type="button" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         @if ($rifleRequestAllart)
             <div class="pwa-install-alert shadow bg-white" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000" data-bs-autohide="true">
                 <div class="toast-body bg-success">
@@ -188,6 +217,13 @@ new class extends Component
         </div>
     @endif
         <script>
+            document.addEventListener('newNotificationMoodMakeFalse', () => {
+                setTimeout(() => {
+                    @this.call('newNotificationMoodMakeFalse');
+                }, 10000); // ৫ সেকেন্ড বিলম্ব
+            });
+
+
             document.addEventListener('addCartNotificationMoodMakeFalse', () => {
                 setTimeout(() => {
                     @this.call('addCartNotificationMoodMakeFalse');
