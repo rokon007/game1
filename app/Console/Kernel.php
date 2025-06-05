@@ -7,21 +7,12 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
 class Kernel extends ConsoleKernel
 {
-    /**
-     * Define the application's command schedule.
-     */
-    protected function schedule(Schedule $schedule): void
+    protected function schedule(Schedule $schedule)
     {
-        $schedule->call(function () {
-            \App\Models\User::where('last_seen_at', '<', now()->subMinutes(5))
-                ->update(['is_online' => false]);
-        })->everyMinute();
+        $schedule->command('users:update-online-status')->everyMinute();
     }
 
-    /**
-     * Register the commands for the application.
-     */
-    protected function commands(): void
+    protected function commands()
     {
         $this->load(__DIR__.'/Commands');
 

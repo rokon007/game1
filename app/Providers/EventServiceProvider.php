@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use App\Models\User;
+use App\Listeners\HandleUserLogout;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -21,6 +22,9 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         Registered::class => [
             SendEmailVerificationNotification::class,
+        ],
+         Logout::class => [
+            HandleUserLogout::class,
         ],
     ];
 
@@ -35,9 +39,9 @@ class EventServiceProvider extends ServiceProvider
             $event->user->update(['is_online' => true]);
         });
 
-        Event::listen(Logout::class, function ($event) {
-            $event->user->update(['is_online' => false]);
-        });
+        // Event::listen(Logout::class, function ($event) {
+        //     $event->user->update(['is_online' => false]);
+        // });
     }
 
     /**
