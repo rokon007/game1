@@ -162,10 +162,10 @@
     <div class="page-content-wrapper">
         <div class="container px-3 py-3">
             <!-- ডিবাগ বাটন যোগ করুন -->
-            {{-- <div class="mb-3">
+            <div class="mb-3">
                 <button wire:click="testWinnerHandler" class="btn btn-warning btn-sm">Test Winner Handler</button>
                 <button wire:click="winnerSelfAnnounced" class="btn btn-info btn-sm">Test Winner Alert</button>
-            </div> --}}
+            </div>
 
             <!-- Game Header Section -->
             <div class="game-header mb-4">
@@ -606,7 +606,7 @@
         </div>
 
     <!-- Winner Modal -->
-    @if ($winnerAllart)
+    {{-- @if ($winnerAllart)
     <div x-data="{
                             transferProgress: 0,
                             init() {
@@ -679,10 +679,7 @@
                                                     @if($loop->first)
                                                         <div class="mt-2">
                                                             <div class="d-flex justify-content-between mb-1">
-                                                                <small>Credit Transfer Progress</small>
-                                                                {{-- <small>
-                                                                    <span x-text="transferProgress">0</span>%
-                                                                </small> --}}
+
                                                                 <small x-text="typeof transferProgress === 'number' ? transferProgress + '%' : '100%'"></small>
                                                             </div>
                                                             <div class="progress" style="height: 8px;">
@@ -711,6 +708,111 @@
             </div>
         </div>
     </div>
+    @endif --}}
+
+    <!-- Winner Modal -->
+    @if ($winnerAllart)
+        <div x-data="{
+            transferProgress: 0,
+            init() {
+                // Event Listener for Progress Updates
+                Livewire.on('progressUpdated', (progress) => {
+                    this.transferProgress = progress;
+                });
+
+                // Progress Bar Animation
+                const interval = setInterval(() => {
+                    if (this.transferProgress < 100) {
+                        this.transferProgress += Math.floor(Math.random() * 5) + 2;
+                        if (this.transferProgress > 100) this.transferProgress = 100;
+
+                        // Dispatch Progress Update to Livewire
+                        @this.dispatch('updateProgress', { progress: this.transferProgress });
+                    } else {
+                        clearInterval(interval);
+                        this.dispatch('transfer-completed');
+                    }
+                }, 100);
+
+                // Event Listener for Transfer Completion
+                this.$el.addEventListener('transfer-completed', () => {
+                    this.dispatch('progressCompleted');
+                });
+            }
+        }">
+            <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5)">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content border-0 shadow-lg rounded-3" style="background: linear-gradient(135deg, #1e3a8a 0%, #6b21a8 100%); overflow: hidden;">
+                        <div class="modal-header border-0 px-3 pt-3 pb-2">
+                            <h5 class="modal-title text-white fw-bold">🏆 Winner Announcement</h5>
+                        </div>
+                        <div class="modal-body p-3">
+                            <div class="row g-2">
+                                @if($games_Id && isset($winners))
+                                    <div class="col-12">
+                                        <div class="list-group">
+                                            @foreach($winners->take(5) as $winner)
+                                                <div class="list-group-item list-group-item-action d-flex align-items-center gap-2 mb-2 rounded-3 shadow-sm p-2" style="background: rgba(255,255,255,0.1); transition: transform 0.2s; cursor: pointer; overflow: hidden;" @mouseover="this.style.transform='scale(1.02)'" @mouseout="this.style.transform='scale(1)'">
+                                                    <div class="position-relative flex-shrink-0">
+                                                        @if($winner->user->avatar)
+                                                            <img src="{{ $winner->user->avatar }}" class="rounded-circle" width="36" height="36" style="object-fit: cover;">
+                                                        @else
+                                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 16px;">
+                                                                {{ strtoupper(substr($winner->user->name, 0, 1)) }}
+                                                            </div>
+                                                        @endif
+                                                        <span class="position-absolute bottom-0 end-0 translate-middle p-1 bg-success border border-white rounded-circle" style="display: {{ $winner->user->is_online ? 'block' : 'none' }};"></span>
+                                                    </div>
+                                                    <div class="flex-grow-1" style="overflow-wrap: break-word; word-break: break-word;">
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <strong class="text-white" style="font-size: 0.9rem;">{{ Str::limit($winner->user->name, 20) }}</strong>
+                                                            <small class="text-light opacity-75" style="font-size: 0.75rem;">{{ $winner->won_at->diffForHumans() }}</small>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                                                            <span class="badge bg-{{ $this->getPatternColor($winner->pattern) }} rounded-pill px-2 py-1" style="font-size: 0.8rem;">
+                                                                @if($winner->pattern == 'corner') Four Corner
+                                                                @elseif($winner->pattern == 'top_line') Top Line
+                                                                @elseif($winner->pattern == 'middle_line') Middle Line
+                                                                @elseif($winner->pattern == 'bottom_line') Bottom Line
+                                                                @elseif($winner->pattern == 'full_house') Full House
+                                                                @endif
+                                                            </span>
+                                                            <span class="badge bg-success rounded-pill px-2 py-1 text-white" style="font-size: 0.8rem;">
+                                                                {{ $winner->prize_amount }} Credit
+                                                            </span>
+                                                        </div>
+                                                        @if($loop->first)
+                                                            <div class="mt-2">
+                                                                <div class="d-flex justify-content-between mb-1">
+                                                                    <small class="text-light" style="font-size: 0.75rem;">Credit Transfer Progress</small>
+                                                                    <small class="text-light" style="font-size: 0.75rem;" x-text="typeof transferProgress === 'number' ? transferProgress + '%' : '100%'"></small>
+                                                                </div>
+                                                                <div class="progress rounded-pill" style="height: 8px;">
+                                                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                                                        role="progressbar"
+                                                                        x-bind:style="'width: ' + transferProgress + '%'"
+                                                                        x-bind:aria-valuenow="transferProgress"
+                                                                        aria-valuemin="0"
+                                                                        aria-valuemax="100">
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 px-3 pb-3">
+                            <button wire:click="$set('winnerAllart', false)" class="btn btn-light w-100 rounded-pill py-2 fw-semibold">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     @endif
 
     <script>
@@ -728,7 +830,7 @@
             });
     </script>
 
-    <!-- Game Over Modal -->
+    {{-- <!-- Game Over Modal -->
     @if ($gameOverAllart)
         <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.7)">
             <div class="modal-dialog modal-dialog-centered">
@@ -786,6 +888,69 @@
                     </div>
                     <div class="modal-footer border-0">
                         <button wire:click="$set('gameOverAllart', false)" class="btn btn-primary">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif --}}
+
+    <!-- Game Over Modal -->
+    @if ($gameOverAllart)
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5)">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content border-0 shadow-lg rounded-3" style="background: linear-gradient(135deg, #1e3a8a 0%, #6b21a8 100%); overflow: hidden;">
+                    <div class="modal-header border-0 px-3 pt-3 pb-2">
+                        <h5 class="modal-title text-white fw-bold">🎮 Game Over</h5>
+                    </div>
+                    <div class="modal-body p-3">
+                        <div class="row g-2 mb-3">
+                            @if($games_Id && isset($winners))
+                                <div class="col-12">
+                                    <div class="list-group">
+                                        @foreach($winners->take(5) as $winner)
+                                            <div class="list-group-item list-group-item-action d-flex align-items-center gap-2 mb-2 rounded-3 shadow-sm p-2" style="background: rgba(255,255,255,0.1); transition: transform 0.2s; cursor: pointer; overflow: hidden;" @mouseover="this.style.transform='scale(1.02)'" @mouseout="this.style.transform='scale(1)'">
+                                                <div class="position-relative flex-shrink-0">
+                                                    @if($winner->user->avatar)
+                                                        <img src="{{ $winner->user->avatar }}" class="rounded-circle" width="36" height="36" style="object-fit: cover;">
+                                                    @else
+                                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 16px;">
+                                                            {{ strtoupper(substr($winner->user->name, 0, 1)) }}
+                                                        </div>
+                                                    @endif
+                                                    <span class="position-absolute bottom-0 end-0 translate-middle p-1 bg-success border border-white rounded-circle" style="display: {{ $winner->user->is_online ? 'block' : 'none' }};"></span>
+                                                </div>
+                                                <div class="flex-grow-1" style="overflow-wrap: break-word; word-break: break-word;">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <strong class="text-white" style="font-size: 0.9rem;">{{ Str::limit($winner->user->name, 20) }}</strong>
+                                                        <small class="text-light opacity-75" style="font-size: 0.75rem;">{{ $winner->won_at->diffForHumans() }}</small>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                                                        <span class="badge bg-{{ $this->getPatternColor($winner->pattern) }} rounded-pill px-2 py-1" style="font-size: 0.8rem;">
+                                                            @if($winner->pattern == 'corner') Four Corner
+                                                            @elseif($winner->pattern == 'top_line') Top Line
+                                                            @elseif($winner->pattern == 'middle_line') Middle Line
+                                                            @elseif($winner->pattern == 'bottom_line') Bottom Line
+                                                            @elseif($winner->pattern == 'full_house') Full House
+                                                            @endif
+                                                        </span>
+                                                        <span class="badge bg-success rounded-pill px-2 py-1 text-white" style="font-size: 0.8rem;">
+                                                            {{ $winner->prize_amount }} Credit
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="row g-2 text-center">
+                            <h6 class="text-white mb-2" style="font-size: 0.9rem;">Try your luck again by purchasing a sheet for the upcoming event!</h6>
+                            <a href="{{ route('buy_ticket') }}" class="btn btn-success w-100 rounded-pill py-2 fw-semibold shadow-sm" style="transition: transform 0.2s;" @mouseover="this.style.transform='scale(1.05)'" @mouseout="this.style.transform='scale(1)'">Buy Now</a>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 px-3 pb-3">
+                        <button wire:click="$set('gameOverAllart', false)" class="btn btn-light w-100 rounded-pill py-2 fw-semibold">Close</button>
                     </div>
                 </div>
             </div>
