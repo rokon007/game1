@@ -162,10 +162,10 @@
     <div class="page-content-wrapper">
         <div class="container px-3 py-3">
             <!-- ডিবাগ বাটন যোগ করুন -->
-            <div class="mb-3">
+            {{-- <div class="mb-3">
                 <button wire:click="testWinnerHandler" class="btn btn-warning btn-sm">Test Winner Handler</button>
                 <button wire:click="winnerSelfAnnounced" class="btn btn-info btn-sm">Test Winner Alert</button>
-            </div>
+            </div> --}}
 
             <!-- Game Header Section -->
             <div class="game-header mb-4">
