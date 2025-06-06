@@ -37,6 +37,7 @@ class NumberAnnouncer extends Component
     public $gameOverAllart=false;
     public $winnerAllart=false;
     public $redirectUrl;
+    public $ridirectAllart=false;
 
      protected $listeners = [
         'echo:game.*,game.winner' => 'handleWinnerAnnounced',
@@ -45,6 +46,18 @@ class NumberAnnouncer extends Component
         'transfer-completed' => 'onTransferCompleted'
     ];
 
+    // public function redirectAllPlayers()
+    // {
+    //     $tickets = Ticket::where('game_id', $this->gameId)
+    //                 ->selectRaw("user_id, SUBSTRING_INDEX(ticket_number, '-', 1) as sheet_id")
+    //                 ->pluck('sheet_id', 'user_id')
+    //                 ->toArray();
+
+    //     event(new GameRedirectEvent($this->gameId, $tickets));
+
+    //     //return back()->with('success', 'সকল প্লেয়ারকে রিডাইরেক্ট করা হচ্ছে');
+    // }
+
     public function redirectAllPlayers()
     {
         $tickets = Ticket::where('game_id', $this->gameId)
@@ -52,9 +65,15 @@ class NumberAnnouncer extends Component
                     ->pluck('sheet_id', 'user_id')
                     ->toArray();
 
-        event(new GameRedirectEvent($this->gameId, $tickets));
+        Log::info('Redirecting all players', [
+            'game_id' => $this->gameId,
+            'tickets' => $tickets,
+        ]);
 
-        //return back()->with('success', 'সকল প্লেয়ারকে রিডাইরেক্ট করা হচ্ছে');
+        broadcast(new GameRedirectEvent($this->gameId))->toOthers();
+
+        //session()->flash('success', 'সকল প্লেয়ারকে রিডাইরেক্ট করা হচ্ছে');
+        $this->ridirectAllart=true;
     }
 
     public function handleWinnerAnnounced($payload = null)

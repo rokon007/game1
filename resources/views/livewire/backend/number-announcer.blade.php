@@ -366,6 +366,25 @@
                 </div>
             @endif
 
+            @if($ridirectAllart)
+                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5)">
+                    <div class="modal-dialog modal-dialog-centered" role="document">
+                        <div class="modal-content border-success">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title">Users Redirect To Game Room Successful</h5>
+                            </div>
+                            <div class="modal-body text-center">
+                                <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                                <p class="mt-3 mb-0 fs-5">The users who have purchased the game sheet and logged in are being redirected to the game room.</p>
+                            </div>
+                            <div class="modal-footer justify-content-center">
+                                <button class="btn btn-success" wire:click="$set('ridirectAllart', false)">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Winner Modal -->
             @if ($winnerAllart)
             <div x-data="{

@@ -1,4 +1,3 @@
-<div>
     @section('meta_description')
       <meta name="description" content="Altswave Shop">
     @endsection
@@ -605,110 +604,70 @@
 
         </div>
 
-    <!-- Winner Modal -->
-    {{-- @if ($winnerAllart)
+    <!-- Intro Video Modal -->
     <div x-data="{
-                            transferProgress: 0,
-                            init() {
-                                // ইভেন্ট লিসেনার
-                                Livewire.on('progressUpdated', (progress) => {
-                                    this.transferProgress = progress;
-                                });
-
-                                // প্রগেস বার অ্যানিমেশন
-                                const interval = setInterval(() => {
-                                    if(this.transferProgress < 100) {
-                                        this.transferProgress += Math.floor(Math.random() * 10) + 1;
-                                        if(this.transferProgress > 100) this.transferProgress = 100;
-
-                                        // Livewire এ প্রগেস আপডেট করুন
-                                        @this.dispatch('updateProgress', { progress: this.transferProgress });
-                                    } else {
-                                        clearInterval(interval);
-                                        this.dispatch('transfer-completed');
-                                    }
-                                }, 80);
-                                // ইভেন্ট লিসেনার
-                                this.$el.addEventListener('transfer-completed', () => {
-                                    this.dispatch('progressCompleted');
-                                });
-                            }
-                        }">
-        <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.7)">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow" style="background: linear-gradient(135deg, #7f0d00 0%, #2c3e50 100%);">
-                    <div class="modal-header border-0">
-                        <h5 class="modal-title text-white">Winner Announcement</h5>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row g-3 mb-4">
-                            @if($games_Id && isset($winners))
-                                <div class="col-12">
-                                    <div class="list-group">
-                                        @foreach($winners->take(5) as $winner)
-                                            <a class="list-group-item list-group-item-action d-flex align-items-start gap-3 mb-3">
-                                                <div class="position-relative">
-                                                    @if($winner->user->avatar)
-                                                        <img src="{{ $winner->user->avatar }}" class="rounded-circle" width="48" height="48">
-                                                    @else
-                                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                                            {{ strtoupper(substr($winner->user->name, 0, 1)) }}
-                                                        </div>
-                                                    @endif
-                                                    <span class="position-absolute bottom-0 end-0 translate-middle p-1 bg-success border border-white rounded-circle" style="display: {{ $winner->user->is_online ? 'block' : 'none' }};"></span>
-                                                </div>
-
-                                                <div class="flex-grow-1">
-                                                    <div class="d-flex justify-content-between">
-                                                        <strong>{{ $winner->user->name }}</strong>
-                                                        <small class="text-muted">{{ $winner->won_at->diffForHumans() }}</small>
-                                                    </div>
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <span class="badge bg-{{ $this->getPatternColor($winner->pattern) }}">
-                                                            @if($winner->pattern == 'corner') Four Corner
-                                                            @elseif($winner->pattern == 'top_line') Top line
-                                                            @elseif($winner->pattern == 'middle_line') Middle line
-                                                            @elseif($winner->pattern == 'bottom_line') Bottom line
-                                                            @elseif($winner->pattern == 'full_house') Full house
-                                                            @endif
-                                                        </span>
-                                                        <span class="badge bg-primary rounded-pill text-white">
-                                                            {{ $winner->prize_amount }} Credit
-                                                        </span>
-                                                    </div>
-                                                    @if($loop->first)
-                                                        <div class="mt-2">
-                                                            <div class="d-flex justify-content-between mb-1">
-
-                                                                <small x-text="typeof transferProgress === 'number' ? transferProgress + '%' : '100%'"></small>
-                                                            </div>
-                                                            <div class="progress" style="height: 8px;">
-                                                                <div class="progress-bar progress-bar-striped progress-bar-animated"
-                                                                    role="progressbar"
-                                                                    x-bind:style="'width: ' + transferProgress + '%'"
-                                                                    x-bind:aria-valuenow="transferProgress"
-                                                                    aria-valuemin="0"
-                                                                    aria-valuemax="100">
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            </a>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="modal-footer border-0">
-                        <button wire:click="$set('winnerAllart', false)" class="btn btn-primary">Close</button>
-                    </div>
+        showIntroVideo: true,
+        videoLoaded: false,
+        init() {
+            const video = this.$refs.introVideo;
+            const audio = this.$refs.introAudio;
+            video.addEventListener('canplay', () => {
+                this.videoLoaded = true;
+                video.play().catch(error => {
+                    console.error('Video autoplay failed:', error);
+                });
+                audio.play().catch(error => {
+                console.error('Audio playback failed:', error);
+            });
+                if (window.innerWidth <= 768) {
+                    if (video.requestFullscreen) {
+                        video.requestFullscreen().catch(err => console.error('Fullscreen error:', err));
+                    } else if (video.webkitRequestFullscreen) {
+                        video.webkitRequestFullscreen();
+                    } else if (video.msRequestFullscreen) {
+                        video.msRequestFullscreen();
+                    }
+                }
+            });
+            video.addEventListener('ended', () => {
+                this.showIntroVideo = false;
+                 audio.pause();
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                }
+            });
+        },
+        skipVideo() {
+            this.showIntroVideo = false;
+            const video = this.$refs.introVideo;
+            const audio = this.$refs.introAudio;
+            audio.pause();
+            video.pause();
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            }
+        }
+        }">
+        <div x-show="showIntroVideo" class="modal-overlay" x-transition.opacity.duration.300ms>
+            <div class="modal-content">
+                <video x-ref="introVideo" id="intro-video" playsinline muted>
+                    <source src="{{ asset('videos/intro.mp4') }}" type="video/mp4">
+                    <source src="{{ asset('videos/intro.webm') }}" type="video/webm">
+                    Your browser does not support the video tag.
+                </video>
+                <audio x-ref="introAudio" id="intro-audio">
+                    <source src="{{ asset('audio/intro.mp3') }}" type="audio/mpeg">
+                    Your browser does not support the audio tag.
+                </audio>
+                <div x-show="!videoLoaded" id="intro-video-loading">
+                     <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcmk4bnVqeHBscXdvank4YTY3NWMzNDIyc3U4NDNnY3lrZWwybW9leiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/IwSG1QKOwDjQk/giphy.gif" alt="Loading" class="w-32 h-32">
                 </div>
+                <button x-on:click="skipVideo" id="skip-video" class="btn btn-danger btn-sm rounded-pill px-4 py-2 text-white">
+                    <i class="fas fa-forward me-1"></i> Skip
+                </button>
             </div>
         </div>
     </div>
-    @endif --}}
 
     <!-- Winner Modal -->
     @if ($winnerAllart)

@@ -51,17 +51,14 @@
     @yield('JS')
 
       @livewireScripts
-      <script>
-        const currentUserId = {{ auth()->id() }};
-        const currentGameId = {{ $game->id ?? 'null' }};
-
-        // বিকল্প: PHP থেকে সরাসরি sheet_id পাঠানো
-        const userSheetId = "{{ auth()->check() ?
-                            explode('-', auth()->user()->current_ticket)[0] : '' }}";
-    </script>
-
       @stack('scripts')
       @vite(['resources/js/app.js'])
+      <!-- গেমরুমে রিডাইরেক্ট করার জন্য-->
+      @auth
+        <script>
+            window.userId = {{ json_encode(auth()->id()) }};
+        </script>
+      @endauth
   </body>
 
 
