@@ -710,7 +710,8 @@
                                 @if($games_Id && isset($winners))
                                     <div class="col-12">
                                         <div class="list-group">
-                                            @foreach($winners->take(5) as $winner)
+                                            {{-- @foreach($winners->take(5) as $winner) --}}
+                                            @foreach($winners as $winner)
                                                 <div class="list-group-item list-group-item-action d-flex align-items-center gap-2 mb-2 rounded-3 shadow-sm p-2" style="background: rgba(255,255,255,0.1); transition: transform 0.2s; cursor: pointer; overflow: hidden;" @mouseover="this.style.transform='scale(1.02)'" @mouseout="this.style.transform='scale(1)'">
                                                     <div class="position-relative flex-shrink-0">
                                                         @if($winner->user->avatar)
@@ -866,7 +867,7 @@
                             @if($games_Id && isset($winners))
                                 <div class="col-12">
                                     <div class="list-group">
-                                        @foreach($winners->take(5) as $winner)
+                                        @foreach($winners as $winner)
                                             <div class="list-group-item list-group-item-action d-flex align-items-center gap-2 mb-2 rounded-3 shadow-sm p-2" style="background: rgba(255,255,255,0.1); transition: transform 0.2s; cursor: pointer; overflow: hidden;" @mouseover="this.style.transform='scale(1.02)'" @mouseout="this.style.transform='scale(1)'">
                                                 <div class="position-relative flex-shrink-0">
                                                     @if($winner->user->avatar)

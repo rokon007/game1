@@ -63,16 +63,16 @@ new class extends Component
             @auth
                 <li><a href="{{route('transactions')}}"><i class="ti ti-bell-ringing lni-tada-effect"></i>Transactions<span class="ms-1 badge badge-warning">3</span></a></li>
                 {{-- <li><a href="profile.html"><i class="ti ti-heart"></i>My Wishlist</a></li> --}}
-                <li><a href="{{route('rifleAccount')}}"><i class="ti ti-adjustments-horizontal"></i>Rifle Account</a></li>
+                {{-- <li><a href="{{route('rifleAccount')}}"><i class="ti ti-adjustments-horizontal"></i>Rifle Account</a></li> --}}
                 <li><a href="{{route('profile')}}"><i class="ti ti-user"></i>My Profile</a></li>
                 <li><a href="{{ route('wallet') }}"><i class="ti ti-wallet"></i> Wallet</a></li>
+                <li><a href="{{ route('buy_ticket') }}"><i class="ti ti-grid-dots"></i> Buy Ticket Sheet</a></li>
                 <li><a href="{{ route('creditTransfer') }}"><i class="ti ti-transfer"></i> Credit Transfer</a></li>
-                <li><a href="{{ route('gameLobby') }}"><i class="ti ti-grid-dots"></i> Game Lobby</a></li>
+                {{-- <li><a href="{{ route('gameLobby') }}"><i class="ti ti-grid-dots"></i> Game Lobby</a></li> --}}
                 {{-- <li><a href="{{ route('gameRoom') }}"><i class="ti ti-dice-3"></i> Game Room</a></li> --}}
                 <li><a href="{{ route('ticket') }}"><i class="ti ti-ticket"></i> Ticket</a></li>
                 <li><a href="{{ route('gameHistory') }}"><i class="ti ti-history"></i> Game History</a></li>
-                <li><a href="{{ route('withdrawal') }}"><i class="ti ti-cash-out"></i> Withdrawal</a></li>
-                <li><a href="{{ route('buy_ticket') }}"><i class="ti ti-cash-out"></i> Buy Ticket</a></li>
+                {{-- <li><a href="{{ route('withdrawal') }}"><i class="ti ti-cash-out"></i> Withdrawal</a></li> --}}
                 <li><a class="text-white" style="cursor: pointer" wire:click="logout"><i class="ti ti-logout"></i>Log Out</a></li>
             @else
                 <li><a href="{{ route('login') }}"><i class="ti ti-logout"></i>Log in</a></li>

@@ -47,7 +47,8 @@ class GameRoom extends Component
         'numberAnnounced' => 'onNumberReceived',
         'updateProgress' => 'updateTransferProgress',
         'transfer-completed' => 'onTransferCompleted',
-        'tick' => 'updateTimer'
+        'tick' => 'updateTimer',
+        'process-delayed-prizes' => 'processDelayedPrizes'
     ];
 
     public function mount($gameId, $sheetId = null)
@@ -524,22 +525,39 @@ class GameRoom extends Component
                                 'prize_processed' => false
                             ]);
 
-                            $this->sentNotification = true;
+                            Log::info("Winner record created for user {$ticket->user_id}, pattern: $pattern, game: {$this->games_Id}");
+
+                            // $this->sentNotification = true;
                             $this->dispatchGlobalWinerEvent();
+
+                            // Schedule delayed prize processing to allow all simultaneous winners to be recorded
+                            $this->dispatch('process-delayed-prizes', [
+                                'pattern' => $pattern,
+                                'game_id' => $this->games_Id
+                            ], delay: 2000); // 2 second delay
                         }
                     }
                 });
-
-                // Process prizes after the transaction is complete
-                foreach ($winningPatterns as $pattern) {
-                    $this->processPrizesForPattern($pattern, $game);
-                }
 
             } catch (\Exception $e) {
                 Log::error('Error in updateTicketWinningStatus: ' . $e->getMessage());
                 $ticket->is_winner = true;
                 $ticket->save();
             }
+        }
+    }
+
+    // New method to handle delayed prize processing
+    public function processDelayedPrizes($data)
+    {
+        $pattern = $data['pattern'];
+        $gameId = $data['game_id'];
+
+        Log::info("Processing delayed prizes for pattern: $pattern, game: $gameId");
+
+        $game = Game::find($gameId);
+        if ($game) {
+            $this->processPrizesForPattern($pattern, $game);
         }
     }
 
@@ -617,6 +635,8 @@ class GameRoom extends Component
                     $winner->prize_processed = true;
                     $winner->save();
 
+                    Log::info("Prize processed for user {$winnerUser->id}: $prizePerWinner credits for pattern $pattern");
+
                     // Create winner credit transaction
                     Transaction::create([
                         'user_id' => $winnerUser->id,
@@ -634,12 +654,18 @@ class GameRoom extends Component
 
                     if ($winner->user_id == Auth::id()) {
                         $this->textNote = $notificationMessage;
+                         $this->sentNotification = true;
+                    }else{
+                         $this->textNote = '';
+                         $this->sentNotification = false;
                     }
                 }
 
                 // Send notification to system user
                 $systemNotificationMessage = 'Prize of ' . $totalPrizeAmount . ' credits awarded for ' . $pattern . ' (shared among ' . $numberOfWinners . ' winners)';
                 Notification::send($systemUser, new CreditTransferred($systemNotificationMessage));
+
+                Log::info("All prizes processed successfully for pattern $pattern. Total winners: $numberOfWinners");
 
             }, 5); // 5 attempts for deadlock retry
 
