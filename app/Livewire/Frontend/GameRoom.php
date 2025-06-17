@@ -514,26 +514,27 @@ class GameRoom extends Component
 
                         if (!$patternAlreadyWon) {
                             // Create a temporary winner record with prize_amount = 0
-                            // We'll update the prize amount later in a separate process
-                            $winner = Winner::create([
+                            Winner::create([
                                 'user_id' => $ticket->user_id,
                                 'game_id' => $this->games_Id,
                                 'ticket_id' => $ticket->id,
                                 'pattern' => $pattern,
                                 'won_at' => now(),
                                 'prize_amount' => 0, // Temporary value, will be updated
-                                'prize_processed' => false // New field to track if prize has been processed
+                                'prize_processed' => false
                             ]);
-
-                            // Call the method to process prizes for this pattern
-                            // This will handle simultaneous winners
-                            $this->processPrizesForPattern($pattern, $game);
 
                             $this->sentNotification = true;
                             $this->dispatchGlobalWinerEvent();
                         }
                     }
                 });
+
+                // Process prizes after the transaction is complete
+                foreach ($winningPatterns as $pattern) {
+                    $this->processPrizesForPattern($pattern, $game);
+                }
+
             } catch (\Exception $e) {
                 Log::error('Error in updateTicketWinningStatus: ' . $e->getMessage());
                 $ticket->is_winner = true;
@@ -542,116 +543,108 @@ class GameRoom extends Component
         }
     }
 
-    // New method to process prizes for a pattern
+    // Improved method to process prizes for a pattern
     private function processPrizesForPattern($pattern, $game)
     {
-        // Use a database lock to ensure this process runs only once for each pattern
-        $lockKey = "game_{$this->games_Id}_pattern_{$pattern}_prize_lock";
-
-        // Try to acquire a lock
-        $lockAcquired = DB::connection()->getPdo()->exec("SELECT GET_LOCK('$lockKey', 10)");
-
-        if (!$lockAcquired) {
-            Log::info("Another process is already handling prizes for pattern $pattern");
-            return;
-        }
-
         try {
-            // Check if prizes have already been processed for this pattern
-            $alreadyProcessed = Winner::where('game_id', $this->games_Id)
-                ->where('pattern', $pattern)
-                ->where('prize_processed', true)
-                ->exists();
+            // Use a simple database transaction approach
+            DB::transaction(function () use ($pattern, $game) {
+                // Check if prizes have already been processed for this pattern
+                $alreadyProcessed = Winner::where('game_id', $this->games_Id)
+                    ->where('pattern', $pattern)
+                    ->where('prize_processed', true)
+                    ->exists();
 
-            if ($alreadyProcessed) {
-                Log::info("Prizes for pattern $pattern have already been processed");
-                return;
-            }
-
-            // Get all winners for this pattern who haven't had their prize processed
-            $winners = Winner::where('game_id', $this->games_Id)
-                ->where('pattern', $pattern)
-                ->where('prize_processed', false)
-                ->with('user', 'ticket')
-                ->get();
-
-            $numberOfWinners = $winners->count();
-
-            if ($numberOfWinners == 0) {
-                Log::error("No winners found for pattern $pattern");
-                return;
-            }
-
-            // Calculate prize amount per winner
-            $totalPrizeAmount = $this->getPrizeAmountForPattern($game, $pattern);
-            $prizePerWinner = $totalPrizeAmount / $numberOfWinners;
-
-            Log::info("Processing prizes for pattern $pattern. Total prize: $totalPrizeAmount, Winners: $numberOfWinners, Prize per winner: $prizePerWinner");
-
-            // Get system user
-            $systemUser = User::where('role', 'admin')->first();
-
-            if (!$systemUser) {
-                throw new \Exception('System user not found');
-            }
-
-            // Deduct total prize amount from system user once
-            $systemUser->decrement('credit', $totalPrizeAmount);
-
-            // Create system debit transaction
-            Transaction::create([
-                'user_id' => $systemUser->id,
-                'type' => 'debit',
-                'amount' => $totalPrizeAmount,
-                'details' => 'Prize for ' . $pattern . ' in game: ' . $game->title . ' (shared among ' . $numberOfWinners . ' winners)',
-            ]);
-
-            // Process each winner
-            foreach ($winners as $winner) {
-                $winnerUser = $winner->user;
-
-                if (!$winnerUser) {
-                    Log::error('Winner user not found for winner record: ' . $winner->id);
-                    continue;
+                if ($alreadyProcessed) {
+                    Log::info("Prizes for pattern $pattern have already been processed");
+                    return;
                 }
 
-                // Add shared prize amount to winner
-                $winnerUser->increment('credit', $prizePerWinner);
+                // Get all winners for this pattern who haven't had their prize processed
+                // Use lockForUpdate to prevent race conditions
+                $winners = Winner::where('game_id', $this->games_Id)
+                    ->where('pattern', $pattern)
+                    ->where('prize_processed', false)
+                    ->lockForUpdate()
+                    ->with('user', 'ticket')
+                    ->get();
 
-                // Update winner record with actual prize amount
-                $winner->prize_amount = $prizePerWinner;
-                $winner->prize_processed = true;
-                $winner->save();
+                $numberOfWinners = $winners->count();
 
-                // Create winner credit transaction
+                if ($numberOfWinners == 0) {
+                    Log::info("No unprocessed winners found for pattern $pattern");
+                    return;
+                }
+
+                // Calculate prize amount per winner
+                $totalPrizeAmount = $this->getPrizeAmountForPattern($game, $pattern);
+                $prizePerWinner = $totalPrizeAmount / $numberOfWinners;
+
+                Log::info("Processing prizes for pattern $pattern. Total prize: $totalPrizeAmount, Winners: $numberOfWinners, Prize per winner: $prizePerWinner");
+
+                // Get system user
+                $systemUser = User::where('role', 'admin')->first();
+
+                if (!$systemUser) {
+                    throw new \Exception('System user not found');
+                }
+
+                // Deduct total prize amount from system user once
+                $systemUser->decrement('credit', $totalPrizeAmount);
+
+                // Create system debit transaction
                 Transaction::create([
-                    'user_id' => $winnerUser->id,
-                    'type' => 'credit',
-                    'amount' => $prizePerWinner,
-                    'details' => 'Won ' . $pattern . ' in game: ' . $game->title . ($numberOfWinners > 1 ? ' (shared with ' . ($numberOfWinners - 1) . ' other winners)' : ''),
+                    'user_id' => $systemUser->id,
+                    'type' => 'debit',
+                    'amount' => $totalPrizeAmount,
+                    'details' => 'Prize for ' . $pattern . ' in game: ' . $game->title . ' (shared among ' . $numberOfWinners . ' winners)',
                 ]);
 
-                // Send notification to winner
-                $notificationMessage = $numberOfWinners > 1
-                    ? 'You won ' . $prizePerWinner . ' credits for ' . $pattern . ' in game: ' . $game->title . ' (shared with ' . ($numberOfWinners - 1) . ' other winners)'
-                    : 'You won ' . $prizePerWinner . ' credits for ' . $pattern . ' in game: ' . $game->title;
+                // Process each winner
+                foreach ($winners as $winner) {
+                    $winnerUser = $winner->user;
 
-                Notification::send($winnerUser, new CreditTransferred($notificationMessage));
+                    if (!$winnerUser) {
+                        Log::error('Winner user not found for winner record: ' . $winner->id);
+                        continue;
+                    }
 
-                if ($winner->user_id == Auth::id()) {
-                    $this->textNote = $notificationMessage;
+                    // Add shared prize amount to winner
+                    $winnerUser->increment('credit', $prizePerWinner);
+
+                    // Update winner record with actual prize amount
+                    $winner->prize_amount = $prizePerWinner;
+                    $winner->prize_processed = true;
+                    $winner->save();
+
+                    // Create winner credit transaction
+                    Transaction::create([
+                        'user_id' => $winnerUser->id,
+                        'type' => 'credit',
+                        'amount' => $prizePerWinner,
+                        'details' => 'Won ' . $pattern . ' in game: ' . $game->title . ($numberOfWinners > 1 ? ' (shared with ' . ($numberOfWinners - 1) . ' other winners)' : ''),
+                    ]);
+
+                    // Send notification to winner
+                    $notificationMessage = $numberOfWinners > 1
+                        ? 'You won ' . $prizePerWinner . ' credits for ' . $pattern . ' in game: ' . $game->title . ' (shared with ' . ($numberOfWinners - 1) . ' other winners)'
+                        : 'You won ' . $prizePerWinner . ' credits for ' . $pattern . ' in game: ' . $game->title;
+
+                    Notification::send($winnerUser, new CreditTransferred($notificationMessage));
+
+                    if ($winner->user_id == Auth::id()) {
+                        $this->textNote = $notificationMessage;
+                    }
                 }
-            }
 
-            // Send notification to system user
-            $systemNotificationMessage = 'Prize of ' . $totalPrizeAmount . ' credits awarded for ' . $pattern . ' (shared among ' . $numberOfWinners . ' winners)';
-            Notification::send($systemUser, new CreditTransferred($systemNotificationMessage));
+                // Send notification to system user
+                $systemNotificationMessage = 'Prize of ' . $totalPrizeAmount . ' credits awarded for ' . $pattern . ' (shared among ' . $numberOfWinners . ' winners)';
+                Notification::send($systemUser, new CreditTransferred($systemNotificationMessage));
+
+            }, 5); // 5 attempts for deadlock retry
 
         } catch (\Exception $e) {
             Log::error("Error processing prizes for pattern $pattern: " . $e->getMessage());
-        } finally {
-            // Release the lock
-            DB::connection()->getPdo()->exec("SELECT RELEASE_LOCK('$lockKey')");
         }
     }
 
