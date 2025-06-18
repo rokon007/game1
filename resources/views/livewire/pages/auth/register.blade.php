@@ -18,6 +18,42 @@ new #[Layout('layouts.layout_login')] class extends Component
     public string $password_confirmation = '';
 
     /**
+     * Generate a 7-character unique ID based on the first and last letters of the name and 5 random digits.
+     */
+    private function generateUniqueId(string $name): string
+    {
+        // Remove extra spaces and trim the name
+        $name = trim(preg_replace('/\s+/', ' ', $name));
+
+        // Get the first part of the name
+        $nameParts = explode(' ', $name);
+        $firstPart = $nameParts[0] ?? 'user';
+
+        // Ensure the name has at least 2 characters; use defaults if not
+        if (strlen($firstPart) < 2) {
+            $firstPart = 'user';
+        }
+
+        // Get first and last letters, capitalize them
+        $firstLetter = strtoupper(substr($firstPart, 0, 1));
+        $lastLetter = strtoupper(substr($firstPart, -1));
+
+        // Generate 5 random digits
+        $randomDigits = str_pad(mt_rand(0, 99999), 5, '0', STR_PAD_LEFT);
+
+        // Combine to form 7-character unique_id
+        $uniqueId = $firstLetter . $lastLetter . $randomDigits;
+
+        // Check if the unique_id already exists, regenerate digits if necessary
+        while (User::where('unique_id', $uniqueId)->exists()) {
+            $randomDigits = str_pad(mt_rand(0, 99999), 5, '0', STR_PAD_LEFT);
+            $uniqueId = $firstLetter . $lastLetter . $randomDigits;
+        }
+
+        return $uniqueId;
+    }
+
+    /**
      * Handle an incoming registration request.
      */
     public function register(): void
@@ -29,15 +65,13 @@ new #[Layout('layouts.layout_login')] class extends Component
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        // Generate unique ID
+        $validated['unique_id'] = $this->generateUniqueId($validated['name']);
         $validated['password'] = Hash::make($validated['password']);
 
         event(new Registered($user = User::create($validated)));
 
         Auth::login($user);
-
-        // $this->redirect(RouteServiceProvider::HOME, navigate: true);
-
-        // $this->redirect(route('home'), navigate: true);
 
         // Regenerate the session ID to prevent session fixation attacks
         session()->regenerate();

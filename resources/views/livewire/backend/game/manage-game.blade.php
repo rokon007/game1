@@ -7,6 +7,7 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css"
               integrity="sha512-dPXYcDub/aeb08c63jRq/k6GaKccl256JQy/AnOq7CAnEZ9FzSL9wSbcZkMp4R26vBsMLFYH4kQ67/bbV8XaCQ=="
               crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     @endsection
     <main class="page-content">
         <!--breadcrumb-->
@@ -147,14 +148,14 @@
                                 @foreach($games as $game)
                                     <tr>
                                         <td>
-                                            <div class="d-flex align-items-center gap-3 fs-6">
+                                            <div class="d-flex align-items-center">
                                                 <a href="{{ route('admin.number_announcer', ['gameId' => $game->id]) }}"
-                                                class="text-warning"
+                                                class="text-primary"
                                                 data-bs-toggle="tooltip"
                                                 data-bs-placement="bottom"
-                                                title="Edit info"
+                                                title="Number Announcer"
                                                 aria-label="Edit Number Announcer">
-                                                <i class="bi bi-pencil-fill"></i>
+                                                <i class="fas fa-bullhorn"></i>
                                                 </a>
                                             </div>
                                         </td>
@@ -186,6 +187,7 @@
                          </table>
                       </div>
                       <div class="custom-pagination pt-1">
+                        {{ $games->links() }}
                         @if(!empty($prizes))
 
                         @endif

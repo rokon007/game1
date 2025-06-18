@@ -19,7 +19,7 @@
                                         <div class="card collection-card text-center position-relative p-3">
                                             <a style="cursor: pointer;" wire:key="user-{{ $user->id }}" wire:click="startConversation({{ $user->id }})">
                                                 @if($user->avatar)
-                                                    <img src="{{ $user->avatar }}" alt="{{ $user->name }}"
+                                                    <img src="{{ $user->avatar }}" alt="{{ $user->unique_id }}"
                                                         class="rounded-circle mx-auto mb-2"
                                                         style="width: 60px; height: 60px; object-fit: cover;">
                                                 @else
@@ -29,7 +29,7 @@
                                                     </div>
                                                 @endif
                                             </a>
-                                            <p class="font-medium m-0">{{ $user->name }}</p>
+                                            <p class="font-medium m-0">{{ $user->unique_id }}</p>
 
                                             <span
                                                 class="position-absolute bottom-0 end-0 translate-middle p-1 bg-success border border-light rounded-circle"
@@ -70,7 +70,7 @@
                         <div class="position-relative">
                             @if($user)
                                 @if($user->avatar)
-                                    <img src="{{ $user->avatar }}" class="rounded-circle" width="48" height="48" alt="{{ $user->name }}">
+                                    <img src="{{ $user->avatar }}" class="rounded-circle" width="48" height="48" alt="{{ $user->unique_id }}">
                                 @else
                                     <div class="rounded-circle {{$conversation->unread_count > 0 ? 'bg-primary' : 'bg-secondary' }} text-white d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                                         <strong>{{ strtoupper(substr($user->name, 0, 1)) }}</strong>
@@ -87,7 +87,7 @@
                         <!-- Content -->
                         <div class="flex-grow-1">
                             <div class="d-flex justify-content-between">
-                                <strong>{{ $conversation->is_group ? $conversation->name : $user?->name }}</strong>
+                                <strong>{{ $conversation->is_group ? $conversation->name : $user?->unique_id }}</strong>
                                 <small class="text-muted">{{ $conversation->lastMessage?->created_at->diffForHumans() }}</small>
                             </div>
                             <div class="d-flex justify-content-between">
@@ -133,7 +133,7 @@
                                 <!-- Avatar -->
                                 <div class="position-relative">
                                     @if($user->avatar)
-                                        <img src="{{ $user->avatar }}" class="rounded-circle" width="40" height="40" alt="{{ $user->name }}">
+                                        <img src="{{ $user->avatar }}" class="rounded-circle" width="40" height="40" alt="{{ $user->unique_id }}">
                                     @else
                                         <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                                             <strong>{{ strtoupper(substr($user->name, 0, 1)) }}</strong>
@@ -148,8 +148,8 @@
 
                                 <!-- Info -->
                                 <div class="flex-grow-1">
-                                    <div class="fw-medium">{{ $user->name }}</div>
-                                    <div class="small text-muted">{{ $user->email ?? $user->mobile }}</div>
+                                    <div class="fw-medium">{{ $user->unique_id }}</div>
+                                    {{-- <div class="small text-muted">{{ $user->email ?? $user->mobile }}</div> --}}
                                 </div>
                             </div>
                         @endforeach

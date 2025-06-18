@@ -167,7 +167,7 @@
                                             <div class="card-body">
                                                 <div class="d-flex align-items-center">
                                                     <div class="">
-                                                        <p class="mb-1 text-white">{{$name}}</p>
+                                                        <p class="mb-1 text-white">{{$name}}, ID: {{$unique_id}}</p>
                                                         <h4 class="mb-0 text-white">৳ {{$credit}}</h4>
                                                     </div>
                                                     <div class="ms-auto fs-2 text-white">
@@ -244,6 +244,7 @@
                             <form wire:submit.prevent='updateUser'>
                                 <div class="modal-header bg-success text-white">
                                     <h5 class="modal-title">Recharge {{$rechargeUser->name}}'s Account</h5>
+                                    <p class="mb-1 text-white">ID: {{$unique_id}}</p>
                                 </div>
                                 <div class="modal-body">
                                     <div class="col mb-2">
@@ -252,6 +253,7 @@
                                                 <div class="d-flex align-items-center">
                                                     <div class="">
                                                         <p class="mb-1 text-white">{{$rechargeUser->name}}</p>
+                                                        <p class="mb-1 text-white">ID: {{$unique_id}}</p>
                                                         <h4 class="mb-0 text-white">৳ {{$rechargeUser->credit}}</h4>
                                                     </div>
                                                     <div class="ms-auto fs-2 text-white">

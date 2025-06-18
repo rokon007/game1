@@ -154,13 +154,13 @@
                 <div class="d-flex align-items-center">
                     @if($selectedConversation->receiver_id == auth()->user()->id)
                         @if($senderInstance->avatar)
-                            <img class="user-avatar" src="{{ asset($senderInstance->avatar) }}" alt="{{ $senderInstance->name }}">
+                            <img class="user-avatar" src="{{ asset($senderInstance->avatar) }}" alt="{{ $senderInstance->unique_id }}">
                         @else
-                            <img class="user-avatar" src="{{asset('assets/backend/upload/image/user/user.jpg')}}" alt="{{ $senderInstance->name }}">
+                            <img class="user-avatar" src="{{asset('assets/backend/upload/image/user/user.jpg')}}" alt="{{ $senderInstance->unique_id }}">
                         @endif
                         <div class="ml-2">
                             <div class="d-flex align-items-center">
-                                <span class="font-weight-bold">{{ $senderInstance->name }}</span>
+                                <span class="font-weight-bold">{{ $senderInstance->unique_id }}</span>
                                  @if($senderInstance->is_online)
                                     <span class="online-indicator ml-1"></span>
                                  @endif
@@ -173,13 +173,13 @@
                         </div>
                     @else
                         @if($receiverInstance->avatar)
-                            <img class="user-avatar" src="{{ asset($receiverInstance->avatar) }}" alt="{{ $receiverInstance->name }}">
+                            <img class="user-avatar" src="{{ asset($receiverInstance->avatar) }}" alt="{{ $receiverInstance->unique_id }}">
                         @else
-                            <img class="user-avatar" src="{{asset('assets/backend/upload/image/user/user.jpg')}}" alt="{{ $receiverInstance->name }}">
+                            <img class="user-avatar" src="{{asset('assets/backend/upload/image/user/user.jpg')}}" alt="{{ $receiverInstance->unique_id }}">
                         @endif
                         <div class="ml-2">
                             <div class="d-flex align-items-center">
-                                <span class="font-weight-bold">{{ $receiverInstance->name }}</span>
+                                <span class="font-weight-bold">{{ $receiverInstance->unique_id }}</span>
                                 @if($receiverInstance->is_online)
                                     <span class="online-indicator ml-1"></span>
                                  @endif
@@ -220,7 +220,7 @@
                     @else
                         <!-- রিসিভার মেসেজ -->
                         <div class="message-row receiver">
-                            <img class="user-avatar" src="{{ $message->userInverseRelation->avatar ? asset($message->userInverseRelation->avatar) : asset('assets/backend/upload/image/user/user.jpg') }}" alt="{{ $message->userInverseRelation->name }}">
+                            <img class="user-avatar" src="{{ $message->userInverseRelation->avatar ? asset($message->userInverseRelation->avatar) : asset('assets/backend/upload/image/user/user.jpg') }}" alt="{{ $message->userInverseRelation->unique_id }}">
                             <div>
                                 <div class="message-bubble">
                                     {{ $message->body }}

@@ -27,6 +27,26 @@
                 vertical-align: middle;
                 margin-right: 1px;
             }
+            .notification-wrapper {
+                overflow-y: auto;
+                max-height: 500px;
+                padding-right: 10px;
+                /* স্ক্রলবার লুকানো */
+                -ms-overflow-style: none; /* IE and Edge */
+                scrollbar-width: none; /* Firefox */
+            }
+            .notification-wrapper::-webkit-scrollbar {
+                display: none; /* Chrome, Safari, and Opera */
+            }
+            .list-group-item:first-child {
+                /* প্রথম নোটিফিকেশন হাইলাইট করা */
+                background-color: #f8f9fa;
+                border-left: 3px solid #007bff;
+            }
+            .list-group-item:hover {
+                background-color: #e9ecef;
+                cursor: pointer;
+            }
         </style>
     @endsection
 
@@ -73,45 +93,71 @@
                             Your ticket sheets
                         </h3>
 
-                        {{-- <div class="list-group">
-                            @foreach($sheets as $sheet)
-                                @if($sheet['game'])
-                                    <div class="mb-2">
-                                        <button wire:click="showSheet('{{ $sheet['sheet_id'] }}')"
-                                                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <i class="fas fa-layer-group me-2"></i>
-                                                <strong>{{ $sheet['game']['title'] }}-{{ $sheet['sheet_id'] }}</strong>
-                                            </div>
-                                            <div>
-                                                <span class="badge bg-primary rounded-pill me-2">
-                                                    Game start time : {{ \Carbon\Carbon::parse($sheet['game']['scheduled_at'])->format('d M Y h:i A') }}
-                                                </span>
-                                            </div>
-                                        </button>
-                                    </div>
-                                @endif
-                            @endforeach
-                        </div> --}}
-                        <div class="list-group">
-                            @foreach($sheets as $sheet)
-                                @if($sheet['game'])
-                                    <div class="mb-2">
-                                        <button wire:click="showSheet('{{ $sheet['sheet_id'] }}')"
-                                                class="list-group-item list-group-item-action d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center text-start">
-                                            <div class="mb-1 mb-md-0">
-                                                <i class="fas fa-layer-group me-2"></i>
-                                                <strong>{{ $sheet['game']['title'] }} - {{ $sheet['sheet_id'] }}</strong>
-                                            </div>
-                                            <div>
-                                                <span class="badge bg-primary rounded-pill">
-                                                    Game start time: {{ \Carbon\Carbon::parse($sheet['game']['scheduled_at'])->format('d M Y h:i A') }}
-                                                </span>
-                                            </div>
-                                        </button>
-                                    </div>
-                                @endif
-                            @endforeach
+                        <div
+                            x-data="{
+                                scrollTop: 0,
+                                conversationElement: null,
+                                isAtBottom: true,
+                                init() {
+                                    this.conversationElement = document.getElementById('notifications-container');
+                                    this.scrollToTop();
+
+                                    Livewire.on('new-notification', () => {
+                                        if (this.isAtBottom) {
+                                            this.$nextTick(() => {
+                                                this.scrollToBottom();
+                                            });
+                                        }
+                                    });
+
+                                    this.conversationElement.addEventListener('scroll', () => {
+                                        this.scrollTop = this.conversationElement.scrollTop;
+                                        this.isAtBottom = this.conversationElement.scrollHeight -
+                                                        this.conversationElement.scrollTop -
+                                                        this.conversationElement.clientHeight < 50;
+
+                                        if (this.isAtBottom) {
+                                            Livewire.dispatch('loadMore');
+                                        }
+                                    });
+                                },
+                                scrollToTop() {
+                                    if (this.conversationElement) {
+                                        this.conversationElement.scrollTop = 0;
+                                        this.isAtBottom = false;
+                                    }
+                                },
+                                scrollToBottom() {
+                                    if (this.conversationElement) {
+                                        this.conversationElement.scrollTop = this.conversationElement.scrollHeight;
+                                        this.isAtBottom = true;
+                                    }
+                                }
+                            }"
+                            x-init="init()"
+                            id="notifications-container"
+                            class="notification-wrapper"
+                            >
+                            <div class="list-group">
+                                @foreach($sheets as $sheet)
+                                    @if($sheet['game'])
+                                        <div class="mb-2">
+                                            <button wire:click="showSheet('{{ $sheet['sheet_id'] }}')"
+                                                    class="list-group-item list-group-item-action d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center text-start">
+                                                <div class="mb-1 mb-md-0">
+                                                    <i class="fas fa-layer-group me-2"></i>
+                                                    <strong>{{ $sheet['game']['title'] }} - {{ $sheet['sheet_id'] }}</strong>
+                                                </div>
+                                                <div>
+                                                    <span class="badge bg-primary rounded-pill">
+                                                        Game start time: {{ \Carbon\Carbon::parse($sheet['game']['scheduled_at'])->format('d M Y h:i A') }}
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
                         </div>
 
                     </div>

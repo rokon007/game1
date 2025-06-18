@@ -33,9 +33,10 @@ class Chatlist extends Component
       $this->dispatch('refreshChatListForReceiver')->self();
     }
 
-    //#[On('chatUserSelected')]
+    #[On('chatUserSelected1')]
     public function chatUserSelected(Conversation $conversation, $receiverId, $senderId)
     {
+        //dd($receiverId);
     //problem is here that changing the chat alignement or maybe with DESC
       $this->dispatch('searchModeHide');
       $this->dispatch('chatListModeHide');

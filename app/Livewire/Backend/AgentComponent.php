@@ -16,7 +16,7 @@ class AgentComponent extends Component
 
     public string $search = '';
     public $agentMModal=false;
-    public $name, $email, $mobile, $avatar, $role, $credit, $status, $is_online, $user_id;
+    public $name, $email, $mobile, $avatar, $role, $credit, $status, $is_online, $user_id, $unique_id;
     public $agents;
     public $rechargeModal=false;
     public $rechargeUser_id;
@@ -42,6 +42,7 @@ class AgentComponent extends Component
         $user=User::find($id);
         $this->user_id=$id;
         $this->name=$user->name;
+        $this->unique_id=$user->unique_id;
         $this->email=$user->email;
         $this->mobile=$user->mobile;
         $this->avatar=$user->avatar;
@@ -104,7 +105,7 @@ class AgentComponent extends Component
                 'user_id' => $authUser->id,
                 'type' => 'debit',
                 'amount' => $amount,
-                'details' => 'Credit sent to ' . $receiver->name,
+                'details' => 'Credit sent to ' . $receiver->unique_id,
             ]);
 
             // Receiver transaction
@@ -116,7 +117,7 @@ class AgentComponent extends Component
             ]);
 
             // Notify both users
-            Notification::send($authUser, new CreditTransferred('You sent ' . $amount . ' credits to ' . $receiver->name));
+            Notification::send($authUser, new CreditTransferred('You sent ' . $amount . ' credits to ' . $receiver->unique_id));
             Notification::send($receiver, new CreditTransferred('You received ' . $amount . ' credits from ' . $authUser->name));
         });
 
@@ -170,6 +171,7 @@ class AgentComponent extends Component
             ->where(function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                       ->orWhere('email', 'like', '%' . $this->search . '%')
+                      ->orWhere('unique_id', 'like', '%' . $this->search . '%')
                       ->orWhere('mobile', 'like', '%' . $this->search . '%');
             })
             ->orderBy('name')

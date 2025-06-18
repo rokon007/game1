@@ -46,7 +46,7 @@
                                         <div class="card collection-card text-center position-relative p-3">
                                             <a class="position-relative" style="cursor: pointer;" wire:click="createConversation({{$user->id}})">
                                                 @if($user->avatar)
-                                                    <img src="{{ $user->avatar }}" alt="{{ $user->name }}"
+                                                    <img src="{{ $user->avatar }}" alt="{{ $user->unique_id }}"
                                                         class="rounded-circle mx-auto mb-2"
                                                         style="width: 60px; height: 60px; object-fit: cover;">
                                                 @else
@@ -60,7 +60,7 @@
                                                     style="{{ $user->is_online ? 'display: block;' : 'display: none;' }}">
                                                 </span>
                                             </a>
-                                            <p class="font-medium m-0 agent-name" title="{{ $user->name }}">{{ $user->name }}</p>
+                                            <p class="font-medium m-0 agent-name" title="{{ $user->unique_id }}">{{ $user->unique_id }}</p>
                                         </div>
                                     </div>
                                 @endforeach
@@ -88,7 +88,7 @@
                                         $unread_count = $conversation->unreadMessages()->count();
                                     @endphp
                                     @if($conversation->senderInverseRelation->avatar)
-                                        <img src="{{ $conversation->senderInverseRelation->avatar }}" class="rounded-circle" width="48" height="48" alt="{{ $user->name }}">
+                                        <img src="{{ $conversation->senderInverseRelation->avatar }}" class="rounded-circle" width="48" height="48" alt="{{ $user->unique_id }}">
                                     @else
 
                                         <div class="rounded-circle {{$unread_count > 0 ? 'bg-primary' : 'bg-secondary' }} text-white d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
@@ -104,7 +104,7 @@
                                 <!-- Content -->
                                 <div class="flex-grow-1">
                                     <div class="d-flex justify-content-between">
-                                        <strong>{{$conversation->senderInverseRelation->name}}</strong>
+                                        <strong>{{$conversation->senderInverseRelation->unique_id}}</strong>
                                         <small class="text-muted">{{ $conversation?->updated_at->diffForHumans() }}</small>
                                     </div>
                                     <div class="d-flex justify-content-between">
@@ -123,7 +123,7 @@
                                         $unread_count = $conversation->unreadMessages()->count();
                                     @endphp
                                     @if($conversation->receiverInverseRelation->avatar)
-                                        <img src="{{ $conversation->receiverInverseRelation->avatar }}" class="rounded-circle" width="48" height="48" alt="{{ $user->name }}">
+                                        <img src="{{ $conversation->receiverInverseRelation->avatar }}" class="rounded-circle" width="48" height="48" alt="{{ $user->unique_id }}">
                                     @else
 
                                         <div class="rounded-circle {{$unread_count > 0 ? 'bg-primary' : 'bg-secondary' }} text-white d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
@@ -139,7 +139,7 @@
                                 <!-- Content -->
                                 <div class="flex-grow-1">
                                     <div class="d-flex justify-content-between">
-                                        <strong>{{$conversation->receiverInverseRelation->name}}</strong>
+                                        <strong>{{$conversation->receiverInverseRelation->unique_id}}</strong>
                                         <small class="text-muted">{{ $conversation?->updated_at->diffForHumans() }}</small>
                                     </div>
                                     <div class="d-flex justify-content-between">

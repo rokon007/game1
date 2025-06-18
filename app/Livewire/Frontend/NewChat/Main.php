@@ -61,9 +61,22 @@ class Main extends Component
 
         elseif(count($checkConversation) >= 1)
         {
-            dd('convo exists');
+            //dd('convo exists');
+            $conversation = Conversation::with(['senderInverseRelation', 'receiverInverseRelation'])
+                ->where('receiver_id', auth()->user()->id)
+                ->first();
+            //dd($conversation);
+            if ($conversation)
+             {
+               // $this->chatUserSelected( $conversation, $conversation->receiver_id, $conversation->sender_id);
+              // $this->dispatch('chatUserSelected1', conversation: $conversation,receiverId: $conversation->receiver_id,senderId: $conversation->sender_id);
+               $this->dispatch('chatUserSelected1', conversation: $conversation, receiverId: $conversation->receiver_id, senderId: $conversation->sender_id);
+
+            }
         }
     }
+
+
 
     public function render()
     {
@@ -71,7 +84,7 @@ class Main extends Component
         {
 
             $this->dispatch('chatListHide');
-            $this->results = User::where('name', 'like','%'. $this->searchUser. '%')->get();
+            $this->results = User::where('unique_id', 'like','%'. $this->searchUser. '%')->get();
         }else{
             $this->dispatch('chatListShow');
         }

@@ -63,9 +63,9 @@
                         <form  wire:submit.prevent='sendingNext'>
 
                             <div class="mb-3">
-                                <div class="title mb-2"><i class="ti ti-phone"></i> <span>Receiver Mobile</span></div>
-                                <input class="form-control" wire:model='mobile' type="text" placeholder="Enter Receiver Mobile Number">
-                                @error('mobile')<small class="text-danger mb-2">{{ $message }}</small>@enderror
+                                <div class="title mb-2"><i class="ti ti-id-badge"></i>  <span>Receiver ID</span></div>
+                                <input class="form-control" wire:model='unique_id' type="text" placeholder="Enter Receiver ID">
+                                @error('unique_id')<small class="text-danger mb-2">{{ $message }}</small>@enderror
                             </div>
 
                             <div class="mb-3">
@@ -75,7 +75,7 @@
                             </div>
 
                             <button class="btn btn-primary btn-lg w-100" type="sendingNextn">
-                                <span wire:loading.delay.long wire:target="cancel" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span wire:loading.delay.long wire:target="sendingNext" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                                 Next
                             </button>
                         </form>
@@ -101,9 +101,9 @@
                     </div>
                     <div class="user-info">
                         @if($receiverData)
-                        <p class="mb-0 text-white">Mobile: {{$receiverData->mobile}}</p>
-                        <p class="mb-0 text-white">Email: {{$receiverData->email}}</p>
-                        <h5 class="mb-0 text-white">{{$receiverData->name}}</h5>
+                        {{-- <p class="mb-0 text-white">Mobile: {{$receiverData->mobile}}</p>
+                        <p class="mb-0 text-white">Email: {{$receiverData->email}}</p> --}}
+                        <h5 class="mb-0 text-white">{{$receiverData->unique_id}}</h5>
                         <h5 class="mb-0 text-white">Amount:{{$amount}}</h5>
                         @endif
                     </div>

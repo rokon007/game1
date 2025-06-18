@@ -117,7 +117,7 @@
                                                 <!-- Avatar -->
                                                 <div class="position-relative">
                                                     @if($results->avatar)
-                                                        <img src="{{ $results->avatar }}" class="rounded-circle" width="40" height="40" alt="{{ $results->name }}">
+                                                        <img src="{{ $results->avatar }}" class="rounded-circle" width="40" height="40" alt="{{ $results->unique_id }}">
                                                     @else
                                                         <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                                                             <strong>{{ strtoupper(substr($results->name, 0, 1)) }}</strong>
@@ -129,7 +129,7 @@
 
                                                 <!-- Info -->
                                                 <div class="flex-grow-1">
-                                                    <div class="fw-medium">{{ $results->name }}</div>
+                                                    <div class="fw-medium">{{ $results->unique_id }}</div>
 
                                                 </div>
                                             </div>

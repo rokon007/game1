@@ -1,6 +1,7 @@
 <?php
 
 use App\Livewire\Forms\LoginForm;
+use App\Models\User;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
@@ -11,6 +12,42 @@ new #[Layout('layouts.layout_login')] class extends Component
     public LoginForm $form;
 
     /**
+     * Generate a 7-character unique ID based on the first and last letters of the name and 5 random digits.
+     */
+    private function generateUniqueId(string $name): string
+    {
+        // Remove extra spaces and trim the name
+        $name = trim(preg_replace('/\s+/', ' ', $name));
+
+        // Get the first part of the name
+        $nameParts = explode(' ', $name);
+        $firstPart = $nameParts[0] ?? 'user';
+
+        // Ensure the name has at least 2 characters; use defaults if not
+        if (strlen($firstPart) < 2) {
+            $firstPart = 'user';
+        }
+
+        // Get first and last letters, capitalize them
+        $firstLetter = strtoupper(substr($firstPart, 0, 1));
+        $lastLetter = strtoupper(substr($firstPart, -1));
+
+        // Generate 5 random digits
+        $randomDigits = str_pad(mt_rand(0, 99999), 5, '0', STR_PAD_LEFT);
+
+        // Combine to form 7-character unique_id
+        $uniqueId = $firstLetter . $lastLetter . $randomDigits;
+
+        // Check if the unique_id already exists, regenerate digits if necessary
+        while (User::where('unique_id', $uniqueId)->exists()) {
+            $randomDigits = str_pad(mt_rand(0, 99999), 5, '0', STR_PAD_LEFT);
+            $uniqueId = $firstLetter . $lastLetter . $randomDigits;
+        }
+
+        return $uniqueId;
+    }
+
+    /**
      * Handle an incoming authentication request.
      */
     public function login(): void
@@ -19,24 +56,23 @@ new #[Layout('layouts.layout_login')] class extends Component
 
         $this->form->authenticate();
 
-        Session::regenerate();
-        // Store session data
-        Session::flash('login_success', 'Welcome back, ' . auth()->user()->name . '!');
-        if(auth()->user()->role == 'admin'){
-            $this->redirectIntended(default: RouteServiceProvider::ADMINHOME, navigate: true);
-        }else{
-
-
-            // Regenerate the session ID to prevent session fixation attacks
-            session()->regenerate();
-
-            $redirectUrl = session('url.intended', RouteServiceProvider::HOME);
-
-            $this->redirect($redirectUrl, navigate: true);
-            // $this->redirectIntended(default: RouteServiceProvider::HOME, navigate: true);
+        // Check if the user's unique_id is empty and generate one if needed
+        $user = auth()->user();
+        if (empty($user->unique_id)) {
+            $user->unique_id = $this->generateUniqueId($user->name);
+            $user->save();
         }
 
-        // $this->redirectIntended(default: RouteServiceProvider::HOME, navigate: true);
+        Session::regenerate();
+        // Store session data
+        Session::flash('login_success', 'Welcome back, ' . $user->name . '!');
+
+        if ($user->role == 'admin') {
+            $this->redirectIntended(default: RouteServiceProvider::ADMINHOME, navigate: true);
+        } else {
+            $redirectUrl = session('url.intended', RouteServiceProvider::HOME);
+            $this->redirect($redirectUrl, navigate: true);
+        }
     }
 }; ?>
 

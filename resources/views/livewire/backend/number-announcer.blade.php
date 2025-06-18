@@ -253,7 +253,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                @foreach($winners1->take(5) as $winner)
+                                                @foreach($winners1 as $winner)
                                                     <tr>
                                                         <td>
                                                             <div class="d-flex align-items-center">

@@ -27,6 +27,26 @@
                 vertical-align: middle;
                 margin-right: 1px;
             }
+            .notification-wrapper {
+                overflow-y: auto;
+                max-height: 500px;
+                padding-right: 10px;
+                /* স্ক্রলবার লুকানো */
+                -ms-overflow-style: none; /* IE and Edge */
+                scrollbar-width: none; /* Firefox */
+            }
+            .notification-wrapper::-webkit-scrollbar {
+                display: none; /* Chrome, Safari, and Opera */
+            }
+            .list-group-item:first-child {
+                /* প্রথম নোটিফিকেশন হাইলাইট করা */
+                background-color: #f8f9fa;
+                border-left: 3px solid #007bff;
+            }
+            .list-group-item:hover {
+                background-color: #e9ecef;
+                cursor: pointer;
+            }
         </style>
     @endsection
 
@@ -52,35 +72,81 @@
                 <h6>Transactions(s)</h6>
 
             </div>
-            <div class="notification-area pb-2">
-                <div class="list-group">
-                    @foreach($transactions as $transaction)
-                        <a class="list-group-item d-flex align-items-center border-0 readed"
-                            style="cursor: pointer"
-                            wire:click="details('{{ $transaction->id }}')">
+             <div
+                x-data="{
+                    scrollTop: 0,
+                    conversationElement: null,
+                    isAtBottom: true,
+                    init() {
+                        this.conversationElement = document.getElementById('notifications-container');
+                        this.scrollToTop();
 
-                            <span class="noti-icon">
-                                @if($transaction->type === 'credit')
-                                    <i class="ti ti-arrow-down-left text-success"></i>
-                                @elseif($transaction->type === 'debit')
-                                    <i class="ti ti-arrow-up-right text-danger"></i>
-                                @else
-                                    <i class="ti ti-bell"></i>
-                                @endif
-                            </span>
+                        Livewire.on('new-notification', () => {
+                            if (this.isAtBottom) {
+                                this.$nextTick(() => {
+                                    this.scrollToBottom();
+                                });
+                            }
+                        });
 
-                            <div class="noti-info">
-                                <h6 class="mb-1">{{ ucfirst($transaction->type) ?? 'type' }}</h6>
-                                <span>{{ $transaction->created_at->diffForHumans() }}</span>
-                            </div>
+                        this.conversationElement.addEventListener('scroll', () => {
+                            this.scrollTop = this.conversationElement.scrollTop;
+                            this.isAtBottom = this.conversationElement.scrollHeight -
+                                             this.conversationElement.scrollTop -
+                                             this.conversationElement.clientHeight < 50;
 
-                            <div style="margin-left: 10px;">
-                                <h6 class="mb-1">{{ number_format($transaction->amount, 2) ?? 'amount' }}</h6>
-                                <span>{{ $transaction->details }}</span>
-                            </div>
-                        </a>
-                    @endforeach
+                            if (this.isAtBottom) {
+                                Livewire.dispatch('loadMore');
+                            }
+                        });
+                    },
+                    scrollToTop() {
+                        if (this.conversationElement) {
+                            this.conversationElement.scrollTop = 0;
+                            this.isAtBottom = false;
+                        }
+                    },
+                    scrollToBottom() {
+                        if (this.conversationElement) {
+                            this.conversationElement.scrollTop = this.conversationElement.scrollHeight;
+                            this.isAtBottom = true;
+                        }
+                    }
+                }"
+                x-init="init()"
+                id="notifications-container"
+                class="notification-wrapper"
+            >
+                <div class="notification-area pb-2">
+                    <div class="list-group">
+                        @foreach($transactions as $transaction)
+                            <a class="list-group-item d-flex align-items-center border-0 readed"
+                                style="cursor: pointer"
+                                wire:click="details('{{ $transaction->id }}')">
 
+                                <span class="noti-icon text-white">
+                                    @if($transaction->type === 'credit')
+                                        <i class="ti ti-arrow-down-left"></i>
+                                    @elseif($transaction->type === 'debit')
+                                        <i class="ti ti-arrow-up-right"></i>
+                                    @else
+                                        <i class="ti ti-bell"></i>
+                                    @endif
+                                </span>
+
+                                <div class="noti-info">
+                                    <h6 class="mb-1">{{ ucfirst($transaction->type) ?? 'type' }}</h6>
+                                    <span>{{ $transaction->created_at->diffForHumans() }}</span>
+                                </div>
+
+                                <div style="margin-left: 10px;">
+                                    <h6 class="mb-1">{{ number_format($transaction->amount, 2) ?? 'amount' }}</h6>
+                                    <span>{{ $transaction->details }}</span>
+                                </div>
+                            </a>
+                        @endforeach
+
+                    </div>
                 </div>
             </div>
         </div>

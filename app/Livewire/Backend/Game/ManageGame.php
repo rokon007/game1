@@ -86,13 +86,18 @@ class ManageGame extends Component
         $this->reset(['title', 'scheduled_at', 'ticket_price', 'is_active', 'corner_prize', 'top_line_prize', 'middle_line_prize', 'bottom_line_prize', 'full_house_prize']);
     }
 
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
     public function render()
     {
         $games = Game::when($this->search, function($query) {
             return $query->where('title', 'like', '%'.$this->search.'%');
         })
         ->latest()
-        ->get();
+        ->paginate(18);
         return view('livewire.backend.game.manage-game', [
             'games' => $games,
         ])->layout('livewire.backend.base');

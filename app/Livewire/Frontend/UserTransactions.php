@@ -3,17 +3,64 @@
 namespace App\Livewire\Frontend;
 
 use Livewire\Component;
-use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
 use App\Models\Transaction;
 
 class UserTransactions extends Component
 {
-    use WithPagination;
-
-    public $search = '';
+    public $transactions = [];
     public $detailsMode = false;
     public $selectedTransactions;
+
+    public $perPage = 10;
+    public $loadedCount = 0;
+
+    public function mount()
+    {
+        $this->loadTransactions();
+    }
+
+    public function loadTransactions()
+    {
+        // ব্যবহারকারী প্রমাণীকৃত কিনা চেক করা
+        if (!Auth::check()) {
+            $this->transactions = [];
+            return;
+        }
+
+        $user = Auth::user();
+
+        // প্রাথমিক নোটিফিকেশন লোড: নতুন থেকে পুরানো
+        $this->transactions=Transaction::where('user_id', $user->id)
+                            ->orderBy('created_at', 'desc')
+                            ->take($this->perPage)
+                            ->get();
+
+        $this->loadedCount = $this->transactions->count();
+
+    }
+
+    #[On('loadMore')]
+    public function loadMore()
+    {
+        if (!Auth::check()) {
+            return;
+        }
+
+        $user = Auth::user();
+
+        // নতুন নোটিফিকেশন লোড
+        $newTransactions = Transaction::where('user_id', $user->id)
+                        ->orderBy('created_at', 'desc')
+                        ->skip($this->loadedCount)
+                        ->take($this->perPage)
+                        ->get();
+
+        // তালিকার শেষে নতুন নোটিফিকেশন যোগ
+        $this->transactions = $this->transactions->merge($newTransactions);
+        $this->loadedCount += $newTransactions->count();
+    }
 
     public function details($id)
     {
@@ -38,19 +85,6 @@ class UserTransactions extends Component
 
     public function render()
     {
-        $user = Auth::user();
-
-        $transactions = Transaction::where('user_id', $user->id)
-            ->where(function ($query) {
-                $query->where('details', 'like', '%' . $this->search . '%')
-                      ->orWhere('amount', 'like', '%' . $this->search . '%')
-                      ->orWhere('type', 'like', '%' . $this->search . '%');
-            })
-            ->latest()
-            ->paginate(10);
-
-        return view('livewire.frontend.user-transactions', [
-            'transactions' => $transactions,
-        ])->layout('livewire.layout.frontend.base');
+        return view('livewire.frontend.user-transactions')->layout('livewire.layout.frontend.base');
     }
 }

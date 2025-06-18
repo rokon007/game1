@@ -119,7 +119,7 @@ x-data="{
                 @elseif($otherUser = $conversation->getOtherUser(auth()->user()))
                     <div class="avatar-view relative">
                         @if($otherUser->avatar)
-                            <img src="{{ $otherUser->avatar }}" alt="{{ $otherUser->name }}" class="w-full h-full object-cover">
+                            <img src="{{ $otherUser->avatar }}" alt="{{ $otherUser->unique_id }}" class="w-full h-full object-cover">
                         @else
                             <img src="{{ asset('assets/backend/upload/image/user/user.jpg') }}" alt="">
                         @endif
@@ -134,7 +134,7 @@ x-data="{
                     @if($conversation->is_group)
                         {{ $conversation->name }}
                     @elseif($otherUser = $conversation->getOtherUser(auth()->user()))
-                        {{ $otherUser->name }}
+                        {{ $otherUser->unique_id }}
                         <span id="online-status-{{ $otherUser->id }}">
                             {{-- <span x-text="onlineUsers.includes({{ $otherUser->id }}) ? 'Online' : 'Offline'"></span> --}}
                         </span>

@@ -15,7 +15,7 @@ class CreditTransferForm extends Component
     public $confermationForm=false;
     public $successNotification=false;
 
-    public $mobile, $amount, $password, $receiverData;
+    public $mobile, $amount, $password, $receiverData, $unique_id;
 
     // public function sendingNext()
     // {
@@ -54,20 +54,20 @@ class CreditTransferForm extends Component
     public function sendingNext()
     {
         $this->validate([
-            'mobile' => ['required', 'string'],
+            'unique_id' => ['required', 'string'],
             'amount' => ['required', 'numeric', 'min:1'],
         ]);
 
         $authUser = auth()->user();
 
-        if ($this->mobile === $authUser->mobile) {
-            $this->addError('mobile', 'You cannot send credit to your own account.');
+        if ($this->unique_id === $authUser->unique_id) {
+            $this->addError('unique_id', 'You cannot send credit to your own account.');
             return;
         }
 
-        $receiver = User::where('mobile', $this->mobile)->first();
+        $receiver = User::where('unique_id', $this->unique_id)->first();
         if (!$receiver) {
-            $this->addError('mobile', 'The mobile number is not associated with any user.');
+            $this->addError('unique_id', 'The ID is not associated with any user.');
             return;
         }
 
@@ -109,7 +109,7 @@ class CreditTransferForm extends Component
                 'user_id' => $authUser->id,
                 'type' => 'debit',
                 'amount' => $amount,
-                'details' => 'Credit sent to ' . $receiver->mobile,
+                'details' => 'Credit sent to ' . $receiver->unique_id,
             ]);
 
             // Receiver transaction
@@ -117,12 +117,12 @@ class CreditTransferForm extends Component
                 'user_id' => $receiver->id,
                 'type' => 'credit',
                 'amount' => $amount,
-                'details' => 'Credit received from ' . $authUser->mobile,
+                'details' => 'Credit received from ' . $authUser->unique_id,
             ]);
 
             // Notify both users
-            Notification::send($authUser, new CreditTransferred('You sent ' . $amount . ' credits to ' . $receiver->name));
-            Notification::send($receiver, new CreditTransferred('You received ' . $amount . ' credits from ' . $authUser->name));
+            Notification::send($authUser, new CreditTransferred('You sent ' . $amount . ' credits to ' . $receiver->unique_id));
+            Notification::send($receiver, new CreditTransferred('You received ' . $amount . ' credits from ' . $authUser->unique_id));
         });
 
         $this->reset(['mobile', 'amount', 'password', 'receiverData']);

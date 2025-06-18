@@ -34,7 +34,8 @@ new class extends Component
                     </div>
                     <div class="user-info">
                     <h5 class="user-name mb-1 text-white">{{auth()->user()->name}}</h5>
-                    <p class="available-balance text-white">Current Balance TK<span class="counter">{{auth()->user()->credit}}</span></p>
+                    <p class="available-balance bg-warning text-dark">ID: <span class="">{{auth()->user()->unique_id}}</span></p>
+                    <p class="available-balance text-white">Current Balance <span class="counter">{{auth()->user()->credit}}</span></p>
                     </div>
                 </div>
             @endauth
@@ -61,7 +62,7 @@ new class extends Component
         <li><a href="settings.html"><i class="ti ti-adjustments-horizontal"></i>Settings</a></li>
         @if (Route::has('login'))
             @auth
-                <li><a href="{{route('transactions')}}"><i class="ti ti-bell-ringing lni-tada-effect"></i>Transactions<span class="ms-1 badge badge-warning">3</span></a></li>
+                <li><a href="{{route('transactions')}}">< <i class="lni lni-wallet"></i>Transactions</a></li>
                 {{-- <li><a href="profile.html"><i class="ti ti-heart"></i>My Wishlist</a></li> --}}
                 {{-- <li><a href="{{route('rifleAccount')}}"><i class="ti ti-adjustments-horizontal"></i>Rifle Account</a></li> --}}
                 <li><a href="{{route('profile')}}"><i class="ti ti-user"></i>My Profile</a></li>
