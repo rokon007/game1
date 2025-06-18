@@ -15,6 +15,7 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         User::create([
+            'unique_id' => 'AN12345',
             'name' => 'Admin User',
             'email' => 'info@maxdeposit.my',
             'mobile' => '01700000000',
