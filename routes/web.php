@@ -15,6 +15,12 @@ use App\Livewire\Frontend\TicketView;
 use App\Livewire\Frontend\UserGameHistory;
 use App\Livewire\Frontend\WithdrawalForm;
 use App\Livewire\Frontend\BuyTicketSheet;
+
+use App\Livewire\Frontend\Hajari\GameCreate;
+use App\Livewire\Frontend\Hajari\GameList;
+use App\Livewire\Frontend\Hajari\HajariGameRoom;
+
+
 use App\Livewire\Frontend\Chat\Chat;
 use App\Livewire\Backend\Dashboard;
 use App\Livewire\Backend\AdBannerManagementComponent;
@@ -68,6 +74,15 @@ Route::middleware(['auth', 'verified'])->group(function(){
     Route::get('/game-history', UserGameHistory::class)->name('gameHistory');
     Route::get('/withdrawal', WithdrawalForm::class)->name('withdrawal');
     Route::get('/buy-ticket', BuyTicketSheet::class)->name('buy_ticket');
+
+    //Hajari
+    Route::get('/games', GameList::class)->name('games.index');
+    Route::get('/games/create', GameCreate::class)->name('games.create');
+    Route::get('/games/{game}', HajariGameRoom::class)->name('games.show');
+
+    Route::get('/games/invitation/{invitation}', function(\App\Models\HajariGameInvitation $invitation) {
+        return view('games.invitation', compact('invitation'));
+    })->name('games.invitation');
 });
 
 Route::get('/chat', Main::class)->name('chat');

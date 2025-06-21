@@ -144,6 +144,18 @@
               </div>
               <div class="row g-2">
                 <!-- Featured Product Card-->
+                <div class="col-4">
+                    <div class="card featured-product-card">
+                        <div class="card-body">
+                            <div class="product-thumbnail-side">
+                                <!-- Thumbnail -->
+                                <a class="product-thumbnail d-block" href="{{route('games.index')}}">
+                                    <img src="http://127.0.0.1:8000/assets/frontend/img/core-img/hajari.png" alt="">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
                 @foreach ($prizes as $prize )
                     <div class="col-4">
                     <div class="card featured-product-card">

@@ -1,0 +1,115 @@
+.card {
+  width: 64px;
+  height: 96px;
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  border: 2px solid #333;
+  border-radius: 8px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: "Arial", sans-serif;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
+  user-select: none;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.card.selected {
+  transform: translateY(-10px);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.5);
+  border-color: #3b82f6;
+  background: linear-gradient(145deg, #dbeafe, #bfdbfe);
+}
+
+/* Card rank styling */
+.card .rank {
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.card .suit {
+  font-size: 24px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+/* Red suits */
+.card.hearts .rank,
+.card.hearts .suit,
+.card.diamonds .rank,
+.card.diamonds .suit {
+  color: #dc2626;
+}
+
+/* Black suits */
+.card.spades .rank,
+.card.spades .suit,
+.card.clubs .rank,
+.card.clubs .suit {
+  color: #1f2937;
+}
+
+/* Card back */
+.card.back {
+  background: linear-gradient(45deg, #1e40af, #3b82f6);
+  color: white;
+}
+
+.card.back::before {
+  content: "🂠";
+  font-size: 32px;
+}
+
+/* Special effects for high value cards */
+.card.ace {
+  background: linear-gradient(145deg, #fef3c7, #fde68a);
+  border-color: #d97706;
+}
+
+.card.king,
+.card.queen,
+.card.jack {
+  background: linear-gradient(145deg, #e0e7ff, #c7d2fe);
+  border-color: #4338ca;
+}
+
+/* Animation for card dealing */
+@keyframes dealCard {
+  from {
+    transform: translateX(-100px) rotate(-90deg);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.card.dealing {
+  animation: dealCard 0.5s ease-out;
+}
+
+/* Responsive sizing */
+@media (max-width: 768px) {
+  .card {
+    width: 48px;
+    height: 72px;
+  }
+
+  .card .rank {
+    font-size: 12px;
+  }
+
+  .card .suit {
+    font-size: 18px;
+  }
+}
