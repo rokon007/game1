@@ -2,16 +2,23 @@
      @if($clickable)
         style="cursor: pointer;"
      @endif>
-    <div class="rank">{{ $getDisplayRank() }}</div>
-    <div class="suit">{{ $getSuitSymbol() }}</div>
 
-    <!-- Corner indicators for face cards -->
-    @if(in_array($rank, ['K', 'Q', 'J']))
-        <div class="absolute top-1 left-1 text-xs opacity-60">
-            {{ $getDisplayRank() }}
+    <div class="card-content">
+        <!-- Top left corner -->
+        <div class="card-corner-top">
+            <div class="rank">{{ $getDisplayRank() }}</div>
+            <div class="suit">{{ $getSuitSymbol() }}</div>
         </div>
-        <div class="absolute bottom-1 right-1 text-xs opacity-60 transform rotate-180">
-            {{ $getDisplayRank() }}
+
+        <!-- Center symbol -->
+        <div class="card-center">
+            <div class="center-suit">{{ $getSuitSymbol() }}</div>
         </div>
-    @endif
+
+        <!-- Bottom right corner (rotated) -->
+        <div class="card-corner-bottom">
+            <div class="rank">{{ $getDisplayRank() }}</div>
+            <div class="suit">{{ $getSuitSymbol() }}</div>
+        </div>
+    </div>
 </div>

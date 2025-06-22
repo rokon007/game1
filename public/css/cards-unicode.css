@@ -7,7 +7,7 @@
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   font-family: "Arial", sans-serif;
   font-weight: bold;
   cursor: pointer;
@@ -15,6 +15,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   position: relative;
   user-select: none;
+  padding: 4px;
 }
 
 .card:hover {
@@ -29,32 +30,86 @@
   background: linear-gradient(145deg, #dbeafe, #bfdbfe);
 }
 
+/* Card content layout */
+.card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+/* Top left corner */
+.card-corner-top {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* Bottom right corner (rotated) */
+.card-corner-bottom {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 10px;
+  line-height: 1;
+  transform: rotate(180deg);
+}
+
+/* Center symbol */
+.card-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex: 1;
+}
+
 /* Card rank styling */
 .card .rank {
-  font-size: 14px;
+  font-size: 10px;
   font-weight: bold;
   line-height: 1;
 }
 
 .card .suit {
+  font-size: 12px;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+.card .center-suit {
   font-size: 24px;
   line-height: 1;
-  margin-top: 2px;
 }
 
 /* Red suits */
 .card.hearts .rank,
 .card.hearts .suit,
+.card.hearts .center-suit,
 .card.diamonds .rank,
-.card.diamonds .suit {
+.card.diamonds .suit,
+.card.diamonds .center-suit {
   color: #dc2626;
 }
 
 /* Black suits */
 .card.spades .rank,
 .card.spades .suit,
+.card.spades .center-suit,
 .card.clubs .rank,
-.card.clubs .suit {
+.card.clubs .suit,
+.card.clubs .center-suit {
   color: #1f2937;
 }
 
@@ -62,11 +117,41 @@
 .card.back {
   background: linear-gradient(45deg, #1e40af, #3b82f6);
   color: white;
+  justify-content: center;
 }
 
 .card.back::before {
   content: "🂠";
   font-size: 32px;
+}
+
+/* Small card variant */
+.card.small {
+  width: 48px;
+  height: 72px;
+  padding: 3px;
+}
+
+.card.small .rank {
+  font-size: 8px;
+}
+
+.card.small .suit {
+  font-size: 10px;
+}
+
+.card.small .center-suit {
+  font-size: 18px;
+}
+
+.card.small .card-corner-top,
+.card.small .card-corner-bottom {
+  font-size: 8px;
+}
+
+/* Stacked card effects */
+.card.stacked {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 2px 0 4px rgba(0, 0, 0, 0.1), 4px 0 8px rgba(0, 0, 0, 0.05);
 }
 
 /* Special effects for high value cards */
@@ -103,13 +188,36 @@
   .card {
     width: 48px;
     height: 72px;
+    padding: 2px;
   }
 
   .card .rank {
-    font-size: 12px;
+    font-size: 8px;
   }
 
   .card .suit {
+    font-size: 10px;
+  }
+
+  .card .center-suit {
     font-size: 18px;
   }
+
+  .card .card-corner-top,
+  .card .card-corner-bottom {
+    font-size: 8px;
+  }
+}
+
+/* Dragging states */
+.card.dragging {
+  opacity: 0.7;
+  transform: rotate(5deg) scale(1.1);
+  z-index: 1000;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.card.drag-over {
+  border-color: #10b981;
+  background: linear-gradient(145deg, #d1fae5, #a7f3d0);
 }
