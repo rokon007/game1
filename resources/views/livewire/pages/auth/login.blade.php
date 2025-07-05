@@ -6,6 +6,7 @@ use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
+use Illuminate\Support\Facades\Request;
 
 new #[Layout('layouts.layout_login')] class extends Component
 {
@@ -62,6 +63,26 @@ new #[Layout('layouts.layout_login')] class extends Component
             $user->unique_id = $this->generateUniqueId($user->name);
             $user->save();
         }
+
+        //----------------------
+        $ip = Request::ip();
+        $location = 'Unknown';
+
+        try {
+            $response = Http::get("http://ip-api.com/json/{$ip}?fields=city,regionName,country");
+            if ($response->successful()) {
+                $data = $response->json();
+                $location = "{$data['city']}, {$data['regionName']}, {$data['country']}";
+            }
+        } catch (\Exception $e) {
+            // fallback location remains 'Unknown'
+        }
+
+        $user->update([
+            'last_login_ip' => $ip,
+            'last_login_location' => $location,
+        ]);
+        //----------------------
 
         Session::regenerate();
         // Store session data

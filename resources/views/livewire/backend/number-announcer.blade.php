@@ -7,6 +7,11 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css"
               integrity="sha512-dPXYcDub/aeb08c63jRq/k6GaKccl256JQy/AnOq7CAnEZ9FzSL9wSbcZkMp4R26vBsMLFYH4kQ67/bbV8XaCQ=="
               crossorigin="anonymous" referrerpolicy="no-referrer" />
+              <!-- Select2 CSS -->
+                <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+                <!-- Select2 JS -->
+                <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
             <style>
                 .rounded-md {
                     border-radius: 0.375rem; /* 6px */
@@ -40,6 +45,29 @@
                     padding: 20px 40px; /* স্টাম্পের জায়গা ঠিক করার জন্য প্যাডিং */
                     box-shadow: 0 0 15px rgba(255, 0, 0, 0.3); /* হালকা শেডো */
 
+                }
+
+                .pu-select option {
+                    padding: 10px;
+                    margin: 2px 0;
+                    border-radius: 5px;
+                }
+                .pu-select option:hover {
+                    background-color: #f8f9fa;
+                }
+                .pu-select:focus {
+                    border-color: #86b7fe;
+                    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+                }
+                .select2-container--default .select2-selection--single {
+                    height: auto;
+                    padding: 0.5rem;
+                }
+                .select2-container--default .select2-selection--single .select2-selection__rendered {
+                    line-height: normal;
+                }
+                .select2-container--default .select2-selection__arrow {
+                    height: 100%;
                 }
             </style>
     @endsection
@@ -118,6 +146,195 @@
                 </div>
             </div>
         </div>
+        <style>
+            .chip2 {
+                display: inline-block;
+                height: 64px;
+                padding: 0 12px;
+                margin-right: 1rem;
+                margin-bottom: 1rem;
+                font-size: 14px;
+                font-weight: 500;
+                line-height: 32px;
+                color: rgba(0, 0, 0, .7);
+                cursor: pointer;
+                background-color: #f1f1f1;
+                border: 1px solid rgba(0, 0, 0, .15);
+                border-radius: 16px;
+                -webkit-transition: all .3s linear;
+                transition: all .3s linear;
+                box-shadow: none;
+                }
+                .chip2 img {
+                float: left;
+                width: 32px;
+                height: 32px;
+                margin: 0 8px 0 -12px;
+                border-radius: 50%;
+                }
+
+                .called-number {
+                    transition: all 0.3s ease;
+                }
+                .called-number:hover {
+                    transform: scale(1.1);
+                    background-color: #dc3545 !important;
+                }
+                .called-number.highlight-new {
+                    animation: pulse-glow 2s ease-in-out;
+                    background-color: #ffc107 !important;
+                    color: #000 !important;
+                    transform: scale(1.2);
+                    z-index: 10;
+                    box-shadow: 0 0 15px rgba(255, 193, 7, 0.8);
+                }
+                @keyframes pulse-glow {
+                    0% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 193, 7, 0); }
+                    50% { transform: scale(1.3); box-shadow: 0 0 20px rgba(255, 193, 7, 0.8); }
+                    100% { transform: scale(1.2); box-shadow: 0 0 15px rgba(255, 193, 7, 0.5); }
+                }
+                .ticket-card:hover {
+                    transform: translateY(-5px);
+                    transition: all 0.3s ease;
+                }
+                .ticket-table td {
+                    position: relative;
+                }
+                .number-cell {
+                    display: inline-block;
+                    width: 24px;
+                    height: 24px;
+                    line-height: 24px;
+                    border-radius: 50%;
+                }
+                .ticket-table tr:first-child td {
+                    border-top: 2px solid #dee2e6;
+                }
+                .ticket-table tr:last-child td {
+                    border-bottom: 2px solid #dee2e6;
+                }
+                .ticket-table td:first-child {
+                    border-left: 2px solid #dee2e6;
+                }
+                .ticket-table td:last-child {
+                    border-right: 2px solid #dee2e6;
+                }
+
+                .corner-cell {
+                    position: relative;
+                }
+                .corner-cell::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    border: 2px solid transparent;
+                    pointer-events: none;
+                }
+                .corner-cell.bg-success::before {
+                    border-color: #ffc107;
+                }
+
+                .top-row.completed td,
+                .middle-row.completed td,
+                .bottom-row.completed td {
+                    position: relative;
+                }
+                .top-row.completed td::after,
+                .middle-row.completed td::after,
+                .bottom-row.completed td::after {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    top: 50%;
+                    width: 100%;
+                    height: 2px;
+                    background-color: #ffc107;
+                    z-index: 1;
+                }
+
+                .pattern-badge {
+                    transition: all 0.3s ease;
+                    font-size: 0.85rem;
+                }
+                .pattern-badge.bg-success {
+                    box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+                }
+
+                @media (max-width: 768px) {
+                    .called-number {
+                        width: 32px !important;
+                        height: 32px !important;
+                        font-size: 0.9rem;
+                    }
+                    .ticket-table td {
+                        height: 28px !important;
+                        font-size: 0.8rem !important;
+                    }
+                }
+
+                .ticket-table {
+                    table-layout: fixed;
+                }
+                .ticket-table td {
+                    width: 11.11%;
+                }
+
+                @keyframes winner-glow {
+                    0% { box-shadow: 0 0 5px rgba(40, 167, 69, 0.5); }
+                    50% { box-shadow: 0 0 20px rgba(40, 167, 69, 0.8); }
+                    100% { box-shadow: 0 0 5px rgba(40, 167, 69, 0.5); }
+                }
+                .ticket-card .card.winner {
+                    animation: winner-glow 2s infinite;
+                }
+            </style>
+
+        <div class="card radius-10 w-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                      <h5 class="mb-0 text-primary fw-bold">Participant Users</h5>
+                       <div class="ms-auto position-relative">
+                         <div class="position-absolute top-50 translate-middle-y search-icon px-3"><i class="bi bi-search"></i></div>
+                         <input class="form-control ps-5" wire:model.live='search' type="text" placeholder="search">
+                       </div>
+                   </div>
+
+                <hr>
+                <div class="row row-cols-auto g-3">
+                    @if (!empty($newParticipantsUser) && $newParticipantsUser->count())
+                        @foreach ($newParticipantsUser as $participant)
+                            <div class="chip2" wire:click='setUserSheet({{$participant->id}})' style="cursor: pointer">
+                                <img src="http://127.0.0.1:8000/assets/backend/upload/image/user/user.jpg" alt="Contact Person">
+                                <div class="list-inline d-sm-flex mb-0 d-none">
+                                    <a  class="list-inline-item d-flex align-items-center text-secondary">
+                                        @if($participant->is_online)
+                                        <small class="bx bxs-circle me-1 chart-online"></small>
+                                        @endif
+                                        {{ $participant->name ?? 'Unknown User' }}
+                                    </a>
+                                </div>
+                                <div class="list-inline d-sm-flex mb-0 d-none">
+                                    <a  class="list-inline-item d-flex align-items-center text-secondary">
+                                        <i class="bx bx-images me-1"></i>
+                                        {{ $participant->last_login_location ?? 'Unknown location' }}
+                                    </a>
+                                </div>
+                            </div>
+                        @endforeach
+                        <div class="mt-3">
+                            {{ $newParticipantsUser->links() }}
+                        </div>
+                    @else
+                        <p>No participants found</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+
 
         <div class="row">
         <div class="col-12 col-lg-12 col-xl-12 d-flex">
@@ -200,7 +417,199 @@
                                 </div>
                             @endif
 
-                            @if(count($winners) > 0)
+                            <div class="mt-3">
+                                <h5 class="mb-3 text-primary fw-bold">{{$unique_id}}</h5>
+
+                            </div>
+
+                            <div class="mt-3">
+                                @if ($sheetTickets)
+                                    <div class="sheet-container card shadow-sm mb-0"> <!-- mb-0 যোগ করা হয়েছে -->
+                                        <!-- হেডার কার্ড বডির ভিতরে নিয়ে আসা হয়েছে -->
+
+                                        <div class="card-body py-2" style="background-color: #f8f9fa; border-top: 1px solid rgba(0,0,0,.125);"> <!-- border-top যোগ করা হয়েছে -->
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-muted fs-6">
+                                                    <i class="fas fa-gamepad me-1"></i>
+                                                    {{ $sheetTickets[0]['game']['title'] }}
+                                                </span>
+                                                <span class="badge bg-info text-white fs-6">
+                                                    @foreach($sheetTickets as $ticket)
+                                                        @if ($loop->first)
+                                                            Sheet ID: {{ $ticket['sheet_id'] ?? 'N/A' }}
+                                                        @endif
+                                                    @endforeach
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- টিকেট কন্টেইনার -->
+                                        <div class="card-body p-2 p-md-3" style="background-color: #f8f9fa;"> <!-- একই ব্যাকগ্রাউন্ড কালার -->
+                                            <!-- Tickets Grid -->
+                                            <div class="card-body p-3 p-md-4 bg-light">
+                                                <div class="row">
+                                                    @foreach($sheetTickets as $ticket)
+                                                        <div class="col-12">
+                                                            <div class="ticket-card position-relative">
+                                                                <div class="card h-100 shadow-sm border-0 overflow-hidden {{ $ticket['is_winner'] ? 'winner' : '' }}">
+                                                                    @if($ticket['is_winner'])
+                                                                    <div class="card-header bg-white py-2 border-bottom">
+                                                                        <div class="d-flex justify-content-between align-items-center">
+                                                                            <span>Ticket #{{ explode('-', $ticket['number'])[1] }}</span>
+                                                                            <div>
+                                                                                @if(in_array('corner', $ticket['winning_patterns'] ?? []))
+                                                                                    <span class="badge bg-warning text-dark me-1">Corner</span>
+                                                                                @endif
+                                                                                @if(in_array('top_line', $ticket['winning_patterns'] ?? []))
+                                                                                    <span class="badge bg-info text-white me-1">Top Line</span>
+                                                                                @endif
+                                                                                @if(in_array('middle_line', $ticket['winning_patterns'] ?? []))
+                                                                                    <span class="badge bg-primary text-white me-1">Middle Line</span>
+                                                                                @endif
+                                                                                @if(in_array('bottom_line', $ticket['winning_patterns'] ?? []))
+                                                                                    <span class="badge bg-secondary text-white me-1">Bottom Line</span>
+                                                                                @endif
+                                                                                @if(in_array('full_house', $ticket['winning_patterns'] ?? []))
+                                                                                    <span class="badge bg-success text-white">Full House</span>
+                                                                                @endif
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    @endif
+                                                                    <div class="card-body p-0">
+                                                                        <table class="table table-bordered mb-0 ticket-table w-100">
+                                                                            <tbody>
+                                                                                @foreach($ticket['numbers'] as $rowIndex => $row)
+                                                                                    <tr class="{{ $rowIndex === 0 ? 'top-row' : ($rowIndex === 1 ? 'middle-row' : 'bottom-row') }}
+                                                                                        {{ $rowIndex === 0 && $this->hasWonPattern('top_line') ? 'completed1' : '' }}
+                                                                                        {{ $rowIndex === 1 && $this->hasWonPattern('middle_line') ? 'completed1' : '' }}
+                                                                                        {{ $rowIndex === 2 && $this->hasWonPattern('bottom_line') ? 'completed1' : '' }}">
+                                                                                        @foreach($row as $colIndex => $cell)
+                                                                                            <td class="text-center p-1
+                                                                                                {{ $cell ? (in_array($cell, $announcedNumbers) ? 'bg-success text-white' : 'bg-white') : 'bg-transparent' }}
+                                                                                                {{ ($rowIndex === 0 && $colIndex === 0) || ($rowIndex === 0 && $colIndex === 8) ||
+                                                                                                ($rowIndex === 2 && $colIndex === 0) || ($rowIndex === 2 && $colIndex === 8) ? 'corner-cell' : '' }}"
+                                                                                                style="height: 35px; font-size: 0.9rem;">
+                                                                                                @if($cell)
+                                                                                                    <span class="number-cell {{ in_array($cell, $announcedNumbers) ? 'text-white' : '' }}">
+                                                                                                        {{ $cell }}
+                                                                                                    </span>
+                                                                                                @endif
+                                                                                            </td>
+                                                                                        @endforeach
+                                                                                    </tr>
+                                                                                @endforeach
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+
+
+                                {{-- <script>
+                                    document.addEventListener('livewire:initialized', function () {
+                                        $('.pu-select').select2({
+                                            templateResult: function (data) {
+                                                if (!data.id) {
+                                                    return data.text;
+                                                }
+                                                var $participant = {!! json_encode($newParticipants->toArray()) !!};
+                                                var participant = $participant.find(p => p.user_id == data.id);
+
+                                                if (!participant) {
+                                                    return data.text;
+                                                }
+
+                                                var $template = $(`
+                                                    <div class="d-flex align-items-center gap-3">
+                                                        <img src="${participant.user.avatar || '{{ asset('assets/backend/upload/image/user/user.jpg') }}'}"
+                                                            class="rounded-circle border border-2 border-primary"
+                                                            width="40"
+                                                            height="40"
+                                                            alt="name"
+                                                            style="object-fit: cover;">
+                                                        <div class="flex-grow-1">
+                                                            <div class="d-flex justify-content-between align-items-center">
+                                                                <span class="fw-semibold">${participant.user.name || 'name'}</span>
+                                                                <p>${participant.user.last_login_location || 'Unknown'}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                `);
+                                                return $template;
+                                            },
+                                            templateSelection: function (data) {
+                                                if (!data.id) {
+                                                    return data.text;
+                                                }
+                                                var $participant = {!! json_encode($newParticipants->toArray()) !!};
+                                                var participant = $participant.find(p => p.user_id == data.id);
+
+                                                return participant ? participant.user.name : data.text;
+                                            }
+                                        });
+
+                                        // লাইভওয়্যারের সাথে সিঙ্ক করা
+                                        $('.pu-select').on('change', function (e) {
+                                            @this.set('selectedUser', e.target.value);
+                                        });
+
+                                        // লাইভওয়্যার আপডেটের সময় Select2 রি-ইনিশিয়ালাইজ
+                                        Livewire.on('updateSelect2', () => {
+                                            $('.pu-select').select2('destroy').select2({
+                                                templateResult: function (data) {
+                                                    if (!data.id) {
+                                                        return data.text;
+                                                    }
+                                                    var $participant = {!! json_encode($newParticipants->toArray()) !!};
+                                                    var participant = $participant.find(p => p.user_id == data.id);
+
+                                                    if (!participant) {
+                                                        return data.text;
+                                                    }
+
+                                                    var $template = $(`
+                                                        <div class="d-flex align-items-center gap-3">
+                                                            <img src="${participant.user.avatar || '{{ asset('assets/backend/upload/image/user/user.jpg') }}'}"
+                                                                class="rounded-circle border border-2 border-primary"
+                                                                width="40"
+                                                                height="40"
+                                                                alt="name"
+                                                                style="object-fit: cover;">
+                                                            <div class="flex-grow-1">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <span class="fw-semibold">${participant.user.name || 'name'}</span>
+                                                                    <p>${participant.user.last_login_location || 'Unknown'}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    `);
+                                                    return $template;
+                                                },
+                                                templateSelection: function (data) {
+                                                    if (!data.id) {
+                                                        return data.text;
+                                                    }
+                                                    var $participant = {!! json_encode($newParticipants->toArray()) !!};
+                                                    var participant = $participant.find(p => p.user_id == data.id);
+
+                                                    return participant ? participant.user.name : data.text;
+                                                }
+                                            });
+                                        });
+                                    });
+                                </script> --}}
+
+
+                            {{-- @if(count($winners) > 0)
                                 <div class="mt-3">
                                     <h5 class="mb-3">Recent Winners</h5>
                                     <div class="list-group">
@@ -218,7 +627,7 @@
                                         @endforeach
                                     </div>
                                 </div>
-                            @endif
+                            @endif --}}
                         </div>
                     </div>
                 </div>
@@ -315,7 +724,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="client-message ps" style="max-height: 600px; overflow-y: auto;">
+                        <div class="client-message ps" style="max-height: 600px; overflow-y: auto;" wire:ignore>
                             @foreach($participants as $participant)
                                 <div class="d-flex align-items-center gap-3 client-messages-list border-bottom p-3">
                                     <img src="{{ $participant->user->avatar ?? asset('assets/backend/upload/image/user/user.jpg') }}"

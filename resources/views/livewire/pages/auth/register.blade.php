@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
+use App\Models\Referral;
 use Livewire\Volt\Component;
 
 new #[Layout('layouts.layout_login')] class extends Component
@@ -16,6 +17,7 @@ new #[Layout('layouts.layout_login')] class extends Component
     public string $mobile = '';
     public string $password = '';
     public string $password_confirmation = '';
+    public string $referral_code = '';
 
     /**
      * Generate a 7-character unique ID based on the first and last letters of the name and 5 random digits.
@@ -63,13 +65,51 @@ new #[Layout('layouts.layout_login')] class extends Component
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'mobile' => ['required', 'string', 'regex:/^[0-9]{11}$/', 'unique:users,mobile'],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
+            'referral_code' => ['nullable', 'string', 'exists:users,unique_id'],
         ]);
 
         // Generate unique ID
         $validated['unique_id'] = $this->generateUniqueId($validated['name']);
         $validated['password'] = Hash::make($validated['password']);
+        $validated['referred_by'] = $validated['referral_code'] ?? null;
 
-        event(new Registered($user = User::create($validated)));
+        //event(new Registered($user = User::create($validated)));
+
+        $user = User::create($validated);
+
+        // If a referral code is provided, create a referral record
+        if ($validated['referral_code']) {
+            $referrer = User::where('unique_id', $validated['referral_code'])->first();
+            if ($referrer) {
+                Referral::create([
+                    'referrer_id' => $referrer->id,
+                    'referred_user_id' => $user->id,
+                    'commission_count' => 0,
+                ]);
+            }
+        }
+
+         //----------------------
+        $ip = Request::ip();
+        $location = 'Unknown';
+
+        try {
+            $response = Http::get("http://ip-api.com/json/{$ip}?fields=city,regionName,country");
+            if ($response->successful()) {
+                $data = $response->json();
+                $location = "{$data['city']}, {$data['regionName']}, {$data['country']}";
+            }
+        } catch (\Exception $e) {
+            // fallback location remains 'Unknown'
+        }
+
+        $user->update([
+            'last_login_ip' => $ip,
+            'last_login_location' => $location,
+        ]);
+        //----------------------
+
+        event(new Registered($user));
 
         Auth::login($user);
 
@@ -106,6 +146,12 @@ new #[Layout('layouts.layout_login')] class extends Component
                                 <label for="username"><i class="ti ti-user"></i></label>
                                 <input class="form-control" wire:model="mobile" id="mobile" type="text" inputmode="numeric" pattern="[0-9]*" name="mobile" required autofocus autocomplete="name"  placeholder="{{__('Mobile Number (11 digits)')}}">
                                 <x-input-error :messages="$errors->get('mobile')" class="mt-2 text-danger" />
+                            </div>
+                            <div class="form-group text-start mb-4">
+                                <span>{{__('Referral Code (Optional)')}}</span>
+                                <label for="referral_code"><i class="ti ti-link"></i></label>
+                                <input class="form-control" wire:model="referral_code" id="referral_code" type="text" name="referral_code" placeholder="{{__('Referral Code (Optional)')}}">
+                                <x-input-error :messages="$errors->get('referral_code')" class="mt-2 text-danger" />
                             </div>
                             <div class="form-group text-start mb-4"><span>{{__('Password')}}</span>
                                 <label for="password"><i class="ti ti-key"></i></label>

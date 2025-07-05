@@ -29,6 +29,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'status',
         'is_online',
         'last_seen_at',
+        'last_login_ip',
+        'last_login_location',
+        'latitude',
+        'longitude',
+        'referred_by',
     ];
 
     /**
@@ -47,11 +52,13 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var array<string, string>
      */
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-        'last_seen_at' => 'datetime',
-        'is_online' => 'boolean',
-    ];
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'last_seen_at' => 'datetime',
+            'is_online' => 'boolean',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
+        ];
 
 
 
@@ -78,6 +85,22 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(Conversation::class);
 
+    }
+
+    /**
+     * রেফারেল রেকর্ডগুলোর সাথে সম্পর্ক।
+     */
+    public function referrals()
+    {
+        return $this->hasMany(Referral::class, 'referrer_id');
+    }
+
+    /**
+     * রেফারার ইউজারের সাথে সম্পর্ক।
+     */
+    public function referredBy()
+    {
+        return $this->belongsTo(User::class, 'referred_by', 'unique_id');
     }
 
     // ইউজারের সাথে ডাইরেক্ট কনভারসেশন খুঁজে বের করা

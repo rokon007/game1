@@ -71,7 +71,18 @@ new class extends Component
             <div class="menu-title">Manage Game</div>
         </a>
     </li>
-
+    <li>
+        <a href="{{route('admin.user')}}" class="has-arrow">
+            <div class="parent-icon"><i class="bi bi-wallet2"></i></div>
+            <div class="menu-title">User Management</div>
+        </a>
+    </li>
+    <li>
+        <a href="{{route('admin.referral-settings')}}" class="has-arrow">
+            <div class="parent-icon"><i class="bi bi-wallet2"></i></div>
+            <div class="menu-title">Referral Settings</div>
+        </a>
+    </li>
     <li>
         <a href="{{route('admin.agent')}}" class="has-arrow">
             <div class="parent-icon"><i class="bi bi-wallet2"></i></div>

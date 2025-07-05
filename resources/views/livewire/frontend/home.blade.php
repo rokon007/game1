@@ -136,6 +136,11 @@
                 </div>
             </div>
         </div>
+        {{-- @if(auth()->user())
+	        <div class="container">
+	            @livewire('location-updater')
+	        </div>
+        @endif --}}
 
         <div class="featured-products-wrapper py-3">
             <div class="container">

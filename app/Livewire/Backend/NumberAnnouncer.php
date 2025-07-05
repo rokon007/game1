@@ -5,15 +5,20 @@ namespace App\Livewire\Backend;
 use App\Models\Game;
 use App\Models\Ticket;
 use App\Models\Prize;
+use App\Models\User;
 use App\Models\Winner;
 use App\Models\Announcement;
 use App\Events\NumberAnnounced;
 use Livewire\Component;
 use Illuminate\Support\Facades\Log;
 use App\Events\GameRedirectEvent;
+use Livewire\WithPagination;
+use Illuminate\Support\Facades\Schema;
 
 class NumberAnnouncer extends Component
 {
+    use WithPagination;
+
     public $gameId;
     public $calledNumbers = [];
     public $nextNumber;
@@ -39,12 +44,30 @@ class NumberAnnouncer extends Component
     public $redirectUrl;
     public $ridirectAllart=false;
 
+
+    public $sheetTickets = [];
+    public $participantsUsers;
+    public $newParticipants;
+    public $selectedUser;
+    public $search = '';
+    public $users_id;
+    public $unique_id='';
+    public $announcedNumbers = [];
+    public $sheet_Id;
+
      protected $listeners = [
         'echo:game.*,game.winner' => 'handleWinnerAnnounced',
         'echo:game.*,game.over' => 'handleGameOver',
         'updateProgress' => 'updateTransferProgress',
         'transfer-completed' => 'onTransferCompleted'
     ];
+    protected $paginationTheme = 'bootstrap';
+
+    public function updatedSearch()
+    {
+        $this->resetPage(); // সার্চ করার সময় পেজ রিসেট করা
+    }
+
 
     // public function redirectAllPlayers()
     // {
@@ -138,9 +161,95 @@ class NumberAnnouncer extends Component
     {
         $this->gameId = $gameId;
         $this->game = Game::findOrFail($gameId);
+        // $this->newParticipants  = Ticket::where('game_id', $this->gameId)
+        //                         ->with('user')
+        //                         ->get()
+        //                         ->unique('user_id');
         $this->calledNumbers = Announcement::where('game_id', $gameId)->pluck('number')->toArray();
         $this->loadStatistics();
         $this->checkGameOver();
+    }
+
+    public function updated($property)
+    {
+        // ডাটা আপডেট হলে Select2 রিফ্রেশ করুন
+        if ($property === 'newParticipants') {
+            $this->dispatch('updateSelect2');
+        }
+    }
+
+    public function setUserSheet($userId)
+    {
+        $this->users_id=$userId;
+        $user=User::find($userId);
+        $this->unique_id = $user->unique_id . "'s Sheet";
+        $this->showSheet();
+    }
+
+    public function showSheet()
+    {
+        $this->announcedNumbers = Announcement::where('game_id', $this->gameId)
+            ->pluck('number')
+            ->toArray();
+
+        $this->sheetTickets = Ticket::selectRaw('
+        id,
+        user_id,
+        ticket_number,
+        numbers,
+        is_winner,
+        created_at,
+        game_id,
+        winning_patterns,
+        SUBSTRING_INDEX(ticket_number, "-", 1) as sheet_id
+    ')
+    ->where('user_id', $this->users_id)
+    ->where('game_id', $this->gameId)
+    ->orderBy('ticket_number')
+    ->with('game') // ⚠️ যাতে $ticket->game পাওয়া যায়
+    ->get()
+    ->map(function ($ticket) {
+        $winningPatterns = [];
+
+        if (Schema::hasColumn('tickets', 'winning_patterns') && $ticket->winning_patterns) {
+            $winningPatterns = is_string($ticket->winning_patterns)
+                ? json_decode($ticket->winning_patterns, true)
+                : $ticket->winning_patterns;
+        }
+
+        return [
+            'id' => $ticket->id,
+            'sheet_id' => $ticket->sheet_id,
+            'number' => $ticket->ticket_number,
+            'numbers' => is_string($ticket->numbers)
+                ? json_decode($ticket->numbers, true)
+                : $ticket->numbers,
+            'is_winner' => $ticket->is_winner,
+            'winning_patterns' => $winningPatterns,
+            'created_at' => $ticket->created_at
+                ? $ticket->created_at->format('d M Y h:i A')
+                : null,
+            'game' => $ticket->game,
+        ];
+    })
+    ->toArray();
+
+    }
+
+    public function hasWonPattern($pattern)
+    {
+        foreach ($this->sheetTickets as $ticket) {
+            $winningPatterns = $ticket['winning_patterns'] ?? [];
+            if (is_string($winningPatterns)) {
+                $winningPatterns = json_decode($winningPatterns, true);
+            }
+
+            if (in_array($pattern, $winningPatterns)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function checkGameOver()
@@ -158,6 +267,10 @@ class NumberAnnouncer extends Component
 
     protected function loadStatistics()
     {
+        $this->participantsUsers = Ticket::with('user') // user relation লোড করবে
+                    ->where('game_id', $this->gameId)
+                    ->get()
+                    ->unique('user_id');
         // Participants count (unique users who bought tickets)
         $this->totalParticipants = Ticket::where('game_id', $this->gameId)
                                     ->distinct('user_id')
@@ -262,6 +375,7 @@ class NumberAnnouncer extends Component
             Log::error("Error announcing number: " . $e->getMessage());
             // session()->flash('error', "Error announcing number: " . $e->getMessage());
         }
+        $this->showSheet();
     }
 
 
@@ -417,6 +531,22 @@ class NumberAnnouncer extends Component
 
     public function render()
     {
-        return view('livewire.backend.number-announcer')->layout('livewire.backend.base');
+        $newParticipantsUser = User::whereHas('tickets', function ($query) {
+            $query->where('game_id', $this->gameId);
+        })
+        ->when($this->search, function ($query) {
+            $query->where(function ($q) {
+                $q->where('unique_id', 'like', '%' . $this->search . '%')
+                ->orWhere('name', 'like', '%' . $this->search . '%')
+                ->orWhere('last_login_location', 'like', '%' . $this->search . '%');
+            });
+        })
+        ->select('id', 'unique_id', 'name', 'avatar', 'last_login_location','is_online')
+        ->paginate(10);
+
+        return view('livewire.backend.number-announcer', [
+                'newParticipantsUser' => $newParticipantsUser
+            ])->layout('livewire.backend.base');
     }
+
 }
