@@ -307,7 +307,7 @@
                     @if (!empty($newParticipantsUser) && $newParticipantsUser->count())
                         @foreach ($newParticipantsUser as $participant)
                             <div class="chip2" wire:click='setUserSheet({{$participant->id}})' style="cursor: pointer">
-                                <img src="http://127.0.0.1:8000/assets/backend/upload/image/user/user.jpg" alt="Contact Person">
+                                <img src="{{asset('assets/backend/upload/image/user/user.jpg')}}" alt="U">
                                 <div class="list-inline d-sm-flex mb-0 d-none">
                                     <a  class="list-inline-item d-flex align-items-center text-secondary">
                                         @if($participant->is_online)

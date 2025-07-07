@@ -49,6 +49,22 @@
 
     <!-- All JavaScript Files-->
     @yield('JS')
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                if (timezone) {
+                    fetch('{{ route('set.timezone') }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ timezone })
+                    });
+                }
+            });
+        </script>
 
       @livewireScripts
       @stack('scripts')

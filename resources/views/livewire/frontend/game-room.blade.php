@@ -725,7 +725,7 @@
                                                     </div>
                                                     <div class="flex-grow-1" style="overflow-wrap: break-word; word-break: break-word;">
                                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                                            <strong class="text-white" style="font-size: 0.9rem;">{{ Str::limit($winner->user->name, 20) }}</strong>
+                                                            <strong class="text-white" style="font-size: 0.9rem;">{{ Str::limit($winner->user->unique_id, 20) }}</strong>
                                                             <small class="text-light opacity-75" style="font-size: 0.75rem;">{{ $winner->won_at->diffForHumans() }}</small>
                                                         </div>
                                                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
@@ -881,7 +881,7 @@
                                                 </div>
                                                 <div class="flex-grow-1" style="overflow-wrap: break-word; word-break: break-word;">
                                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                                        <strong class="text-white" style="font-size: 0.9rem;">{{ Str::limit($winner->user->name, 20) }}</strong>
+                                                        <strong class="text-white" style="font-size: 0.9rem;">{{ Str::limit($winner->user->unique_id, 20) }}</strong>
                                                         <small class="text-light opacity-75" style="font-size: 0.75rem;">{{ $winner->won_at->diffForHumans() }}</small>
                                                     </div>
                                                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">

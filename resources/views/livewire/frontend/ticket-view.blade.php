@@ -80,7 +80,7 @@
                     <i class="fas fa-ticket-alt fa-2x mb-3"></i>
                     <h4>You have not purchased any ticket sheets yet.</h4>
                     <a href="{{ route('buy_ticket') }}" class="btn btn-primary mt-3">
-                        গেমস দেখুন
+                        Buy Sheet
                     </a>
                 </div>
 
@@ -255,219 +255,78 @@
                     @endif
                 </div>
 
-@push('styles')
-<style>
-    .sheet-container {
-        border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid rgba(0,0,0,.125);
-    }
+                    @push('styles')
+                    <style>
+                        .sheet-container {
+                            border-radius: 8px;
+                            overflow: hidden;
+                            border: 1px solid rgba(0,0,0,.125);
+                        }
 
-    .tickets-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1rem;
-        padding: 0.5rem;
-    }
+                        .tickets-grid {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                            gap: 1rem;
+                            padding: 0.5rem;
+                        }
 
-    .ticket-item {
-        position: relative;
-        border-radius: 8px;
-        overflow: hidden;
-        transition: all 0.3s ease;
-        background-color: white;
-        border: 1px solid #e9ecef;
-    }
+                        .ticket-item {
+                            position: relative;
+                            border-radius: 8px;
+                            overflow: hidden;
+                            transition: all 0.3s ease;
+                            background-color: white;
+                            border: 1px solid #e9ecef;
+                        }
 
-    .ticket-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
+                        .ticket-item:hover {
+                            transform: translateY(-2px);
+                            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                        }
 
-    .winner-badge {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        z-index: 1;
-    }
+                        .winner-badge {
+                            position: absolute;
+                            top: 8px;
+                            right: 8px;
+                            z-index: 1;
+                        }
 
-    table td {
-        font-weight: bold;
-        padding: 0.25rem;
-        border-color: #dee2e6;
-    }
+                        table td {
+                            font-weight: bold;
+                            padding: 0.25rem;
+                            border-color: #dee2e6;
+                        }
 
-    @media (max-width: 768px) {
-        .tickets-grid {
-            grid-template-columns: 1fr;
-            padding: 0;
-        }
+                        @media (max-width: 768px) {
+                            .tickets-grid {
+                                grid-template-columns: 1fr;
+                                padding: 0;
+                            }
 
-        .sheet-container {
-            border-radius: 0;
-            border-left: none;
-            border-right: none;
-        }
-    }
-    @media (max-width: 576px) {
-    .card-header h6 {
-        font-size: 0.9rem !important;
-    }
-    .card-header .badge {
-        font-size: 0.4rem !important;
-        /* padding: 0.25em 0.4em; */
-    }
-}
+                            .sheet-container {
+                                border-radius: 0;
+                                border-left: none;
+                                border-right: none;
+                            }
+                        }
+                        @media (max-width: 576px) {
+                            .card-header h6 {
+                                font-size: 0.9rem !important;
+                            }
+                            .card-header .badge {
+                                font-size: 0.4rem !important;
+                                /* padding: 0.25em 0.4em; */
+                            }
+                        }
 
-    .ticket-footer {
-        border-top: 1px solid #e9ecef;
-    }
-</style>
-@endpush
+                        .ticket-footer {
+                            border-top: 1px solid #e9ecef;
+                        }
+                    </style>
+                    @endpush
 
 
-                <!-- শীট ডিটেইল ভিউ -->
-                {{-- <div class="mb-4">
-                    <button wire:click="backToList" class="btn btn-sm btn-outline-primary mb-3">
-                        <i class="fas fa-arrow-left me-1"></i> Back
-                    </button>
-                    @if ($selectedSheet)
-                        <div class="sheet-header card mb-0">
-                            <div class="card-header bg-primary text-white">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0 text-white">
-                                        <i class="fas fa-ticket-alt me-2"></i>
-                                         {{ $selectedSheet }}
-                                    </h5>
-                                    <span class="badge bg-light text-dark">
-                                        <i class="fas fa-calendar-alt me-1"></i>
-                                        {{ \Carbon\Carbon::parse($sheetTickets[0]['game']['scheduled_at'])->format('d M Y h:i A') }}
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="card-body py-2" style="background-color: cornsilk">
-                                <div class="d-flex justify-content-between">
-                                    <span>
-                                        <i class="fas fa-gamepad me-1"></i>
-                                        {{ $sheetTickets[0]['game']['title'] }}
-                                    </span>
-                                    <span class="badge bg-info">
-                                        {{ count($sheetTickets) }} Tickets
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-                </div> --}}
 
-                <!-- টিকেট কন্টেইনার -->
-                {{-- <div class="sheet-container card" style="background-color: cornsilk">
-                    <div class="card-body p-3"> <!-- padding যোগ করা হয়েছে -->
-                        <div class="tickets-grid">
-                            @foreach($sheetTickets as $ticket)
-                                <div class="ticket-item mb-4"> <!-- mb-4 ক্লাস যোগ করা হয়েছে -->
-                                    <table class="table table-bordered mb-0">
-                                        <tbody>
-                                            @foreach($ticket['numbers'] as $row)
-                                                <tr>
-                                                    @foreach($row as $cell)
-                                                        <td class="text-center {{ $cell ? 'bg-light' : '' }}"
-                                                            style="width: 11%; height: 40px;">
-                                                            {{ $cell ?: '' }}
-                                                        </td>
-                                                    @endforeach
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                    @if($ticket['is_winner'])
-                                        <div class="winner-badge">
-                                            <span class="badge bg-success">Winner</span>
-                                        </div>
-                                    @endif
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div> --}}
-
-                {{-- @push('styles')
-                <style>
-                    .tickets-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                        gap: 1.5rem; /* গ্যাপ বড় করা হয়েছে */
-                        padding: 1rem;
-                    }
-
-                    .ticket-item {
-                        position: relative;
-                        border: 1px solid #dee2e6;
-                        border-radius: 6px;
-                        overflow: hidden;
-                        transition: all 0.3s ease;
-                        padding: 0.5rem; /* টিকেটের ভিতরে প্যাডিং */
-                        background-color: white;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* সূক্ষ্ম শ্যাডো */
-                    }
-
-                    .ticket-item:hover {
-                        transform: translateY(-3px);
-                        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-                    }
-
-                    /* টিকেটের মধ্যে আরও স্পেস */
-                    .ticket-item + .ticket-item {
-                        margin-top: 1.5rem;
-                    }
-                </style>
-                @endpush
-
-                @push('styles')
-                <style>
-                    .sheet-header {
-                        border-radius: 8px;
-                        overflow: hidden;
-                    }
-
-                    .sheet-container {
-                        border: 1px solid #dee2e6;
-                        border-radius: 8px;
-                        overflow: hidden;
-                    }
-
-                    .tickets-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                        gap: 1rem;
-                        padding: 1rem;
-                    }
-
-                    .ticket-item {
-                        position: relative;
-                        border: 1px solid #dee2e6;
-                        border-radius: 6px;
-                        overflow: hidden;
-                        transition: all 0.3s ease;
-                    }
-
-                    .ticket-item:hover {
-                        transform: translateY(-3px);
-                        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-                    }
-
-                    .winner-badge {
-                        position: absolute;
-                        top: 5px;
-                        right: 5px;
-                    }
-
-                    table td {
-                        font-weight: bold;
-                        padding: 0.5rem;
-                    }
-                </style>
-                @endpush --}}
             @endif
         </div>
 

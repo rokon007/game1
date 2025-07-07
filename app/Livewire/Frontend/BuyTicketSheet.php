@@ -64,6 +64,16 @@ class BuyTicketSheet extends Component
             return;
         }
 
+        // ✅ Check if user already bought a ticket for this game
+        $alreadyBought = Ticket::where('user_id', $user->id)
+                                ->where('game_id', $game->id)
+                                ->exists();
+
+        if ($alreadyBought) {
+            session()->flash('error', 'You have already purchased a ticket sheet for this game.');
+            return;
+        }
+
         // ক্রেডিট কর্তন
         $user->decrement('credit', $game->ticket_price);
         $systemUser->increment('credit', $game->ticket_price);

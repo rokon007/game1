@@ -114,11 +114,43 @@ new #[Layout('layouts.layout_login')] class extends Component
                         <input class="form-control" wire:model="form.email" id="email" type="email" name="email" required autofocus autocomplete="username" placeholder="info@example.com">
                         <x-input-error :messages="$errors->get('form.email')" class="mt-2 text-danger" />
                     </div>
-                    <div class="form-group text-start mb-4"><span>Password</span>
+                    {{-- <div class="form-group text-start mb-4"><span>Password</span>
                         <label for="password"><i class="ti ti-key"></i></label>
                         <input class="form-control" wire:model="form.password" id="password" type="password" name="password" required autocomplete="current-password" placeholder="Password">
                         <x-input-error :messages="$errors->get('form.password')" class="mt-2 text-danger" />
+                    </div> --}}
+                    <div class="form-group text-start mb-4"><span>Password</span>
+                        <label for="password"><i class="ti ti-key"></i></label>
+
+                        <div class="input-group">
+                            <input class="form-control" wire:model="form.password" id="password" type="password" name="password" required autocomplete="current-password" placeholder="Password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()">
+                                <i id="passwordToggleIcon" style="color: wheat;" class="ti ti-eye"></i>
+                            </button>
+                        </div>
+
+                        <x-input-error :messages="$errors->get('form.password')" class="mt-2 text-danger" />
                     </div>
+
+                    <script>
+                        function togglePasswordVisibility() {
+                            const passwordInput = document.getElementById("password");
+                            const icon = document.getElementById("passwordToggleIcon");
+
+                            if (passwordInput.type === "password") {
+                                passwordInput.type = "text";
+                                icon.classList.remove("ti-eye");
+                                icon.classList.add("ti-eye-off");
+                            } else {
+                                passwordInput.type = "password";
+                                icon.classList.remove("ti-eye-off");
+                                icon.classList.add("ti-eye");
+                            }
+                        }
+                    </script>
+
+
+
                      <!-- Remember Me -->
                     <div class="form-group text-start mb-4">
                         <span>

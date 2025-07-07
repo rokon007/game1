@@ -84,6 +84,12 @@ new class extends Component
         </a>
     </li>
     <li>
+        <a href="{{route('admin.howto')}}" class="has-arrow">
+            <div class="parent-icon"><i class="bi bi-wallet2"></i></div>
+            <div class="menu-title">How To Guide Manager</div>
+        </a>
+    </li>
+    <li>
         <a href="{{route('admin.agent')}}" class="has-arrow">
             <div class="parent-icon"><i class="bi bi-wallet2"></i></div>
             <div class="menu-title">Agent Management</div>

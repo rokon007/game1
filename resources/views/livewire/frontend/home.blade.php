@@ -50,7 +50,7 @@
     @endsection
 
     <div class="page-content-wrapper">
-        @if (Route::has('login'))
+        {{--@if (Route::has('login'))
             @auth
                 <div class="product-catagories-wrapper py-3">
                     <div class="container">
@@ -60,7 +60,6 @@
                         <div class="card catagory-card">
                             <div class="card-body px-2">
                                 <a href="catagory.html">
-                                    {{-- <img src="{{asset('assets/frontend/img/core-img/woman-clothes.png')}}" alt=""> --}}
                                     {{$cradit}} Tk
                                     <span>Current Balance</span>
                                 </a>
@@ -72,7 +71,7 @@
                         <div class="card catagory-card">
                             <div class="card-body px-2">
                                 <a href="catagory.html">
-                                    {{-- <img src="{{asset('assets/frontend/img/core-img/grocery.png')}}" alt=""> --}}
+
                                     0
                                     <span>Total Wins</span>
                                 </a>
@@ -84,7 +83,7 @@
                         <div class="card catagory-card">
                             <div class="card-body px-2">
                                 <a href="catagory.html">
-                                    {{-- <img src="{{asset('assets/frontend/img/core-img/shampoo.png')}}" alt=""> --}}
+
                                     0
                                     <span>Participations</span>
                                 </a>
@@ -96,7 +95,7 @@
                         <div class="card catagory-card">
                             <div class="card-body px-2">
                                 <a href="catagory.html">
-                                    {{-- <img src="{{asset('assets/frontend/img/core-img/rowboat.png')}}" alt=""> --}}
+
                                     0
                                     <span>Tickets Purchased Today</span>
                                 </a>
@@ -107,7 +106,7 @@
                     </div>
                 </div>
             @endauth
-        @endif
+        @endif--}}
         <div class="hero-wrapper">
             <div class="container">
                 <div class="pt-2">
@@ -145,7 +144,7 @@
         <div class="featured-products-wrapper py-3">
             <div class="container">
               <div class="section-heading d-flex align-items-center justify-content-between dir-rtl">
-                <h6>Other Games</h6><a class="btn btn-sm btn-light" href="featured-products.html">Rules<i class="ms-1 ti ti-arrow-right"></i></a>
+                <h6>Other Games</h6><a class="btn btn-sm btn-light" href="{{ route('how.to.use') }}">User Guide<i class="ms-1 ti ti-arrow-right"></i></a>
               </div>
               <div class="row g-2">
                 <!-- Featured Product Card-->
@@ -155,7 +154,7 @@
                             <div class="product-thumbnail-side">
                                 <!-- Thumbnail -->
                                 <a class="product-thumbnail d-block" href="{{route('games.index')}}">
-                                    <img src="http://127.0.0.1:8000/assets/frontend/img/core-img/hajari.png" alt="">
+                                    <img src="{{asset('assets/frontend/img/core-img/hajari.png')}}" alt="">
                                 </a>
                             </div>
                         </div>

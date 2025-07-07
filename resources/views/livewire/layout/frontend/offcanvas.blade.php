@@ -57,9 +57,10 @@ new class extends Component
           <ul>
             <li><a href="wishlist-grid.html">Wishlist Grid</a></li>
             <li><a href="wishlist-list.html">Wishlist List</a></li>
-          </ul>
+          </ul><i class="ti ti-help-circle me-2"></i>
         </li> --}}
         <li><a href="settings.html"><i class="ti ti-adjustments-horizontal"></i>Settings</a></li>
+        <li><a href="{{ route('how.to.use') }}"><i class="ti ti-help-circle me-2"></i>User Guide</a></li>
         @if (Route::has('login'))
             @auth
                 <li><a href="{{route('transactions')}}">< <i class="lni lni-wallet"></i>Transactions</a></li>
