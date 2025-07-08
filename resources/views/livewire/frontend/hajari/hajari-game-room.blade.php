@@ -3,11 +3,29 @@
     <link rel="stylesheet" href="{{ asset('css/cards-unicode.css') }}">
 
     <!-- Audio elements for sound effects -->
-    <audio id="dealSound" src="{{ asset('sounds/card-deal.mp3') }}" preload="auto"></audio>
-    <audio id="turnSound" src="{{ asset('sounds/turn-notification.mp3') }}" preload="auto"></audio>
-    <audio id="winRoundSound" src="{{ asset('sounds/round-win.mp3') }}" preload="auto"></audio>
-    <audio id="playCardSound" src="{{ asset('sounds/card-play.mp3') }}" preload="auto"></audio>
-    <audio id="gameOverSound" src="{{ asset('sounds/game-over.mp3') }}" preload="auto"></audio>
+    <audio id="dealSound" preload="auto">
+        <source src="{{ asset('sounds/card-deal.mp3') }}" type="audio/mpeg">
+        <source src="{{ asset('sounds/card-deal.wav') }}" type="audio/wav">
+    </audio>
+    <audio id="turnSound" preload="auto">
+        <source src="{{ asset('sounds/turn-notification.mp3') }}" type="audio/mpeg">
+        <source src="{{ asset('sounds/turn-notification.wav') }}" type="audio/wav">
+    </audio>
+    <audio id="winRoundSound" preload="auto">
+        <source src="{{ asset('sounds/round-win.mp3') }}" type="audio/mpeg">
+        <source src="{{ asset('sounds/round-win.wav') }}" type="audio/wav">
+    </audio>
+    <audio id="playCardSound" preload="auto">
+        <source src="{{ asset('sounds/card-play.mp3') }}" type="audio/mpeg">
+        <source src="{{ asset('sounds/card-play.wav') }}" type="audio/wav">
+    </audio>
+    <audio id="gameOverSound" preload="auto">
+        <source src="{{ asset('sounds/game-over.mp3') }}" type="audio/mpeg">
+        <source src="{{ asset('sounds/game-over.wav') }}" type="audio/wav">
+    </audio>
+
+    <!-- Game notifications container -->
+    <div id="game-notifications" class="notifications-container"></div>
 
     <!-- Ultra Compact Game Header -->
     <div class="game-header">
@@ -18,21 +36,57 @@
                     <span>৳{{ number_format($game->bid_amount, 0) }}</span>
                     <span>R{{ $gameState['current_round'] ?? 1 }}</span>
                     <span>T{{ $gameState['current_turn'] ?? 1 }}</span>
+                    @if($isArrangementPhase && $arrangementTimeLeft > 0)
+                        <span class="timer-badge" id="arrangement-timer">{{ gmdate('i:s', $arrangementTimeLeft) }}</span>
+                    @endif
                 </div>
             </div>
-
             <div class="scoreboard">
                 @foreach($game->participants as $participant)
                     <div class="player-score {{ $participant->user_id === Auth::id() ? 'current-player' : '' }}
-                                {{ ($gameState['current_turn'] ?? 1) === $participant->position ? 'active-turn' : '' }}"
+                                {{ ($gameState['current_turn'] ?? 1) === $participant->position ? 'active-turn' : '' }}
+                                {{ ($participant->cards_locked ?? false) ? 'cards-locked' : '' }}"
                          id="player-score-{{ $participant->position }}">
                         <div class="player-name">{{ Str::limit($participant->user->name, 4) }}</div>
                         <div class="player-points">{{ $participant->total_points ?? 0 }}</div>
+                        @if($participant->cards_locked ?? false)
+                            <div class="lock-indicator">🔒</div>
+                        @endif
                     </div>
                 @endforeach
             </div>
         </div>
     </div>
+
+    <!-- Arrangement Phase Controls -->
+    @if($isArrangementPhase)
+        <div class="arrangement-controls">
+            <div class="arrangement-info">
+                <span class="arrangement-text">Arrange your cards</span>
+                <div class="arrangement-timer" id="live-timer">{{ gmdate('i:s', $arrangementTimeLeft) }}</div>
+            </div>
+            <div class="arrangement-buttons">
+                <button wire:click="sortCardsBySuit" class="sort-btn" {{ $isCardsLocked ? 'disabled' : '' }}>
+                    <i class="fas fa-sort-alpha-down"></i> Suit
+                </button>
+                <button wire:click="sortCardsByRank" class="sort-btn" {{ $isCardsLocked ? 'disabled' : '' }}>
+                    <i class="fas fa-sort-numeric-down"></i> Rank
+                </button>
+                <button wire:click="lockCards" class="lock-btn" {{ $isCardsLocked ? 'disabled' : '' }}>
+                    <i class="fas fa-lock"></i> {{ $isCardsLocked ? 'Locked' : 'Lock Cards' }}
+                </button>
+            </div>
+        </div>
+    @endif
+
+    <!-- Creator Start Game Button -->
+    @if($canStartGame)
+        <div class="start-game-controls">
+            <button wire:click="startGameAfterArrangement" class="start-game-btn">
+                <i class="fas fa-play"></i> Start Game
+            </button>
+        </div>
+    @endif
 
     <!-- Game Table - Fan Style Stacked Cards -->
     <div class="game-table-container">
@@ -52,12 +106,10 @@
                                 ];
                                 $position = $positions[$move['position']] ?? $positions[1];
                             @endphp
-
                             <div class="fan-player-stack"
                                  data-player-position="{{ $move['position'] }}"
                                  data-turn-order="{{ $move['turn'] }}"
                                  style="{{ implode('; ', $position) }}; z-index: {{ 20 + $move['turn'] }};">
-
                                 <!-- Fan style stacked cards -->
                                 <div class="fan-card-stack">
                                     @foreach($move['cards'] as $cardIndex => $card)
@@ -96,14 +148,13 @@
                     $positionClass = $positions[$participant->position] ?? 'bottom-player';
                     $isCurrentTurn = ($gameState['current_turn'] ?? 1) === $participant->position;
                 @endphp
-
                 <div class="player-position {{ $positionClass }} {{ $isCurrentTurn ? 'player-turn' : '' }}"
                      id="player-position-{{ $participant->position }}">
                     <div class="player-card">
                         <div class="player-info">
                             <div class="{{$isCurrentTurn ? 'player-name' : 'player-name-dark'}}">{{ Str::limit($participant->user->name, 8) }}</div>
                         </div>
-                        @if($isCurrentTurn)
+                        @if($isCurrentTurn && !$isArrangementPhase)
                             <div class="turn-indicator">
                                 <i class="fas fa-play"></i>
                             </div>
@@ -114,8 +165,8 @@
         </div>
     </div>
 
-    <!-- Ultra Slim Player Cards Section -->
-    @if($player && $player->cards)
+    <!-- Enhanced Player Cards Section -->
+    @if($player && $player->cards && is_array($player->cards))
         <div class="player-cards-section">
             <div class="ultra-slim-header">
                 <div class="header-left">
@@ -123,20 +174,22 @@
                         $maxSelection = count($player->cards) <= 4 ? count($player->cards) : 3;
                         $isMyTurn = ($gameState['current_turn'] ?? 1) === $player->position;
                     @endphp
-
                     @if(!empty($selectedCards))
                         <div class="selected-indicator">
                             <span class="selected-count-badge">{{ count($selectedCards) }}</span>
                         </div>
                     @endif
-
-                    @if($isMyTurn)
+                    @if($isMyTurn && !$isArrangementPhase)
                         <div class="turn-badge">YOUR TURN</div>
                     @endif
+                    @if($isArrangementPhase)
+                        <div class="arrangement-badge {{ $isCardsLocked ? 'locked' : 'arranging' }}">
+                            {{ $isCardsLocked ? 'LOCKED' : 'ARRANGING' }}
+                        </div>
+                    @endif
                 </div>
-
                 <div class="header-controls">
-                    @if($game->status === 'playing')
+                    @if($game->status === 'playing' && !$isArrangementPhase)
                         <button wire:click="playCards"
                                 class="play-btn {{ !$isMyTurn || empty($selectedCards) ? 'disabled' : '' }}"
                                 {{ !$isMyTurn || empty($selectedCards) ? 'disabled' : '' }}>
@@ -146,6 +199,7 @@
                 </div>
             </div>
 
+            <!-- Enhanced Cards Container with Stacking -->
             <div class="enhanced-cards-container" id="cards-container">
                 <div class="scroll-indicator left-indicator" id="left-scroll">
                     <i class="fas fa-chevron-left"></i>
@@ -155,17 +209,18 @@
                     @foreach($player->cards as $index => $card)
                         @php
                             $isSelected = in_array($index, $selectedCards);
-                            $canSelect = $isMyTurn && (count($selectedCards) < $maxSelection || $isSelected);
+                            $canSelect = !$isArrangementPhase && !$isCardsLocked && $isMyTurn && (count($selectedCards) < $maxSelection || $isSelected);
                             $remainingCards = count($player->cards);
                             $isLastFew = $remainingCards <= 4;
                         @endphp
-
                         <div class="enhanced-card-wrapper draggable-card
                                     {{ $isSelected ? 'selected' : '' }}
-                                    {{ !$isMyTurn ? 'not-my-turn' : '' }}
-                                    {{ $isLastFew ? 'last-few' : '' }}"
+                                    {{ (!$isMyTurn || $isArrangementPhase) ? 'not-my-turn' : '' }}
+                                    {{ $isLastFew ? 'last-few' : '' }}
+                                    {{ $isCardsLocked ? 'locked' : '' }}"
                              data-card-index="{{ $index }}"
-                             wire:click="toggleCardSelection({{ $index }})">
+                             wire:click="toggleCardSelection({{ $index }})"
+                             draggable="{{ !$isCardsLocked && $isArrangementPhase ? 'true' : 'false' }}">
 
                             <x-playing-card
                                 :suit="$card['suit']"
@@ -179,6 +234,12 @@
                                     <i class="fas fa-check"></i>
                                 </div>
                             @endif
+
+                            @if($isCardsLocked)
+                                <div class="card-lock-overlay">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                            @endif
                         </div>
                     @endforeach
                 </div>
@@ -190,7 +251,51 @@
         </div>
     @endif
 
-    {{-- @push('scripts')
+    <!-- Drop zones for drag and drop (hidden by default) -->
+    <div id="drop-zones" class="drop-zones" style="display: none;">
+        <div class="drop-zone" data-zone="left">Drop Here</div>
+        <div class="drop-zone" data-zone="right">Drop Here</div>
+    </div>
+
+    <!-- Score Modal -->
+    @if($showScoreModal)
+        <div class="modal-overlay" wire:click="closeScoreModal">
+            <div class="score-modal">
+                <h3>Round {{ $scoreData['round'] ?? '' }} Winner!</h3>
+                <div class="winner-info">
+                    <div class="winner-name">{{ $scoreData['winner_name'] ?? '' }}</div>
+                    <div class="winner-points">{{ $scoreData['points'] ?? 0 }} Points</div>
+                </div>
+                <button wire:click="closeScoreModal" class="close-btn">Close</button>
+            </div>
+        </div>
+    @endif
+
+    <!-- Winner Modal -->
+    @if($showWinnerModal)
+        <div class="modal-overlay" wire:click="closeWinnerModal">
+            <div class="winner-modal">
+                <h2>🎉 Game Over! 🎉</h2>
+                <div class="final-winner">
+                    <div class="winner-name">{{ $winnerData['winner_name'] ?? '' }}</div>
+                    <div class="winner-title">WINNER!</div>
+                </div>
+                <div class="final-scores">
+                    @if(isset($winnerData['final_scores']))
+                        @foreach($winnerData['final_scores'] as $score)
+                            <div class="score-row">
+                                <span>{{ $score['name'] }}</span>
+                                <span>{{ $score['total_points'] }} pts</span>
+                            </div>
+                        @endforeach
+                    @endif
+                </div>
+                <button wire:click="closeWinnerModal" class="close-btn">Close</button>
+            </div>
+        </div>
+    @endif
+
+    @push('scripts')
     <script>
         let draggedElement = null;
         let draggedIndex = null;
@@ -199,14 +304,65 @@
         let isDragging = false;
         let dragOffset = { x: 0, y: 0 };
         let dragStartTime = 0;
+        let arrangementTimer = null;
 
-        // Sound effects controller
+        // Sound effects controller with better error handling
         const SoundEffects = {
-            playDealSound: () => document.getElementById('dealSound').play(),
-            playTurnSound: () => document.getElementById('turnSound').play(),
-            playWinRoundSound: () => document.getElementById('winRoundSound').play(),
-            playCardSound: () => document.getElementById('playCardSound').play(),
-            playGameOverSound: () => document.getElementById('gameOverSound').play()
+            playDealSound: () => {
+                try {
+                    const audio = document.getElementById('dealSound');
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play().catch(e => console.log('Deal sound failed:', e));
+                    }
+                } catch (e) {
+                    console.log('Deal sound error:', e);
+                }
+            },
+            playTurnSound: () => {
+                try {
+                    const audio = document.getElementById('turnSound');
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play().catch(e => console.log('Turn sound failed:', e));
+                    }
+                } catch (e) {
+                    console.log('Turn sound error:', e);
+                }
+            },
+            playWinRoundSound: () => {
+                try {
+                    const audio = document.getElementById('winRoundSound');
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play().catch(e => console.log('Win round sound failed:', e));
+                    }
+                } catch (e) {
+                    console.log('Win round sound error:', e);
+                }
+            },
+            playCardSound: () => {
+                try {
+                    const audio = document.getElementById('playCardSound');
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play().catch(e => console.log('Card play sound failed:', e));
+                    }
+                } catch (e) {
+                    console.log('Card play sound error:', e);
+                }
+            },
+            playGameOverSound: () => {
+                try {
+                    const audio = document.getElementById('gameOverSound');
+                    if (audio) {
+                        audio.currentTime = 0;
+                        audio.play().catch(e => console.log('Game over sound failed:', e));
+                    }
+                } catch (e) {
+                    console.log('Game over sound error:', e);
+                }
+            }
         };
 
         // Initialize enhanced drag and drop
@@ -214,7 +370,118 @@
             initializeEnhancedDragAndDrop();
             initializeScrollIndicators();
             optimizeForLandscape();
+            setupMobileCardSelection();
+            initializePusherEvents();
+            startArrangementTimer();
+
+            // Initialize audio elements
+            initializeAudio();
         });
+
+        function initializeAudio() {
+            const audioElements = ['dealSound', 'turnSound', 'winRoundSound', 'playCardSound', 'gameOverSound'];
+
+            audioElements.forEach(id => {
+                const audio = document.getElementById(id);
+                if (audio) {
+                    audio.volume = 0.5; // Set volume to 50%
+                    audio.load(); // Preload the audio
+                }
+            });
+        }
+
+        function startArrangementTimer() {
+            const timerElement = document.getElementById('live-timer');
+            const headerTimer = document.getElementById('arrangement-timer');
+
+            if (timerElement || headerTimer) {
+                arrangementTimer = setInterval(() => {
+                    @this.call('loadGameState').then(() => {
+                        const timeLeft = @this.arrangementTimeLeft;
+                        if (timeLeft > 0) {
+                            const minutes = Math.floor(timeLeft / 60);
+                            const seconds = timeLeft % 60;
+                            const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                            if (timerElement) timerElement.textContent = timeString;
+                            if (headerTimer) headerTimer.textContent = timeString;
+
+                            // Change color when time is running out
+                            if (timeLeft <= 30) {
+                                if (timerElement) timerElement.classList.add('urgent');
+                                if (headerTimer) headerTimer.classList.add('urgent');
+                            }
+                        } else {
+                            clearInterval(arrangementTimer);
+                            if (timerElement) timerElement.textContent = '00:00';
+                            if (headerTimer) headerTimer.textContent = '00:00';
+                        }
+                    });
+                }, 1000);
+            }
+        }
+
+        function initializePusherEvents() {
+            // Game updated event
+            window.addEventListener('gameUpdated', event => {
+                showNotification(event.detail.data.message || 'Game updated');
+                @this.call('loadGameState');
+
+                if (event.detail.type === 'game_started') {
+                    SoundEffects.playDealSound();
+                    startArrangementTimer();
+                }
+            });
+
+            // Card played event
+            window.addEventListener('cardPlayed', event => {
+                showNotification(`${event.detail.player_name} played cards`);
+                @this.call('loadGameState');
+                SoundEffects.playCardSound();
+            });
+
+            // Round winner event
+            window.addEventListener('roundWinner', event => {
+                const winnerPosition = event.detail.winner_position;
+                const winnerName = event.detail.winner_name;
+                SoundEffects.playWinRoundSound();
+                showNotification(`${winnerName} wins the round!`);
+                setTimeout(() => {
+                    animateCardsToWinner(winnerPosition);
+                }, 1000);
+            });
+
+            // Clear center cards event
+            window.addEventListener('clearCenterCards', () => {
+                clearCenterCards();
+            });
+
+            // Hide score modal event
+            window.addEventListener('hideScoreModal', () => {
+                setTimeout(() => {
+                    @this.call('closeScoreModal');
+                }, 5000);
+            });
+
+            // Auto-refresh game state
+            setInterval(() => {
+                @this.call('loadGameState');
+            }, 3000);
+        }
+
+        function setupMobileCardSelection() {
+            const cardsContainer = document.getElementById('cards-scroll');
+            if (!cardsContainer) return;
+
+            cardsContainer.addEventListener('touchstart', function(e) {
+                const card = e.target.closest('.enhanced-card-wrapper');
+                if (card && !card.classList.contains('not-my-turn') && !card.classList.contains('locked')) {
+                    const cardIndex = parseInt(card.dataset.cardIndex);
+                    @this.toggleCardSelection(cardIndex);
+                    e.preventDefault();
+                }
+            }, { passive: false });
+        }
 
         function initializeEnhancedDragAndDrop() {
             const container = document.getElementById('cards-container');
@@ -241,7 +508,6 @@
 
             function updateScrollIndicators() {
                 const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
-
                 leftIndicator.style.opacity = scrollLeft > 0 ? '1' : '0.3';
                 rightIndicator.style.opacity = scrollLeft < (scrollWidth - clientWidth) ? '1' : '0.3';
             }
@@ -261,13 +527,14 @@
 
         // Enhanced drag handlers
         function handleDragStart(e) {
-            if (!e.target.closest('.draggable-card') || e.target.closest('.disabled') || e.target.closest('.wait-overlay')) return;
+            if (!e.target.closest('.draggable-card') || e.target.closest('.disabled') || e.target.closest('.locked')) return;
 
             draggedElement = e.target.closest('.draggable-card');
             draggedIndex = parseInt(draggedElement.dataset.cardIndex);
-
             draggedElement.classList.add('dragging');
-            document.getElementById('drop-zones').style.display = 'flex';
+
+            const dropZones = document.getElementById('drop-zones');
+            if (dropZones) dropZones.style.display = 'flex';
 
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/html', '');
@@ -278,7 +545,7 @@
             e.dataTransfer.dropEffect = 'move';
 
             const dropTarget = e.target.closest('.draggable-card');
-            if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled')) {
+            if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled') && !dropTarget.classList.contains('locked')) {
                 dropTarget.classList.add('drag-over');
             }
         }
@@ -292,7 +559,7 @@
             });
 
             const dropTarget = e.target.closest('.draggable-card');
-            if (!dropTarget || dropTarget === draggedElement || dropTarget.classList.contains('disabled')) return;
+            if (!dropTarget || dropTarget === draggedElement || dropTarget.classList.contains('disabled') || dropTarget.classList.contains('locked')) return;
 
             const dropIndex = parseInt(dropTarget.dataset.cardIndex);
             if (draggedIndex !== null && dropIndex !== null) {
@@ -311,18 +578,19 @@
                 draggedElement = null;
                 draggedIndex = null;
             }
-            document.getElementById('drop-zones').style.display = 'none';
+
+            const dropZones = document.getElementById('drop-zones');
+            if (dropZones) dropZones.style.display = 'none';
         }
 
         // Enhanced touch handlers for mobile
         function handleTouchStart(e) {
-            if (!e.target.closest('.draggable-card') || e.target.closest('.disabled') || e.target.closest('.wait-overlay')) return;
+            if (!e.target.closest('.draggable-card') || e.target.closest('.disabled') || e.target.closest('.locked')) return;
 
             const touch = e.touches[0];
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
             dragStartTime = Date.now();
-
             draggedElement = e.target.closest('.draggable-card');
             draggedIndex = parseInt(draggedElement.dataset.cardIndex);
 
@@ -346,7 +614,10 @@
             if (!isDragging && (deltaX > 10 || deltaY > 10 || timeDelta > 500)) {
                 isDragging = true;
                 draggedElement.classList.add('dragging');
-                document.getElementById('drop-zones').style.display = 'flex';
+
+                const dropZones = document.getElementById('drop-zones');
+                if (dropZones) dropZones.style.display = 'flex';
+
                 createDragGhost(touch.clientX, touch.clientY);
 
                 // Add haptic feedback if available
@@ -368,7 +639,7 @@
                 });
 
                 // Add drag-over class to current target
-                if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled')) {
+                if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled') && !dropTarget.classList.contains('locked')) {
                     dropTarget.classList.add('drag-over');
                 }
             }
@@ -384,7 +655,7 @@
                 const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
                 const dropTarget = elementBelow?.closest('.draggable-card');
 
-                if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled')) {
+                if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled') && !dropTarget.classList.contains('locked')) {
                     const dropIndex = parseInt(dropTarget.dataset.cardIndex);
                     if (draggedIndex !== null && dropIndex !== null) {
                         @this.call('reorderCards', draggedIndex, dropIndex);
@@ -405,7 +676,9 @@
                 draggedIndex = null;
             }
 
-            document.getElementById('drop-zones').style.display = 'none';
+            const dropZones = document.getElementById('drop-zones');
+            if (dropZones) dropZones.style.display = 'none';
+
             isDragging = false;
         }
 
@@ -448,7 +721,6 @@
 
             playerStacks.forEach((stack, index) => {
                 const cards = stack.querySelectorAll('.fan-stacked-card');
-
                 cards.forEach((card, cardIndex) => {
                     setTimeout(() => {
                         card.style.transition = 'all 1.8s ease-in-out';
@@ -462,7 +734,6 @@
                 });
             });
 
-            // Clear center after animation
             setTimeout(() => {
                 clearCenterCards();
             }, 3500);
@@ -471,7 +742,7 @@
         function clearCenterCards() {
             const centerCards = document.getElementById('center-cards');
             if (centerCards) {
-                centerCards.innerHTML = '<div class="center-placeholder"><div class="placeholder-icon"><i class="fas fa-layer-group"></i></div><span class="placeholder-text">Center Cards</span></div>';
+                centerCards.innerHTML = '<div class="center-placeholder"><div class="placeholder-icon"><i class="fas fa-layer-group"></i></div></div>';
             }
         }
 
@@ -502,55 +773,21 @@
             window.addEventListener('resize', adjustLayout);
         }
 
-        // Real-time event listeners
-        window.addEventListener('gameUpdated', event => {
-            showNotification(event.detail.data.message || 'Game updated');
-            @this.call('loadGameState');
-        });
-
-        window.addEventListener('cardPlayed', event => {
-            showNotification(`${event.detail.player_name} played cards`);
-            @this.call('loadGameState');
-            SoundEffects.playCardSound();
-        });
-
-        window.addEventListener('roundWinner', event => {
-            const winnerPosition = event.detail.winner_position;
-            const winnerName = event.detail.winner_name;
-            SoundEffects.playWinRoundSound();
-            showNotification(`${winnerName} wins the round!`);
-
-            setTimeout(() => {
-                animateCardsToWinner(winnerPosition);
-            }, 1000);
-        });
-
-        window.addEventListener('clearCenterCards', () => {
-            clearCenterCards();
-        });
-
-        window.addEventListener('hideScoreModal', () => {
-            setTimeout(() => {
-                @this.call('closeScoreModal');
-            }, 5000);
-        });
-
         function showNotification(message) {
+            const container = document.getElementById('game-notifications');
+            if (!container) return;
+
             const notification = document.createElement('div');
             notification.className = 'notification';
             notification.textContent = message;
-
-            document.getElementById('game-notifications').appendChild(notification);
+            container.appendChild(notification);
 
             setTimeout(() => {
-                notification.remove();
+                if (notification.parentNode) {
+                    notification.remove();
+                }
             }, 3000);
         }
-
-        // Auto-refresh game state
-        setInterval(() => {
-            @this.call('loadGameState');
-        }, 3000);
 
         // Reinitialize after Livewire updates
         document.addEventListener('livewire:updated', function() {
@@ -558,438 +795,34 @@
             initializeScrollIndicators();
         });
     </script>
-    @endpush --}}
-
-    @push('scripts')
-<script>
-    let draggedElement = null;
-    let draggedIndex = null;
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let isDragging = false;
-    let dragOffset = { x: 0, y: 0 };
-    let dragStartTime = 0;
-
-    // Sound effects controller
-    const SoundEffects = {
-        playDealSound: () => document.getElementById('dealSound').play(),
-        playTurnSound: () => document.getElementById('turnSound').play(),
-        playWinRoundSound: () => document.getElementById('winRoundSound').play(),
-        playCardSound: () => document.getElementById('playCardSound').play(),
-        playGameOverSound: () => document.getElementById('gameOverSound').play()
-    };
-
-    // Initialize enhanced drag and drop
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeEnhancedDragAndDrop();
-        initializeScrollIndicators();
-        optimizeForLandscape();
-        setupMobileCardSelection();
-        initializePusherEvents();
-    });
-
-    function initializePusherEvents() {
-        // Game updated event
-        window.addEventListener('gameUpdated', event => {
-            showNotification(event.detail.data.message || 'Game updated');
-            @this.call('loadGameState');
-        });
-
-        // Card played event
-        window.addEventListener('cardPlayed', event => {
-            showNotification(`${event.detail.player_name} played cards`);
-            @this.call('loadGameState');
-            SoundEffects.playCardSound();
-        });
-
-        // Round winner event
-        window.addEventListener('roundWinner', event => {
-            const winnerPosition = event.detail.winner_position;
-            const winnerName = event.detail.winner_name;
-
-            SoundEffects.playWinRoundSound();
-            showNotification(`${winnerName} wins the round!`);
-
-            setTimeout(() => {
-                animateCardsToWinner(winnerPosition);
-            }, 1000);
-        });
-
-        // Clear center cards event
-        window.addEventListener('clearCenterCards', () => {
-            clearCenterCards();
-        });
-
-        // Hide score modal event
-        window.addEventListener('hideScoreModal', () => {
-            setTimeout(() => {
-                @this.call('closeScoreModal');
-            }, 5000);
-        });
-
-        // Auto-refresh game state
-        setInterval(() => {
-            @this.call('loadGameState');
-        }, 3000);
-    }
-
-    function setupMobileCardSelection() {
-        const cardsContainer = document.getElementById('cards-scroll');
-        if (!cardsContainer) return;
-
-        cardsContainer.addEventListener('touchstart', function(e) {
-            const card = e.target.closest('.enhanced-card-wrapper');
-            if (card && !card.classList.contains('not-my-turn')) {
-                const cardIndex = parseInt(card.dataset.cardIndex);
-                @this.toggleCardSelection(cardIndex);
-                e.preventDefault();
-            }
-        }, { passive: false });
-    }
-
-    function initializeEnhancedDragAndDrop() {
-        const container = document.getElementById('cards-container');
-        if (!container) return;
-
-        // Mouse events
-        container.addEventListener('dragstart', handleDragStart);
-        container.addEventListener('dragover', handleDragOver);
-        container.addEventListener('drop', handleDrop);
-        container.addEventListener('dragend', handleDragEnd);
-
-        // Touch events for mobile
-        container.addEventListener('touchstart', handleTouchStart, { passive: false });
-        container.addEventListener('touchmove', handleTouchMove, { passive: false });
-        container.addEventListener('touchend', handleTouchEnd, { passive: false });
-    }
-
-    function initializeScrollIndicators() {
-        const scrollContainer = document.getElementById('cards-scroll');
-        const leftIndicator = document.getElementById('left-scroll');
-        const rightIndicator = document.getElementById('right-scroll');
-
-        if (!scrollContainer || !leftIndicator || !rightIndicator) return;
-
-        function updateScrollIndicators() {
-            const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
-            leftIndicator.style.opacity = scrollLeft > 0 ? '1' : '0.3';
-            rightIndicator.style.opacity = scrollLeft < (scrollWidth - clientWidth) ? '1' : '0.3';
-        }
-
-        scrollContainer.addEventListener('scroll', updateScrollIndicators);
-        updateScrollIndicators();
-
-        // Click handlers for scroll indicators
-        leftIndicator.addEventListener('click', () => {
-            scrollContainer.scrollBy({ left: -100, behavior: 'smooth' });
-        });
-
-        rightIndicator.addEventListener('click', () => {
-            scrollContainer.scrollBy({ left: 100, behavior: 'smooth' });
-        });
-    }
-
-    // Enhanced drag handlers
-    function handleDragStart(e) {
-        if (!e.target.closest('.draggable-card') || e.target.closest('.disabled') || e.target.closest('.wait-overlay')) return;
-
-        draggedElement = e.target.closest('.draggable-card');
-        draggedIndex = parseInt(draggedElement.dataset.cardIndex);
-
-        draggedElement.classList.add('dragging');
-        document.getElementById('drop-zones').style.display = 'flex';
-
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/html', '');
-    }
-
-    function handleDragOver(e) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-
-        const dropTarget = e.target.closest('.draggable-card');
-        if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled')) {
-            dropTarget.classList.add('drag-over');
-        }
-    }
-
-    function handleDrop(e) {
-        e.preventDefault();
-
-        // Remove drag-over class from all cards
-        document.querySelectorAll('.drag-over').forEach(el => {
-            el.classList.remove('drag-over');
-        });
-
-        const dropTarget = e.target.closest('.draggable-card');
-        if (!dropTarget || dropTarget === draggedElement || dropTarget.classList.contains('disabled')) return;
-
-        const dropIndex = parseInt(dropTarget.dataset.cardIndex);
-        if (draggedIndex !== null && dropIndex !== null) {
-            @this.call('reorderCards', draggedIndex, dropIndex);
-        }
-    }
-
-    function handleDragEnd(e) {
-        // Remove drag-over class from all cards
-        document.querySelectorAll('.drag-over').forEach(el => {
-            el.classList.remove('drag-over');
-        });
-
-        if (draggedElement) {
-            draggedElement.classList.remove('dragging');
-            draggedElement = null;
-            draggedIndex = null;
-        }
-        document.getElementById('drop-zones').style.display = 'none';
-    }
-
-    // Enhanced touch handlers for mobile
-    function handleTouchStart(e) {
-        if (!e.target.closest('.draggable-card') || e.target.closest('.disabled') || e.target.closest('.wait-overlay')) return;
-
-        const touch = e.touches[0];
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
-        dragStartTime = Date.now();
-
-        draggedElement = e.target.closest('.draggable-card');
-        draggedIndex = parseInt(draggedElement.dataset.cardIndex);
-
-        const rect = draggedElement.getBoundingClientRect();
-        dragOffset.x = touch.clientX - rect.left;
-        dragOffset.y = touch.clientY - rect.top;
-
-        // Prevent default to avoid scrolling
-        e.preventDefault();
-    }
-
-    function handleTouchMove(e) {
-        if (!draggedElement) return;
-
-        const touch = e.touches[0];
-        const deltaX = Math.abs(touch.clientX - touchStartX);
-        const deltaY = Math.abs(touch.clientY - touchStartY);
-        const timeDelta = Date.now() - dragStartTime;
-
-        // Start dragging if moved enough distance or held long enough
-        if (!isDragging && (deltaX > 10 || deltaY > 10 || timeDelta > 500)) {
-            isDragging = true;
-            draggedElement.classList.add('dragging');
-            document.getElementById('drop-zones').style.display = 'flex';
-            createDragGhost(touch.clientX, touch.clientY);
-
-            // Add haptic feedback if available
-            if (navigator.vibrate) {
-                navigator.vibrate(50);
-            }
-        }
-
-        if (isDragging) {
-            updateDragGhost(touch.clientX, touch.clientY);
-
-            // Check for drop target
-            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-            const dropTarget = elementBelow?.closest('.draggable-card');
-
-            // Remove previous drag-over classes
-            document.querySelectorAll('.drag-over').forEach(el => {
-                el.classList.remove('drag-over');
-            });
-
-            // Add drag-over class to current target
-            if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled')) {
-                dropTarget.classList.add('drag-over');
-            }
-        }
-
-        e.preventDefault();
-    }
-
-    function handleTouchEnd(e) {
-        if (!draggedElement) return;
-
-        if (isDragging) {
-            const touch = e.changedTouches[0];
-            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-            const dropTarget = elementBelow?.closest('.draggable-card');
-
-            if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled')) {
-                const dropIndex = parseInt(dropTarget.dataset.cardIndex);
-                if (draggedIndex !== null && dropIndex !== null) {
-                    @this.call('reorderCards', draggedIndex, dropIndex);
-                }
-            }
-
-            removeDragGhost();
-        }
-
-        // Remove drag-over class from all cards
-        document.querySelectorAll('.drag-over').forEach(el => {
-            el.classList.remove('drag-over');
-        });
-
-        if (draggedElement) {
-            draggedElement.classList.remove('dragging');
-            draggedElement = null;
-            draggedIndex = null;
-        }
-
-        document.getElementById('drop-zones').style.display = 'none';
-        isDragging = false;
-    }
-
-    // Helper functions
-    function createDragGhost(x, y) {
-        const ghost = draggedElement.cloneNode(true);
-        ghost.id = 'drag-ghost';
-        ghost.style.position = 'fixed';
-        ghost.style.left = (x - dragOffset.x) + 'px';
-        ghost.style.top = (y - dragOffset.y) + 'px';
-        ghost.style.zIndex = '9999';
-        ghost.style.pointerEvents = 'none';
-        ghost.style.transform = 'rotate(5deg) scale(1.1)';
-        ghost.style.opacity = '0.8';
-        ghost.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.3)';
-        document.body.appendChild(ghost);
-    }
-
-    function updateDragGhost(x, y) {
-        const ghost = document.getElementById('drag-ghost');
-        if (ghost) {
-            ghost.style.left = (x - dragOffset.x) + 'px';
-            ghost.style.top = (y - dragOffset.y) + 'px';
-        }
-    }
-
-    function removeDragGhost() {
-        const ghost = document.getElementById('drag-ghost');
-        if (ghost) ghost.remove();
-    }
-
-    // Enhanced animation for round winner with fan stacks
-    function animateCardsToWinner(winnerPosition) {
-        const playerStacks = document.querySelectorAll('.fan-player-stack');
-        const winnerElement = document.getElementById(`player-position-${winnerPosition}`);
-
-        if (!winnerElement) return;
-
-        const winnerRect = winnerElement.getBoundingClientRect();
-
-        playerStacks.forEach((stack, index) => {
-            const cards = stack.querySelectorAll('.fan-stacked-card');
-
-            cards.forEach((card, cardIndex) => {
-                setTimeout(() => {
-                    card.style.transition = 'all 1.8s ease-in-out';
-                    card.style.transform = `translate(${winnerRect.left - card.getBoundingClientRect().left}px, ${winnerRect.top - card.getBoundingClientRect().top}px) scale(0.15) rotate(${Math.random() * 60 - 30}deg)`;
-                    card.style.opacity = '0.3';
-
-                    setTimeout(() => {
-                        card.style.display = 'none';
-                    }, 1800);
-                }, (index * 400) + (cardIndex * 200));
-            });
-        });
-
-        setTimeout(() => {
-            clearCenterCards();
-        }, 3500);
-    }
-
-    function clearCenterCards() {
-        const centerCards = document.getElementById('center-cards');
-        if (centerCards) {
-            centerCards.innerHTML = '<div class="center-placeholder"><div class="placeholder-icon"><i class="fas fa-layer-group"></i></div><span class="placeholder-text">Center Cards</span></div>';
-        }
-    }
-
-    // Landscape optimization
-    function optimizeForLandscape() {
-        function adjustLayout() {
-            const isLandscape = window.innerWidth > window.innerHeight;
-            const isMobile = window.innerWidth < 768;
-
-            if (isLandscape && isMobile) {
-                document.body.classList.add('mobile-landscape');
-                // Force full screen
-                setTimeout(() => {
-                    window.scrollTo(0, 0);
-                    if (document.documentElement.requestFullscreen) {
-                        document.documentElement.requestFullscreen().catch(() => {});
-                    }
-                }, 100);
-            } else {
-                document.body.classList.remove('mobile-landscape');
-            }
-        }
-
-        adjustLayout();
-        window.addEventListener('orientationchange', () => {
-            setTimeout(adjustLayout, 200);
-        });
-        window.addEventListener('resize', adjustLayout);
-    }
-
-    function showNotification(message) {
-        const notification = document.createElement('div');
-        notification.className = 'notification';
-        notification.textContent = message;
-
-        document.getElementById('game-notifications').appendChild(notification);
-
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
-    }
-
-    // Reinitialize after Livewire updates
-    document.addEventListener('livewire:updated', function() {
-        initializeEnhancedDragAndDrop();
-        initializeScrollIndicators();
-    });
-</script>
-@endpush
-     <style>
-        /* Notification styling */
-        .notification {
+    @endpush
+
+    <style>
+        /* Notifications container */
+        .notifications-container {
             position: fixed;
             top: 50px;
             right: 10px;
-            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        /* Notification styling */
+        .notification {
+            background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 8px 12px;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 12px;
-            z-index: 1000;
+            margin-bottom: 5px;
             animation: slideIn 0.3s ease-out;
+            pointer-events: auto;
         }
 
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-
-        /* Mobile touch fixes */
-        .enhanced-card-wrapper {
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        /* Card selection styling */
-        .enhanced-card-wrapper.selected {
-            transform: translateY(-10px) scale(1.05);
-            filter: brightness(1.1);
-            z-index: 10;
-        }
-
-        /* Disable text selection */
-        .enhanced-card-wrapper * {
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-
 
         /* Base container */
         .game-container {
@@ -1011,7 +844,7 @@
 
         /* Ultra compact header */
         .game-header {
-            height: 40px;
+            height: 45px;
             background: rgba(0, 0, 0, 0.25);
             backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -1041,10 +874,29 @@
 
         .game-stats {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             font-size: 9px;
             color: rgba(255, 255, 255, 0.8);
             margin-top: 2px;
+        }
+
+        .timer-badge {
+            background: #f59e0b;
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+
+        .timer-badge.urgent {
+            background: #ef4444;
+            animation: urgentPulse 0.5s infinite;
+        }
+
+        @keyframes urgentPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         /* Scoreboard */
@@ -1061,6 +913,7 @@
             min-width: 30px;
             font-size: 8px;
             transition: all 0.3s ease;
+            position: relative;
         }
 
         .player-score.current-player {
@@ -1074,8 +927,19 @@
             animation: pulse 1s infinite;
         }
 
+        .player-score.cards-locked {
+            background: rgba(34, 197, 94, 0.3);
+            border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+
         .player-name {
             color: white;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .player-name-dark {
+            color: #6b7280;
             font-weight: bold;
             line-height: 1;
         }
@@ -1084,6 +948,124 @@
             color: #fbbf24;
             font-weight: bold;
             font-size: 10px;
+        }
+
+        .lock-indicator {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            font-size: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Arrangement controls */
+        .arrangement-controls {
+            height: 35px;
+            background: rgba(251, 191, 36, 0.2);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            flex-shrink: 0;
+        }
+
+        .arrangement-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .arrangement-text {
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .arrangement-timer {
+            background: rgba(0, 0, 0, 0.3);
+            color: #fbbf24;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .arrangement-timer.urgent {
+            background: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            animation: urgentPulse 0.5s infinite;
+        }
+
+        .arrangement-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .sort-btn, .lock-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 9px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sort-btn:hover, .lock-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .sort-btn:disabled, .lock-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .lock-btn {
+            background: rgba(34, 197, 94, 0.3);
+        }
+
+        .lock-btn:disabled {
+            background: rgba(107, 114, 128, 0.3);
+        }
+
+        /* Start game controls */
+        .start-game-controls {
+            height: 40px;
+            background: rgba(34, 197, 94, 0.2);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(34, 197, 94, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .start-game-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: pulse 1.5s infinite;
+        }
+
+        .start-game-btn:hover {
+            background: #059669;
+            transform: scale(1.05);
         }
 
         /* Game table */
@@ -1216,18 +1198,6 @@
             box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
         }
 
-        .player-name {
-            font-weight: bold;
-            color: #1f2937;
-            font-size: 9px;
-        }
-
-        .player-name-dark {
-            color: #6b7280;
-            font-weight: bold;
-            font-size: 9px;
-        }
-
         .turn-indicator {
             position: absolute;
             top: -8px;
@@ -1245,9 +1215,9 @@
             border: 1px solid white;
         }
 
-        /* Ultra slim player cards section */
+        /* Enhanced player cards section */
         .player-cards-section {
-            height: calc(100vh - 40px - 160px - 30px);
+            height: calc(100vh - 45px - 160px - 35px);
             background: rgba(0, 0, 0, 0.25);
             backdrop-filter: blur(15px);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -1257,7 +1227,7 @@
         }
 
         .ultra-slim-header {
-            height: 30px;
+            height: 35px;
             padding: 0 10px;
             display: flex;
             justify-content: space-between;
@@ -1269,7 +1239,7 @@
         .ultra-slim-header .header-left {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
 
         .selected-indicator {
@@ -1280,8 +1250,8 @@
             background: #3b82f6;
             color: white;
             font-size: 9px;
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -1299,27 +1269,52 @@
             animation: pulse 1.5s infinite;
         }
 
+        .arrangement-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+
+        .arrangement-badge.arranging {
+            background: #f59e0b;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        .arrangement-badge.locked {
+            background: #10b981;
+            color: white;
+        }
+
         .play-btn {
             background: #10b981;
             color: white;
             border: none;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            font-size: 11px;
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .play-btn:hover {
+            background: #059669;
+            transform: scale(1.1);
         }
 
         .play-btn.disabled {
             background: #6b7280;
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
 
-        /* Cards container */
+        /* Enhanced cards container with stacking */
         .enhanced-cards-container {
             flex: 1;
             position: relative;
@@ -1330,13 +1325,13 @@
             position: absolute;
             top: 0;
             bottom: 0;
-            width: 25px;
-            background: linear-gradient(to right, rgba(0, 0, 0, 0.3), transparent);
+            width: 30px;
+            background: linear-gradient(to right, rgba(0, 0, 0, 0.4), transparent);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
             z-index: 10;
@@ -1348,22 +1343,22 @@
 
         .right-indicator {
             right: 0;
-            background: linear-gradient(to left, rgba(0, 0, 0, 0.3), transparent);
+            background: linear-gradient(to left, rgba(0, 0, 0, 0.4), transparent);
         }
 
         .scroll-indicator:hover {
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.6);
             color: white;
         }
 
         .cards-scroll {
             display: flex;
-            gap: 5px;
+            gap: 3px;
             overflow-x: auto;
             overflow-y: hidden;
             height: 100%;
             align-items: center;
-            padding: 8px 30px;
+            padding: 8px 35px;
             scroll-behavior: smooth;
         }
 
@@ -1377,85 +1372,245 @@
 
         .cards-scroll::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.3);
+            border-radius: 1px;
         }
 
-        /* Card styling */
+        /* Enhanced card styling with stacking */
         .enhanced-card-wrapper {
             position: relative;
             flex-shrink: 0;
             transition: all 0.3s ease;
             user-select: none;
             touch-action: manipulation;
+            margin-right: -8px; /* Create stacking effect */
+            z-index: 1;
+        }
+
+        .enhanced-card-wrapper:hover {
+            z-index: 10;
+            transform: translateY(-5px) scale(1.02);
         }
 
         .enhanced-card-wrapper.selected {
-            transform: translateY(-8px) scale(1.05);
-            filter: brightness(1.1);
+            transform: translateY(-12px) scale(1.08);
+            filter: brightness(1.2);
+            z-index: 15;
+            margin-left: 3px;
+            margin-right: -5px;
         }
 
         .enhanced-card-wrapper.not-my-turn {
-            opacity: 0.7;
+            opacity: 0.6;
+            filter: grayscale(0.3);
         }
 
         .enhanced-card-wrapper.last-few {
-            border: 1px solid rgba(239, 68, 68, 0.4);
+            border: 2px solid rgba(239, 68, 68, 0.6);
             border-radius: 8px;
+            animation: lastFewPulse 2s infinite;
+        }
+
+        .enhanced-card-wrapper.locked {
+            opacity: 0.8;
+            filter: grayscale(0.5);
+            cursor: not-allowed;
+        }
+
+        .enhanced-card-wrapper.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg) scale(1.1);
+            z-index: 20;
+        }
+
+        .enhanced-card-wrapper.drag-over {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4);
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+        }
+
+        @keyframes lastFewPulse {
+            0%, 100% { border-color: rgba(239, 68, 68, 0.6); }
+            50% { border-color: rgba(239, 68, 68, 1); }
         }
 
         .enhanced-selection-indicator {
             position: absolute;
-            top: -6px;
-            left: -6px;
+            top: -8px;
+            left: -8px;
             background: #10b981;
             color: white;
             font-size: 10px;
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 1px solid white;
+            border: 2px solid white;
+            z-index: 5;
+        }
+
+        .card-lock-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            border-radius: 8px;
+            z-index: 5;
+        }
+
+        /* Drop zones */
+        .drop-zones {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .drop-zone {
+            width: 100px;
+            height: 100px;
+            background: rgba(59, 130, 246, 0.3);
+            border: 2px dashed #3b82f6;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .score-modal, .winner-modal {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            max-width: 300px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .score-modal h3, .winner-modal h2 {
+            margin: 0 0 15px 0;
+            color: #1f2937;
+        }
+
+        .winner-info, .final-winner {
+            margin: 15px 0;
+        }
+
+        .winner-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #059669;
+            margin-bottom: 5px;
+        }
+
+        .winner-points, .winner-title {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .winner-title {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .final-scores {
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .close-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+
+        .close-btn:hover {
+            background: #2563eb;
         }
 
         /* Animations */
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
+            50% { opacity: 0.7; }
         }
 
         /* Mobile landscape optimizations */
-        @media screen and (orientation: landscape) {
+        @media screen and (orientation: landscape) and (max-width: 768px) {
             .game-header {
+                height: 40px;
+            }
+
+            .arrangement-controls {
+                height: 30px;
+            }
+
+            .start-game-controls {
                 height: 35px;
             }
 
             .game-table {
-                height: 140px;
+                height: 120px;
             }
 
             .player-cards-section {
-                height: calc(100vh - 35px - 140px - 25px);
+                height: calc(100vh - 40px - 120px - 30px);
             }
 
             .ultra-slim-header {
-                height: 25px;
+                height: 30px;
             }
 
-            .bottom-player {
-                bottom: -15px;
+            .enhanced-card-wrapper {
+                margin-right: -12px; /* More stacking on mobile landscape */
             }
 
-            .top-player {
-                top: -15px;
-            }
-
-            .left-player {
-                left: -20px;
-            }
-
-            .right-player {
-                right: -20px;
+            .cards-scroll {
+                gap: 2px;
+                padding: 5px 30px;
             }
         }
 
@@ -1467,6 +1622,7 @@
 
             .game-stats {
                 font-size: 8px;
+                gap: 6px;
             }
 
             .player-score {
@@ -1474,14 +1630,40 @@
                 font-size: 7px;
             }
 
-            .player-points {
-                font-size: 9px;
+            .enhanced-card-wrapper {
+                margin-right: -10px;
             }
 
             .cards-scroll {
-                gap: 3px;
+                gap: 1px;
                 padding: 8px 25px;
             }
+
+            .arrangement-buttons {
+                gap: 3px;
+            }
+
+            .sort-btn, .lock-btn {
+                padding: 3px 6px;
+                font-size: 8px;
+            }
+        }
+
+        /* Disable text selection and improve touch */
+        .enhanced-card-wrapper * {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Better mobile touch handling */
+        .enhanced-card-wrapper {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
     </style>
 </div>

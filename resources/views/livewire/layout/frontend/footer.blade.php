@@ -44,8 +44,8 @@
     <div class="suha-footer-nav">
         <ul class="h-100 d-flex align-items-center justify-content-between ps-0 d-flex rtl-flex-d-row-r">
             <li><a href="{{route('home')}}"><i class="ti ti-home"></i><span>Home</span></a></li>
-            <li><a href="{{ route('rifleAccount') }}"><i class="ti ti-adjustments-horizontal"></i><span>Rifle</span></a></li>
-            <li><a href="{{ route('wallet') }}"><i class="ti ti-wallet"></i><span>Wallet</span></a></li>
+            <li><a href="{{ route('how.to.use') }}"><i class="ti ti-adjustments-horizontal"></i><span>User Guide</span></a></li>
+            <li><a href="{{ route('contact.support') }}"><i class="ti ti-wallet"></i><span>Support</span></a></li>
             <li><a href="{{ route('ticket') }}"><i class="ti ti-ticket"></i><span>Ticket</span></a></li>
             <li>
                 <input type="checkbox" id="rokon" class="d-none">

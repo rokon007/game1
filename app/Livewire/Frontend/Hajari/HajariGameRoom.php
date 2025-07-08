@@ -15,6 +15,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class HajariGameRoom extends Component
 {
@@ -32,6 +33,10 @@ class HajariGameRoom extends Component
     public $scoreData = [];
     public $winnerData = [];
     public $roundWinner = null;
+    public $arrangementTimeLeft = 0;
+    public $isArrangementPhase = false;
+    public $isCardsLocked = false;
+    public $canStartGame = false;
 
     protected $listeners = [
         'refreshGame' => '$refresh',
@@ -69,7 +74,7 @@ class HajariGameRoom extends Component
             $nextRoundStarter = $this->getRoundWinnerPosition($currentRound);
             $currentRound++;
             $currentTurn = $this->getPlayerTurnOrder($nextRoundStarter ?? 1);
-            $playedCards = []; // নতুন রাউন্ডের জন্য কার্ড ক্লিয়ার
+            $playedCards = []; // নতুন রাউন্ডের জন্য কার্ড ক্লিয়ার
         } else {
             // বর্তমান রাউন্ডে টার্ন নির্ধারণ
             $currentTurn = $this->getCurrentTurnInRound($currentRound);
@@ -82,13 +87,109 @@ class HajariGameRoom extends Component
             'played_cards' => $playedCards,
         ];
 
-        // প্লেয়ার এবং গেম ডেটা রিফ্রেশ
+        // প্লেয়ার এবং গেম ডেটা রিফ্রেশ
         $this->player->refresh();
         $this->game->refresh();
         $this->game->load(['participants.user']);
 
         // নতুন কার্ড ডিল চেক
         $this->checkForNewCardDeal();
+
+        // Arrangement phase check
+        $this->checkArrangementPhase();
+
+        // Auto select cards for current turn player (only if game is playing and not in arrangement phase)
+        if ($this->game->status === HajariGame::STATUS_PLAYING && !$this->isArrangementPhase) {
+            $this->autoSelectCardsForCurrentPlayer();
+        }
+    }
+
+    private function checkArrangementPhase()
+    {
+        if ($this->game->status === HajariGame::STATUS_PLAYING) {
+            // Check if player has cards locked status
+            $this->isCardsLocked = $this->player->cards_locked ?? false;
+
+            $arrangementEndTime = $this->game->updated_at->addMinutes(4);
+            $now = Carbon::now();
+
+            if ($now->lt($arrangementEndTime) && !$this->isCardsLocked) {
+                $this->isArrangementPhase = true;
+                $this->arrangementTimeLeft = $arrangementEndTime->diffInSeconds($now);
+            } else {
+                $this->isArrangementPhase = false;
+                $this->arrangementTimeLeft = 0;
+
+                // Check if all players have locked their cards
+                $allPlayersLocked = $this->game->participants()
+                    ->where('status', HajariGameParticipant::STATUS_PLAYING)
+                    ->get()
+                    ->every(function ($participant) {
+                        return $participant->cards_locked ?? false;
+                    });
+
+                $this->canStartGame = $allPlayersLocked && $this->game->creator_id === Auth::id();
+            }
+        }
+    }
+
+    private function autoSelectCardsForCurrentPlayer()
+    {
+        $currentTurnPlayer = $this->getCurrentTurnPlayer();
+
+        // Only auto-select if it's current player's turn and they have cards
+        if ($currentTurnPlayer &&
+            $currentTurnPlayer->user_id === Auth::id() &&
+            $this->player->cards &&
+            is_array($this->player->cards) &&
+            count($this->player->cards) > 0) {
+
+            $cardCount = count($this->player->cards);
+
+            if ($cardCount <= 4) {
+                // Select all remaining cards
+                $this->selectedCards = array_keys($this->player->cards);
+            } else {
+                // Select first 3 cards from left
+                $this->selectedCards = [0, 1, 2];
+            }
+        }
+    }
+
+    public function lockCards()
+    {
+        if (!$this->player->cards || !is_array($this->player->cards)) {
+            session()->flash('error', 'No cards to lock.');
+            return;
+        }
+
+        $this->player->update(['cards_locked' => true]);
+        $this->isCardsLocked = true;
+
+        broadcast(new GameUpdated($this->game, 'cards_locked', [
+            'player_id' => Auth::id(),
+            'player_name' => Auth::user()->name,
+            'message' => Auth::user()->name . ' has locked their cards'
+        ]));
+
+        $this->checkArrangementPhase();
+    }
+
+    public function startGameAfterArrangement()
+    {
+        if (!$this->canStartGame) {
+            session()->flash('error', 'Cannot start game yet.');
+            return;
+        }
+
+        $this->game->update(['arrangement_completed' => true]);
+
+        broadcast(new GameUpdated($this->game, 'game_ready', [
+            'message' => 'Game is ready to start!'
+        ]));
+
+        $this->isArrangementPhase = false;
+        $this->loadGameState();
     }
 
     private function getCurrentTurnInRound($round)
@@ -98,17 +199,17 @@ class HajariGameRoom extends Component
         if ($movesInRound === 0) {
             // রাউন্ডের প্রথম মুভ
             if ($round > 1) {
-                // আগের রাউন্ডের সর্বোচ্চ পয়েন্ট প্রাপ্ত প্লেয়ার শুরু করবে
+                // আগের রাউন্ডের সর্বোচ্চ পয়েন্ট প্রাপ্ত প্লেয়ার শুরু করবে
                 $previousRoundWinner = $this->getRoundWinnerPosition($round - 1);
                 return $this->getPlayerTurnOrder($previousRoundWinner ?? 1);
             } else {
-                // প্রথম রাউন্ড, ক্রিয়েটর শুরু করবে
+                // প্রথম রাউন্ড, ক্রিয়েটর শুরু করবে
                 $creator = $this->game->participants()->where('user_id', $this->game->creator_id)->first();
                 return $this->getPlayerTurnOrder($creator ? $creator->position : 1);
             }
         }
 
-        // শেষ মুভ থেকে পরবর্তী প্লেয়ার নির্ধারণ
+        // শেষ মুভ থেকে পরবর্তী প্লেয়ার নির্ধারণ
         $lastMove = $this->game->moves()
             ->where('round', $round)
             ->orderBy('id', 'desc')
@@ -126,16 +227,16 @@ class HajariGameRoom extends Component
     {
         $nextPosition = $currentPosition + 1;
         if ($nextPosition > 4) {
-            $nextPosition = 1; // পজিশন ১ এ ফিরে যায়
+            $nextPosition = 1; // পজিশন ১ এ ফিরে যায়
         }
 
-        // পরবর্তী পজিশনে প্লেয়ার আছে কিনা চেক
+        // পরবর্তী পজিশনে প্লেয়ার আছে কিনা চেক
         $participant = $this->game->participants()->where('position', $nextPosition)->first();
         if ($participant && $participant->status === HajariGameParticipant::STATUS_PLAYING) {
             return $nextPosition;
         }
 
-        // যদি পজিশন খালি থাকে, পরবর্তী সক্রিয় প্লেয়ার খুঁজে বের করা
+        // যদি পজিশন খালি থাকে, পরবর্তী সক্রিয় প্লেয়ার খুঁজে বের করা
         for ($i = 1; $i <= 4; $i++) {
             $participant = $this->game->participants()->where('position', $i)->first();
             if ($participant && $participant->status === HajariGameParticipant::STATUS_PLAYING) {
@@ -146,6 +247,7 @@ class HajariGameRoom extends Component
         return 1; // ফলব্যাক
     }
 
+    // Enhanced Hajari Game Logic
     private function getRoundWinnerPosition($round)
     {
         $roundMoves = $this->game->moves()
@@ -155,39 +257,176 @@ class HajariGameRoom extends Component
 
         if ($roundMoves->isEmpty()) return null;
 
-        // প্রথম প্লেয়ারের স্যুট
-        $firstMove = $roundMoves->sortBy('id')->first();
-        $firstSuit = $firstMove->cards_played[0]['suit'];
+        // Convert moves to the format expected by the winner determination function
+        $hands = $roundMoves->map(function ($move) {
+            return [
+                'cards' => $this->convertCardsToHajariFormat($move->cards_played),
+                'submitted_at' => $move->created_at->toISOString(),
+                'player_id' => $move->player_id,
+                'position' => $this->getPlayerPosition($move->player_id)
+            ];
+        })->toArray();
 
-        // সর্বোচ্চ পয়েন্টের মুভ খুঁজুন
-        $maxPoints = $roundMoves->max('points_earned');
-        $candidates = $roundMoves->where('points_earned', $maxPoints);
+        $winnerIndex = $this->determineHajariWinner($hands);
 
-        if ($candidates->count() > 1) {
-            // টাই হলে সিনিয়রিটি চেক
-            $winner = $candidates->sortByDesc(function ($move) use ($firstSuit) {
-                $highestRank = 0;
-                foreach ($move->cards_played as $card) {
-                    if ($card['suit'] === $firstSuit) {
-                        $rankValue = $this->getRankValue($card['rank']);
-                        $highestRank = max($highestRank, $rankValue);
-                    }
-                }
-                // সিনিয়রিটি সমান হলে টার্ন অর্ডার বিবেচনা
-                return [$highestRank, $move->turn_order];
-            })->first();
-        } else {
-            $winner = $candidates->first();
-        }
-
-        if ($winner) {
-            $participant = $this->game->participants()
-                ->where('user_id', $winner->player_id)
-                ->first();
-            return $participant ? $participant->position : null;
+        if ($winnerIndex !== null && isset($hands[$winnerIndex])) {
+            return $hands[$winnerIndex]['position'];
         }
 
         return null;
+    }
+
+    private function convertCardsToHajariFormat($cards)
+    {
+        $suitMap = [
+            'spades' => '♠',
+            'hearts' => '♥',
+            'diamonds' => '♦',
+            'clubs' => '♣'
+        ];
+
+        return array_map(function ($card) use ($suitMap) {
+            return $card['rank'] . ($suitMap[$card['suit']] ?? '♠');
+        }, $cards);
+    }
+
+    private function determineHajariWinner($hands)
+    {
+        if (empty($hands)) return null;
+
+        $evaluatedHands = [];
+
+        foreach ($hands as $index => $hand) {
+            $evaluation = $this->evaluateHajariHand($hand['cards']);
+            $evaluatedHands[] = [
+                'index' => $index,
+                'evaluation' => $evaluation,
+                'submitted_at' => $hand['submitted_at'],
+                'card_count' => count($hand['cards'])
+            ];
+        }
+
+        // Sort by combination priority, then by highest card, then by card count, then by submission time
+        usort($evaluatedHands, function ($a, $b) {
+            // First compare combination priority (lower number = higher priority)
+            if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
+                return $a['evaluation']['priority'] - $b['evaluation']['priority'];
+            }
+
+            // Then compare highest card value
+            if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
+                return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
+            }
+
+            // Then compare card count (more cards win)
+            if ($a['card_count'] !== $b['card_count']) {
+                return $b['card_count'] - $a['card_count'];
+            }
+
+            // Finally, latest submission wins
+            return strcmp($b['submitted_at'], $a['submitted_at']);
+        });
+
+        return $evaluatedHands[0]['index'];
+    }
+
+    private function evaluateHajariHand($cards)
+    {
+        $cardValues = $this->getCardValues($cards);
+        $suits = $this->getCardSuits($cards);
+
+        // Check for Tie (Four of a Kind)
+        if ($this->isTie($cardValues)) {
+            return [
+                'type' => 'tie',
+                'priority' => 1,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Running (Straight Flush)
+        if ($this->isRunning($cardValues, $suits)) {
+            return [
+                'type' => 'running',
+                'priority' => 2,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Color (Flush)
+        if ($this->isColor($suits)) {
+            return [
+                'type' => 'color',
+                'priority' => 3,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Normal combination
+        return [
+            'type' => 'normal',
+            'priority' => 4,
+            'highest_card' => max($cardValues)
+        ];
+    }
+
+    private function getCardValues($cards)
+    {
+        $values = [];
+        foreach ($cards as $card) {
+            $rank = substr($card, 0, -1); // Remove suit symbol
+            $values[] = $this->getHajariCardValue($rank);
+        }
+        return $values;
+    }
+
+    private function getCardSuits($cards)
+    {
+        $suits = [];
+        foreach ($cards as $card) {
+            $suits[] = substr($card, -1); // Get suit symbol
+        }
+        return $suits;
+    }
+
+    private function getHajariCardValue($rank)
+    {
+        $values = [
+            'A' => 14, 'K' => 13, 'Q' => 12, 'J' => 11, '10' => 10,
+            '9' => 9, '8' => 8, '7' => 7, '6' => 6, '5' => 5,
+            '4' => 4, '3' => 3, '2' => 2
+        ];
+
+        return $values[$rank] ?? 0;
+    }
+
+    private function isTie($cardValues)
+    {
+        if (count($cardValues) !== 4) return false;
+
+        $valueCounts = array_count_values($cardValues);
+        return in_array(4, $valueCounts);
+    }
+
+    private function isRunning($cardValues, $suits)
+    {
+        // Must be same suit
+        if (count(array_unique($suits)) !== 1) return false;
+
+        // Must be sequential
+        sort($cardValues);
+        for ($i = 1; $i < count($cardValues); $i++) {
+            if ($cardValues[$i] !== $cardValues[$i-1] + 1) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function isColor($suits)
+    {
+        return count(array_unique($suits)) === 1;
     }
 
     private function calculateRoundWinner()
@@ -199,76 +438,61 @@ class HajariGameRoom extends Component
 
         if ($roundMoves->isEmpty()) return;
 
-        // সকল প্লেয়ারের কার্ডের পয়েন্টের যোগফল
-        $totalPoints = $roundMoves->sum('points_earned');
+        // Convert moves to the format expected by the winner determination function
+        $hands = $roundMoves->map(function ($move) {
+            return [
+                'cards' => $this->convertCardsToHajariFormat($move->cards_played),
+                'submitted_at' => $move->created_at->toISOString(),
+                'player_id' => $move->player_id,
+                'move' => $move
+            ];
+        })->toArray();
 
-        // প্রথম প্লেয়ারের স্যুট
-        $firstMove = $roundMoves->sortBy('id')->first();
-        $firstSuit = $firstMove->cards_played[0]['suit'];
+        $winnerIndex = $this->determineHajariWinner($hands);
 
-        // সর্বোচ্চ পয়েন্টের মুভ খুঁজুন
-        $maxPoints = $roundMoves->max('points_earned');
-        $candidates = $roundMoves->where('points_earned', $maxPoints);
-
-        if ($candidates->count() > 1) {
-            // টাই হলে সিনিয়রিটি চেক
-            $winner = $candidates->sortByDesc(function ($move) use ($firstSuit) {
-                $highestRank = 0;
-                foreach ($move->cards_played as $card) {
-                    if ($card['suit'] === $firstSuit) {
-                        $rankValue = $this->getRankValue($card['rank']);
-                        $highestRank = max($highestRank, $rankValue);
-                    }
-                }
-                // সিনিয়রিটি সমান হলে টার্ন অর্ডার বিবেচনা
-                return [$highestRank, $move->turn_order];
-            })->first();
-        } else {
-            $winner = $candidates->first();
-        }
-
-        if ($winner) {
+        if ($winnerIndex !== null && isset($hands[$winnerIndex])) {
+            $winnerMove = $hands[$winnerIndex]['move'];
             $participant = $this->game->participants()
-                ->where('user_id', $winner->player_id)
+                ->where('user_id', $winnerMove->player_id)
                 ->first();
 
             if ($participant) {
+                // Calculate total points for the round
+                $totalPoints = $roundMoves->sum('points_earned');
+
                 $participant->increment('rounds_won');
-                $participant->increment('total_points', $totalPoints); // সকল কার্ডের পয়েন্ট যোগ
+                $participant->increment('total_points', $totalPoints);
 
                 $roundScores = $participant->round_scores ?? [];
                 $roundScores[] = [
                     'round' => $this->gameState['current_round'],
                     'points' => $totalPoints,
-                    'type' => 'normal'
+                    'type' => 'hajari_winner'
                 ];
                 $participant->update(['round_scores' => $roundScores]);
 
-                // রাউন্ড বিজয়ী ব্রডকাস্ট
+                // Broadcast round winner
                 broadcast(new RoundWinner(
                     $this->game,
                     $participant,
                     $this->gameState['current_round']
                 ));
 
-                // স্কোর আপডেট ব্রডকাস্ট
+                // Broadcast score update
                 broadcast(new ScoreUpdated(
                     $this->game,
                     $participant,
                     $totalPoints,
                     $this->gameState['current_round'],
-                    'normal'
+                    'hajari_winner'
                 ));
 
-                // পরবর্তী রাউন্ডের জন্য টার্ন সেট
-                //$this->gameState['current_turn'] = $this->getPlayerTurnOrder($participant->position);
-
-                // লগিং যোগ করুন ডিবাগিংয়ের জন্য
-                Log::info('Round Winner', [
+                Log::info('Hajari Round Winner', [
                     'round' => $this->gameState['current_round'],
-                    'winner_id' => $winner->player_id,
+                    'winner_id' => $winnerMove->player_id,
                     'points' => $totalPoints,
-                    'position' => $participant->position
+                    'position' => $participant->position,
+                    'winning_combination' => $this->evaluateHajariHand($hands[$winnerIndex]['cards'])
                 ]);
             }
         }
@@ -277,8 +501,7 @@ class HajariGameRoom extends Component
     private function calculateMovePoints(array $cards): int
     {
         $points = 0;
-
-        // প্রতিটি কার্ডের জন্য পয়েন্ট গণনা
+        // প্রতিটি কার্ডের জন্য পয়েন্ট গণনা
         foreach ($cards as $card) {
             $points += match ($card['rank']) {
                 '2', '3', '4', '5', '6', '7', '8', '9' => 5,
@@ -288,26 +511,6 @@ class HajariGameRoom extends Component
         }
 
         return $points;
-    }
-
-    private function getRankValue(string $rank): int
-    {
-        return match ($rank) {
-            'A' => 14,
-            'K' => 13,
-            'Q' => 12,
-            'J' => 11,
-            '10' => 10,
-            '9' => 9,
-            '8' => 8,
-            '7' => 7,
-            '6' => 6,
-            '5' => 5,
-            '4' => 4,
-            '3' => 3,
-            '2' => 2,
-            default => 0
-        };
     }
 
     private function processMove(): array
@@ -335,7 +538,7 @@ class HajariGameRoom extends Component
             'points_earned' => $points
         ]);
 
-        // প্লেয়ারের হাত থেকে কার্ড সরানো
+        // প্লেয়ারের হাত থেকে কার্ড সরানো
         $remainingCards = [];
         foreach ($this->player->cards as $index => $card) {
             if (!in_array($index, $this->selectedCards)) {
@@ -345,9 +548,6 @@ class HajariGameRoom extends Component
 
         $this->player->update(['cards' => array_values($remainingCards)]);
 
-        // টার্ন আপডেট
-        //$this->gameState['current_turn'] = $this->getNextPlayerTurnOrder($this->gameState['current_turn']);
-
         // গেম রিফ্রেশ
         $this->game->refresh();
 
@@ -356,7 +556,7 @@ class HajariGameRoom extends Component
 
     private function checkForNewCardDeal()
     {
-        // সব প্লেয়ারের কার্ড শেষ কিনা চেক
+        // সব প্লেয়ারের কার্ড শেষ কিনা চেক
         $playersWithCards = $this->game->participants()
             ->where('status', HajariGameParticipant::STATUS_PLAYING)
             ->get()
@@ -395,15 +595,21 @@ class HajariGameRoom extends Component
                 foreach ($participants as $participant) {
                     $playerCards = array_slice($deck, $cardIndex, $cardsPerPlayer);
 
-                    $participant->update(['cards' => $playerCards]);
+                    $participant->update([
+                        'cards' => $playerCards,
+                        'cards_locked' => false // Reset lock status
+                    ]);
                     $participant->sortCards();
                     $cardIndex += $cardsPerPlayer;
                 }
+
+                // Start new arrangement phase
+                $this->game->touch(); // Update timestamp for arrangement timer
             });
 
             // Broadcast new card deal
             broadcast(new GameUpdated($this->game, 'new_cards_dealt', [
-                'message' => 'New cards have been dealt!'
+                'message' => 'New cards have been dealt! Arrange your cards.'
             ]));
 
             Log::info('New cards dealt for game: ' . $this->game->id);
@@ -464,12 +670,22 @@ class HajariGameRoom extends Component
 
     public function toggleCardSelection($cardIndex)
     {
+        // Don't allow selection during arrangement phase or if cards are locked
+        if ($this->isArrangementPhase || $this->isCardsLocked) {
+            return;
+        }
+
+        // Check if player has cards
+        if (!$this->player->cards || !is_array($this->player->cards)) {
+            return;
+        }
+
         if (in_array($cardIndex, $this->selectedCards)) {
             // কার্ড ডিসিলেক্ট
             $this->selectedCards = array_filter($this->selectedCards, fn($i) => $i !== $cardIndex);
         } else {
             // কার্ড সিলেকশন লিমিট চেক
-            $currentCardCount = count($this->player->cards ?? []);
+            $currentCardCount = count($this->player->cards);
             $maxSelection = $this->getMaxSelectionLimit($currentCardCount);
 
             if (count($this->selectedCards) < $maxSelection) {
@@ -496,7 +712,12 @@ class HajariGameRoom extends Component
             return false;
         }
 
-        $currentCardCount = count($this->player->cards ?? []);
+        // Check if player has cards
+        if (!$this->player->cards || !is_array($this->player->cards)) {
+            return false;
+        }
+
+        $currentCardCount = count($this->player->cards);
 
         // কার্ড সিলেকশন লিমিট চেক
         if ($currentCardCount <= 4) {
@@ -509,7 +730,7 @@ class HajariGameRoom extends Component
             }
         }
 
-        // নির্বাচিত কার্ডগুলো প্লেয়ারের হাতে আছে কিনা চেক
+        // নির্বাচিত কার্ডগুলো প্লেয়ারের হাতে আছে কিনা চেক
         foreach ($this->selectedCards as $index) {
             if (!isset($this->player->cards[$index])) {
                 return false;
@@ -532,7 +753,7 @@ class HajariGameRoom extends Component
         }
 
         if (!$this->isValidMove()) {
-            session()->flash('error', 'Invalid move according to Hazari rules.');
+            session()->flash('error', 'Invalid move according to Hajari rules.');
             return;
         }
 
@@ -570,7 +791,7 @@ class HajariGameRoom extends Component
 
     public function reorderCards($fromIndex, $toIndex)
     {
-        if (!$this->player || !$this->player->cards) return;
+        if (!$this->player || !$this->player->cards || $this->isCardsLocked || !is_array($this->player->cards)) return;
 
         $cards = $this->player->cards;
 
@@ -615,7 +836,7 @@ class HajariGameRoom extends Component
 
     public function sortCardsBySuit()
     {
-        if (!$this->player || !$this->player->cards) return;
+        if (!$this->player || !$this->player->cards || $this->isCardsLocked || !is_array($this->player->cards)) return;
 
         $cards = collect($this->player->cards)->sortBy(function ($card) {
             $suitOrder = ['spades' => 4, 'hearts' => 3, 'diamonds' => 2, 'clubs' => 1];
@@ -630,7 +851,7 @@ class HajariGameRoom extends Component
 
     public function sortCardsByRank()
     {
-        if (!$this->player || !$this->player->cards) return;
+        if (!$this->player || !$this->player->cards || $this->isCardsLocked || !is_array($this->player->cards)) return;
 
         $cards = collect($this->player->cards)->sortBy(function ($card) {
             return $card['value'];
@@ -675,7 +896,8 @@ class HajariGameRoom extends Component
                         'total_points' => 0,
                         'rounds_won' => 0,
                         'round_scores' => [],
-                        'hazari_count' => 0
+                        'hazari_count' => 0,
+                        'cards_locked' => false
                     ]);
 
                     $participant->sortCards();
@@ -686,7 +908,7 @@ class HajariGameRoom extends Component
             });
 
             broadcast(new GameUpdated($this->game, 'game_started', [
-                'message' => 'Game has started! Cards have been distributed.'
+                'message' => 'Game has started! Cards have been distributed. You have 4 minutes to arrange your cards.'
             ]));
 
             $this->loadGameState();
@@ -700,22 +922,21 @@ class HajariGameRoom extends Component
 
     private function checkGameProgress()
     {
-        // রাউন্ড সম্পন্ন হলে পয়েন্ট চেক
+        // রাউন্ড সম্পন্ন হলে পয়েন্ট চেক
         if ($this->isRoundComplete()) {
             $participants = $this->game->participants()
                 ->where('status', HajariGameParticipant::STATUS_PLAYING)
                 ->get();
 
-            // কোনো প্লেয়ারের পয়েন্ট ১০০০ বা তার বেশি কিনা চেক
+            // কোনো প্লেয়ারের পয়েন্ট ১০০০ বা তার বেশি কিনা চেক
             $winner = $participants->firstWhere('total_points', '>=', 1000);
-
             if ($winner) {
                 $this->endGame();
                 return;
             }
         }
 
-        // সব প্লেয়ারের কার্ড শেষ কিনা চেক
+        // সব প্লেয়ারের কার্ড শেষ কিনা চেক
         $playersWithCards = $this->game->participants()
             ->where('status', HajariGameParticipant::STATUS_PLAYING)
             ->get()
@@ -759,7 +980,7 @@ class HajariGameRoom extends Component
             ->values()
             ->toArray();
 
-        // ট্রানজাকশন প্রক্রিয়া এবং নোটিফিকেশন
+        // ট্রানজাকশন প্রক্রিয়া এবং নোটিফিকেশন
         $transactions = $this->processGamePayments($winner);
 
         // গেম উইনার ইভেন্টে ট্রানজাকশনের তথ্য যোগ
@@ -792,15 +1013,18 @@ class HajariGameRoom extends Component
         $transactions = [];
 
         DB::transaction(function () use ($winner, $bidAmount, $participants, &$transactions) {
-            // বিজয়ীর জন্য ক্রেডিট ট্রানজাকশন
+            // বিজয়ীর জন্য ক্রেডিট ট্রানজাকশন
             $winnerAmount = $bidAmount * 4;
+
             Transaction::create([
                 'user_id' => $winner->user_id,
                 'type' => 'credit',
                 'amount' => $winnerAmount,
                 'details' => "Game win: {$this->game->title} (Winner: {$winner->user->name})",
             ]);
+
             $winner->user->increment('credit', $winnerAmount);
+
             $transactions[] = [
                 'user_id' => $winner->user_id,
                 'type' => 'credit',
@@ -808,7 +1032,7 @@ class HajariGameRoom extends Component
                 'details' => "Game win: {$this->game->title}"
             ];
 
-            // অন্য প্লেয়ারদের জন্য ডেবিট ট্রানজাকশন
+            // অন্য প্লেয়ারদের জন্য ডেবিট ট্রানজাকশন
             foreach ($participants as $participant) {
                 if ($participant->user_id !== $winner->user_id) {
                     Transaction::create([
@@ -817,7 +1041,9 @@ class HajariGameRoom extends Component
                         'amount' => $bidAmount,
                         'details' => "Game loss: {$this->game->title} (Winner: {$winner->user->name})",
                     ]);
+
                     $participant->user->decrement('credit', $bidAmount);
+
                     $transactions[] = [
                         'user_id' => $participant->user_id,
                         'type' => 'debit',
