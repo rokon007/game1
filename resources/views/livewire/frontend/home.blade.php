@@ -222,25 +222,15 @@
                 </div>
                 {{-- @foreach ($prizes as $prize )
                     <div class="col-4">
-                    <div class="card featured-product-card">
-                        <div class="card-body">
-                        <!-- Badge-->
-
-                        <div class="product-thumbnail-side">
-                            <!-- Thumbnail -->
-                            <a class="product-thumbnail d-block" href="#">
-                                <img src="{{ Storage::url($prize->image_path) }}" alt="">
-                            </a>
-                            {{-- <a style="font-size: 12px; color: black; font-weight: bold;" href="#">
-                                {{ $prize->name }}
-                            </a>
-                            <p class="sale-price">
-                                TK {{ $prize->amount }}
-                            </p> --}}
+                        <div class="card featured-product-card">
+                            <div class="card-body">
+                                <div class="product-thumbnail-side">
+                                    <a class="product-thumbnail d-block" href="#">
+                                        <img src="{{ Storage::url($prize->image_path) }}" alt="">
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-
-                        </div>
-                    </div>
                     </div>
                 @endforeach --}}
               </div>
