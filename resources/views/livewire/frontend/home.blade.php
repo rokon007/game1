@@ -225,9 +225,7 @@
                     <div class="card featured-product-card">
                         <div class="card-body">
                         <!-- Badge-->
-                        {{-- <span class="badge badge-warning custom-badge">
-                            <i class="ti ti-star-filled"></i>
-                        </span> --}}
+
                         <div class="product-thumbnail-side">
                             <!-- Thumbnail -->
                             <a class="product-thumbnail d-block" href="#">
