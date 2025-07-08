@@ -110,7 +110,7 @@ class HajariGameRoom extends Component
             // Check if player has cards locked status
             $this->isCardsLocked = $this->player->cards_locked ?? false;
 
-            $arrangementEndTime = $this->game->updated_at->addMinutes(4);
+            $arrangementEndTime = $this->game->updated_at->addMinutes(2);
             $now = Carbon::now();
 
             if ($now->lt($arrangementEndTime) && !$this->isCardsLocked) {

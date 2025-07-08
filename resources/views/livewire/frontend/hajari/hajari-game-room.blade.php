@@ -215,7 +215,7 @@
                         @endphp
                         <div class="enhanced-card-wrapper draggable-card
                                     {{ $isSelected ? 'selected' : '' }}
-                                    {{ (!$isMyTurn || $isArrangementPhase) ? 'not-my-turn' : '' }}
+                                    {{ !$isMyTurn && !$isArrangementPhase ? 'not-my-turn' : '' }}
                                     {{ $isLastFew ? 'last-few' : '' }}
                                     {{ $isCardsLocked ? 'locked' : '' }}"
                              data-card-index="{{ $index }}"
@@ -305,6 +305,7 @@
         let dragOffset = { x: 0, y: 0 };
         let dragStartTime = 0;
         let arrangementTimer = null;
+        let touchTimeout = null;
 
         // Sound effects controller with better error handling
         const SoundEffects = {
@@ -469,31 +470,23 @@
             }, 3000);
         }
 
+        // Enhanced mobile card selection - now empty to avoid conflicts
         function setupMobileCardSelection() {
-            const cardsContainer = document.getElementById('cards-scroll');
-            if (!cardsContainer) return;
-
-            cardsContainer.addEventListener('touchstart', function(e) {
-                const card = e.target.closest('.enhanced-card-wrapper');
-                if (card && !card.classList.contains('not-my-turn') && !card.classList.contains('locked')) {
-                    const cardIndex = parseInt(card.dataset.cardIndex);
-                    @this.toggleCardSelection(cardIndex);
-                    e.preventDefault();
-                }
-            }, { passive: false });
+            // This function is intentionally empty to avoid conflicts
+            // Touch handling is now managed in the unified touch handlers below
         }
 
         function initializeEnhancedDragAndDrop() {
             const container = document.getElementById('cards-container');
             if (!container) return;
 
-            // Mouse events
+            // Mouse events for desktop
             container.addEventListener('dragstart', handleDragStart);
             container.addEventListener('dragover', handleDragOver);
             container.addEventListener('drop', handleDrop);
             container.addEventListener('dragend', handleDragEnd);
 
-            // Touch events for mobile
+            // Touch events for mobile - unified approach
             container.addEventListener('touchstart', handleTouchStart, { passive: false });
             container.addEventListener('touchmove', handleTouchMove, { passive: false });
             container.addEventListener('touchend', handleTouchEnd, { passive: false });
@@ -525,7 +518,7 @@
             });
         }
 
-        // Enhanced drag handlers
+        // Enhanced drag handlers for desktop
         function handleDragStart(e) {
             if (!e.target.closest('.draggable-card') || e.target.closest('.disabled') || e.target.closest('.locked')) return;
 
@@ -583,23 +576,32 @@
             if (dropZones) dropZones.style.display = 'none';
         }
 
-        // Enhanced touch handlers for mobile
+        // Enhanced touch handlers for mobile - unified approach
         function handleTouchStart(e) {
-            if (!e.target.closest('.draggable-card') || e.target.closest('.disabled') || e.target.closest('.locked')) return;
+            const cardElement = e.target.closest('.draggable-card');
+            if (!cardElement || cardElement.classList.contains('locked')) return;
 
-            const touch = e.touches[0];
-            touchStartX = touch.clientX;
-            touchStartY = touch.clientY;
-            dragStartTime = Date.now();
-            draggedElement = e.target.closest('.draggable-card');
-            draggedIndex = parseInt(draggedElement.dataset.cardIndex);
+            // Clear any existing timeout
+            if (touchTimeout) {
+                clearTimeout(touchTimeout);
+                touchTimeout = null;
+            }
 
-            const rect = draggedElement.getBoundingClientRect();
-            dragOffset.x = touch.clientX - rect.left;
-            dragOffset.y = touch.clientY - rect.top;
+            // Only setup drag for arrangement phase
+            if (cardElement.getAttribute('draggable') === 'true') {
+                const touch = e.touches[0];
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+                dragStartTime = Date.now();
+                draggedElement = cardElement;
+                draggedIndex = parseInt(draggedElement.dataset.cardIndex);
 
-            // Prevent default to avoid scrolling
-            e.preventDefault();
+                const rect = draggedElement.getBoundingClientRect();
+                dragOffset.x = touch.clientX - rect.left;
+                dragOffset.y = touch.clientY - rect.top;
+
+                // Don't prevent default here to allow tap events to work
+            }
         }
 
         function handleTouchMove(e) {
@@ -608,11 +610,10 @@
             const touch = e.touches[0];
             const deltaX = Math.abs(touch.clientX - touchStartX);
             const deltaY = Math.abs(touch.clientY - touchStartY);
-            const timeDelta = Date.now() - dragStartTime;
 
-            // Start dragging if moved enough distance or held long enough
-            if (!isDragging && (deltaX > 10 || deltaY > 10 || timeDelta > 500)) {
-                isDragging = true;
+            // Start dragging if moved enough distance (increased threshold for better tap detection)
+            if (!isDragging && (deltaX > 15 || deltaY > 15)) {
+                isDragging = true; // Now this is confirmed as a drag operation
                 draggedElement.classList.add('dragging');
 
                 const dropZones = document.getElementById('drop-zones');
@@ -627,6 +628,7 @@
             }
 
             if (isDragging) {
+                e.preventDefault(); // Only prevent scrolling when actually dragging
                 updateDragGhost(touch.clientX, touch.clientY);
 
                 // Check for drop target
@@ -634,52 +636,54 @@
                 const dropTarget = elementBelow?.closest('.draggable-card');
 
                 // Remove previous drag-over classes
-                document.querySelectorAll('.drag-over').forEach(el => {
-                    el.classList.remove('drag-over');
-                });
+                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 
                 // Add drag-over class to current target
-                if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled') && !dropTarget.classList.contains('locked')) {
+                if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
                     dropTarget.classList.add('drag-over');
                 }
             }
-
-            e.preventDefault();
         }
 
         function handleTouchEnd(e) {
             if (!draggedElement) return;
 
             if (isDragging) {
+                // This was a drag operation
                 const touch = e.changedTouches[0];
-                const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-                const dropTarget = elementBelow?.closest('.draggable-card');
 
-                if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled') && !dropTarget.classList.contains('locked')) {
-                    const dropIndex = parseInt(dropTarget.dataset.cardIndex);
-                    if (draggedIndex !== null && dropIndex !== null) {
-                        @this.call('reorderCards', draggedIndex, dropIndex);
+                // Small delay to ensure elementFromPoint works correctly
+                setTimeout(() => {
+                    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                    const dropTarget = elementBelow?.closest('.draggable-card');
+
+                    if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
+                        const dropIndex = parseInt(dropTarget.dataset.cardIndex);
+                        if (draggedIndex !== null && dropIndex !== null && draggedIndex !== dropIndex) {
+                            @this.call('reorderCards', draggedIndex, dropIndex);
+                        }
                     }
-                }
 
-                removeDragGhost();
+                    removeDragGhost();
+                }, 50);
             }
+            // If it wasn't a drag, the wire:click will handle the tap automatically
 
-            // Remove drag-over class from all cards
-            document.querySelectorAll('.drag-over').forEach(el => {
-                el.classList.remove('drag-over');
-            });
+            // General cleanup
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 
             if (draggedElement) {
                 draggedElement.classList.remove('dragging');
-                draggedElement = null;
-                draggedIndex = null;
             }
 
             const dropZones = document.getElementById('drop-zones');
             if (dropZones) dropZones.style.display = 'none';
 
+            // Reset state
+            draggedElement = null;
+            draggedIndex = null;
             isDragging = false;
+            dragStartTime = 0;
         }
 
         // Helper functions

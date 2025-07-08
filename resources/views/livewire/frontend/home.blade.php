@@ -159,8 +159,68 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="col-4">
+                    <div class="card featured-product-card">
+                        <div class="card-body">
+                            <div class="product-thumbnail-side">
+                                <!-- Thumbnail -->
+                                <a class="product-thumbnail d-block" href="#">
+                                    <img src="{{asset('assets/frontend/img/core-img/g1.png')}}" alt="">
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                @foreach ($prizes as $prize )
+                </div>
+                <div class="col-4">
+                    <div class="card featured-product-card">
+                        <div class="card-body">
+                            <div class="product-thumbnail-side">
+                                <!-- Thumbnail -->
+                                <a class="product-thumbnail d-block" href="#">
+                                    <img src="{{asset('assets/frontend/img/core-img/g2.png')}}" alt="">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card featured-product-card">
+                        <div class="card-body">
+                            <div class="product-thumbnail-side">
+                                <!-- Thumbnail -->
+                                <a class="product-thumbnail d-block" href="#">
+                                    <img src="{{asset('assets/frontend/img/core-img/g3.png')}}" alt="">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card featured-product-card">
+                        <div class="card-body">
+                            <div class="product-thumbnail-side">
+                                <!-- Thumbnail -->
+                                <a class="product-thumbnail d-block" href="#">
+                                    <img src="{{asset('assets/frontend/img/core-img/g4.png')}}" alt="">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="card featured-product-card">
+                        <div class="card-body">
+                            <div class="product-thumbnail-side">
+                                <!-- Thumbnail -->
+                                <a class="product-thumbnail d-block" href="#">
+                                    <img src="{{asset('assets/frontend/img/core-img/g5.png')}}" alt="">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{-- @foreach ($prizes as $prize )
                     <div class="col-4">
                     <div class="card featured-product-card">
                         <div class="card-body">
@@ -184,7 +244,7 @@
                         </div>
                     </div>
                     </div>
-                @endforeach
+                @endforeach --}}
               </div>
             </div>
           </div>
