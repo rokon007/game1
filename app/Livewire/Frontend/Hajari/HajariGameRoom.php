@@ -6,6 +6,7 @@ use App\Models\HajariGame;
 use App\Models\HajariGameParticipant;
 use App\Models\HajariGameMove;
 use App\Models\Transaction;
+use App\Models\GameSetting;
 use App\Events\GameUpdated;
 use App\Events\CardPlayed;
 use App\Events\ScoreUpdated;
@@ -110,7 +111,9 @@ class HajariGameRoom extends Component
             // Check if player has cards locked status
             $this->isCardsLocked = $this->player->cards_locked ?? false;
 
-            $arrangementEndTime = $this->game->updated_at->addMinutes(2);
+            // Get dynamic arrangement time from database
+            $arrangementTimeMinutes = GameSetting::getArrangementTime() / 60;
+            $arrangementEndTime = $this->game->updated_at->addMinutes($arrangementTimeMinutes);
             $now = Carbon::now();
 
             if ($now->lt($arrangementEndTime) && !$this->isCardsLocked) {
@@ -247,7 +250,7 @@ class HajariGameRoom extends Component
         return 1; // ফলব্যাক
     }
 
-    // Enhanced Hajari Game Logic
+    // Enhanced Hajari Game Logic with Updated Rules
     private function getRoundWinnerPosition($round)
     {
         $roundMoves = $this->game->moves()
@@ -306,9 +309,9 @@ class HajariGameRoom extends Component
             ];
         }
 
-        // Sort by combination priority, then by highest card, then by card count, then by submission time
+        // Sort by hand type priority, then by highest card, then by card count, then by submission time
         usort($evaluatedHands, function ($a, $b) {
-            // First compare combination priority (lower number = higher priority)
+            // First compare hand type priority (lower number = higher priority)
             if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
                 return $a['evaluation']['priority'] - $b['evaluation']['priority'];
             }
@@ -334,8 +337,9 @@ class HajariGameRoom extends Component
     {
         $cardValues = $this->getCardValues($cards);
         $suits = $this->getCardSuits($cards);
+        $cardCount = count($cards);
 
-        // Check for Tie (Four of a Kind)
+        // Check for Tie (3 or 4 cards of same rank)
         if ($this->isTie($cardValues)) {
             return [
                 'type' => 'tie',
@@ -344,7 +348,7 @@ class HajariGameRoom extends Component
             ];
         }
 
-        // Check for Running (Straight Flush)
+        // Check for Running (3 or 4 sequential cards of same suit)
         if ($this->isRunning($cardValues, $suits)) {
             return [
                 'type' => 'running',
@@ -353,19 +357,37 @@ class HajariGameRoom extends Component
             ];
         }
 
-        // Check for Color (Flush)
-        if ($this->isColor($suits)) {
+        // Check for Run (3 or 4 sequential cards of different suits)
+        if ($this->isRun($cardValues)) {
             return [
-                'type' => 'color',
+                'type' => 'run',
                 'priority' => 3,
                 'highest_card' => max($cardValues)
             ];
         }
 
-        // Normal combination
+        // Check for Color (3 or 4 cards of same suit but not sequential)
+        if ($this->isColor($suits) && !$this->isSequential($cardValues)) {
+            return [
+                'type' => 'color',
+                'priority' => 4,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Pair (2 cards of same rank)
+        if ($this->isPair($cardValues)) {
+            return [
+                'type' => 'pair',
+                'priority' => 5,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Mixed (all other combinations)
         return [
-            'type' => 'normal',
-            'priority' => 4,
+            'type' => 'mixed',
+            'priority' => 6,
             'highest_card' => max($cardValues)
         ];
     }
@@ -402,31 +424,42 @@ class HajariGameRoom extends Component
 
     private function isTie($cardValues)
     {
-        if (count($cardValues) !== 4) return false;
-
         $valueCounts = array_count_values($cardValues);
-        return in_array(4, $valueCounts);
+        return in_array(3, $valueCounts) || in_array(4, $valueCounts);
     }
 
     private function isRunning($cardValues, $suits)
     {
-        // Must be same suit
-        if (count(array_unique($suits)) !== 1) return false;
+        // Must be same suit and sequential
+        return $this->isColor($suits) && $this->isSequential($cardValues);
+    }
 
-        // Must be sequential
+    private function isRun($cardValues)
+    {
+        // Sequential cards of different suits
+        return $this->isSequential($cardValues);
+    }
+
+    private function isColor($suits)
+    {
+        return count(array_unique($suits)) === 1;
+    }
+
+    private function isSequential($cardValues)
+    {
         sort($cardValues);
         for ($i = 1; $i < count($cardValues); $i++) {
             if ($cardValues[$i] !== $cardValues[$i-1] + 1) {
                 return false;
             }
         }
-
         return true;
     }
 
-    private function isColor($suits)
+    private function isPair($cardValues)
     {
-        return count(array_unique($suits)) === 1;
+        $valueCounts = array_count_values($cardValues);
+        return in_array(2, $valueCounts);
     }
 
     private function calculateRoundWinner()
@@ -908,7 +941,7 @@ class HajariGameRoom extends Component
             });
 
             broadcast(new GameUpdated($this->game, 'game_started', [
-                'message' => 'Game has started! Cards have been distributed. You have 4 minutes to arrange your cards.'
+                'message' => 'Game has started! Cards have been distributed. You have ' . (GameSetting::getArrangementTime() / 60) . ' minutes to arrange your cards.'
             ]));
 
             $this->loadGameState();
@@ -1012,15 +1045,31 @@ class HajariGameRoom extends Component
         $participants = $this->game->participants()->get();
         $transactions = [];
 
-        DB::transaction(function () use ($winner, $bidAmount, $participants, &$transactions) {
-            // বিজয়ীর জন্য ক্রেডিট ট্রানজাকশন
-            $winnerAmount = $bidAmount * 4;
+        // Get admin commission percentage from settings
+        $adminCommissionPercentage = GameSetting::getAdminCommission();
 
+        DB::transaction(function () use ($winner, $bidAmount, $participants, &$transactions, $adminCommissionPercentage) {
+            // Calculate total prize pool
+            $totalPrizePool = $bidAmount * 4;
+
+            // Calculate admin commission
+            $adminCommission = ($totalPrizePool * $adminCommissionPercentage) / 100;
+            $winnerAmount = $totalPrizePool - $adminCommission;
+
+            // বিজয়ীর জন্য ক্রেডিট ট্রানজাকশন (after commission deduction)
             Transaction::create([
                 'user_id' => $winner->user_id,
+                'game_id' => $this->game->id,
                 'type' => 'credit',
                 'amount' => $winnerAmount,
-                'details' => "Game win: {$this->game->title} (Winner: {$winner->user->name})",
+                'description' => "Game win: {$this->game->title} (Winner: {$winner->user->name}) - After {$adminCommissionPercentage}% commission",
+                'status' => 'completed',
+                'metadata' => [
+                    'original_amount' => $totalPrizePool,
+                    'commission_percentage' => $adminCommissionPercentage,
+                    'commission_amount' => $adminCommission,
+                    'final_amount' => $winnerAmount
+                ]
             ]);
 
             $winner->user->increment('credit', $winnerAmount);
@@ -1029,17 +1078,44 @@ class HajariGameRoom extends Component
                 'user_id' => $winner->user_id,
                 'type' => 'credit',
                 'amount' => $winnerAmount,
-                'details' => "Game win: {$this->game->title}"
+                'description' => "Game win: {$this->game->title} - After commission"
             ];
+
+            // Admin commission transaction
+            if ($adminCommission > 0) {
+                Transaction::create([
+                    'user_id' => null, // Admin transaction
+                    'game_id' => $this->game->id,
+                    'type' => 'admin_commission',
+                    'amount' => $adminCommission,
+                    'description' => "Admin commission ({$adminCommissionPercentage}%) from game: {$this->game->title}",
+                    'status' => 'completed',
+                    'metadata' => [
+                        'commission_percentage' => $adminCommissionPercentage,
+                        'total_prize_pool' => $totalPrizePool,
+                        'winner_id' => $winner->user_id,
+                        'game_id' => $this->game->id
+                    ]
+                ]);
+
+                $transactions[] = [
+                    'user_id' => null,
+                    'type' => 'admin_commission',
+                    'amount' => $adminCommission,
+                    'description' => "Admin commission from game: {$this->game->title}"
+                ];
+            }
 
             // অন্য প্লেয়ারদের জন্য ডেবিট ট্রানজাকশন
             foreach ($participants as $participant) {
                 if ($participant->user_id !== $winner->user_id) {
                     Transaction::create([
                         'user_id' => $participant->user_id,
+                        'game_id' => $this->game->id,
                         'type' => 'debit',
                         'amount' => $bidAmount,
-                        'details' => "Game loss: {$this->game->title} (Winner: {$winner->user->name})",
+                        'description' => "Game loss: {$this->game->title} (Winner: {$winner->user->name})",
+                        'status' => 'completed'
                     ]);
 
                     $participant->user->decrement('credit', $bidAmount);
@@ -1048,7 +1124,7 @@ class HajariGameRoom extends Component
                         'user_id' => $participant->user_id,
                         'type' => 'debit',
                         'amount' => $bidAmount,
-                        'details' => "Game loss: {$this->game->title}"
+                        'description' => "Game loss: {$this->game->title}"
                     ];
                 }
             }

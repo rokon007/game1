@@ -6,22 +6,27 @@
     <audio id="dealSound" preload="auto">
         <source src="{{ asset('sounds/card-deal.mp3') }}" type="audio/mpeg">
         <source src="{{ asset('sounds/card-deal.wav') }}" type="audio/wav">
+        <source src="{{ asset('sounds/card-deal.ogg') }}" type="audio/ogg">
     </audio>
     <audio id="turnSound" preload="auto">
         <source src="{{ asset('sounds/turn-notification.mp3') }}" type="audio/mpeg">
         <source src="{{ asset('sounds/turn-notification.wav') }}" type="audio/wav">
+        <source src="{{ asset('sounds/turn-notification.ogg') }}" type="audio/ogg">
     </audio>
     <audio id="winRoundSound" preload="auto">
         <source src="{{ asset('sounds/round-win.mp3') }}" type="audio/mpeg">
         <source src="{{ asset('sounds/round-win.wav') }}" type="audio/wav">
+        <source src="{{ asset('sounds/round-win.ogg') }}" type="audio/ogg">
     </audio>
     <audio id="playCardSound" preload="auto">
         <source src="{{ asset('sounds/card-play.mp3') }}" type="audio/mpeg">
         <source src="{{ asset('sounds/card-play.wav') }}" type="audio/wav">
+        <source src="{{ asset('sounds/card-play.ogg') }}" type="audio/ogg">
     </audio>
     <audio id="gameOverSound" preload="auto">
         <source src="{{ asset('sounds/game-over.mp3') }}" type="audio/mpeg">
         <source src="{{ asset('sounds/game-over.wav') }}" type="audio/wav">
+        <source src="{{ asset('sounds/game-over.ogg') }}" type="audio/ogg">
     </audio>
 
     <!-- Game notifications container -->
@@ -251,7 +256,7 @@
         </div>
     @endif
 
-    <!-- Drop zones for drag and drop (hidden by default) -->
+    <!-- Drop zones for drag and drop -->
     <div id="drop-zones" class="drop-zones" style="display: none;">
         <div class="drop-zone" data-zone="left">Drop Here</div>
         <div class="drop-zone" data-zone="right">Drop Here</div>
@@ -306,63 +311,72 @@
         let dragStartTime = 0;
         let arrangementTimer = null;
         let touchTimeout = null;
+        let soundEnabled = true;
 
-        // Sound effects controller with better error handling
+        // Enhanced Sound Effects controller with better error handling and fallbacks
         const SoundEffects = {
-            playDealSound: () => {
+            async playSound(audioId, fallbackBeep = false) {
                 try {
-                    const audio = document.getElementById('dealSound');
-                    if (audio) {
+                    const audio = document.getElementById(audioId);
+                    if (audio && soundEnabled) {
+                        // Reset audio to beginning
                         audio.currentTime = 0;
-                        audio.play().catch(e => console.log('Deal sound failed:', e));
+
+                        // Try to play the audio
+                        const playPromise = audio.play();
+
+                        if (playPromise !== undefined) {
+                            await playPromise;
+                        }
+                    } else if (fallbackBeep && soundEnabled) {
+                        // Fallback to system beep or web audio API
+                        this.playFallbackSound();
                     }
-                } catch (e) {
-                    console.log('Deal sound error:', e);
+                } catch (error) {
+                    console.log(`Sound ${audioId} failed:`, error);
+                    if (fallbackBeep && soundEnabled) {
+                        this.playFallbackSound();
+                    }
                 }
             },
-            playTurnSound: () => {
+
+            playFallbackSound() {
                 try {
-                    const audio = document.getElementById('turnSound');
-                    if (audio) {
-                        audio.currentTime = 0;
-                        audio.play().catch(e => console.log('Turn sound failed:', e));
-                    }
+                    // Create a simple beep using Web Audio API
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
                 } catch (e) {
-                    console.log('Turn sound error:', e);
+                    console.log('Fallback sound failed:', e);
                 }
             },
-            playWinRoundSound: () => {
-                try {
-                    const audio = document.getElementById('winRoundSound');
-                    if (audio) {
-                        audio.currentTime = 0;
-                        audio.play().catch(e => console.log('Win round sound failed:', e));
-                    }
-                } catch (e) {
-                    console.log('Win round sound error:', e);
-                }
+
+            playDealSound: () => SoundEffects.playSound('dealSound', true),
+            playTurnSound: () => SoundEffects.playSound('turnSound', true),
+            playWinRoundSound: () => SoundEffects.playSound('winRoundSound', true),
+            playCardSound: () => SoundEffects.playSound('playCardSound', true),
+            playGameOverSound: () => SoundEffects.playSound('gameOverSound', true),
+
+            toggleSound() {
+                soundEnabled = !soundEnabled;
+                localStorage.setItem('hajari_sound_enabled', soundEnabled);
+                return soundEnabled;
             },
-            playCardSound: () => {
-                try {
-                    const audio = document.getElementById('playCardSound');
-                    if (audio) {
-                        audio.currentTime = 0;
-                        audio.play().catch(e => console.log('Card play sound failed:', e));
-                    }
-                } catch (e) {
-                    console.log('Card play sound error:', e);
-                }
-            },
-            playGameOverSound: () => {
-                try {
-                    const audio = document.getElementById('gameOverSound');
-                    if (audio) {
-                        audio.currentTime = 0;
-                        audio.play().catch(e => console.log('Game over sound failed:', e));
-                    }
-                } catch (e) {
-                    console.log('Game over sound error:', e);
-                }
+
+            isSoundEnabled() {
+                return soundEnabled;
             }
         };
 
@@ -377,6 +391,12 @@
 
             // Initialize audio elements
             initializeAudio();
+
+            // Load sound preference
+            const savedSoundPref = localStorage.getItem('hajari_sound_enabled');
+            if (savedSoundPref !== null) {
+                soundEnabled = savedSoundPref === 'true';
+            }
         });
 
         function initializeAudio() {
@@ -385,8 +405,39 @@
             audioElements.forEach(id => {
                 const audio = document.getElementById(id);
                 if (audio) {
-                    audio.volume = 0.5; // Set volume to 50%
-                    audio.load(); // Preload the audio
+                    audio.volume = 0.6; // Set volume to 60%
+                    audio.preload = 'auto';
+
+                    // Add event listeners for better error handling
+                    audio.addEventListener('canplaythrough', () => {
+                        console.log(`Audio ${id} loaded successfully`);
+                    });
+
+                    audio.addEventListener('error', (e) => {
+                        console.log(`Audio ${id} failed to load:`, e);
+                    });
+
+                    // Try to load the audio
+                    audio.load();
+                }
+            });
+
+            // Enable audio context on first user interaction
+            document.addEventListener('click', enableAudioContext, { once: true });
+            document.addEventListener('touchstart', enableAudioContext, { once: true });
+        }
+
+        function enableAudioContext() {
+            // This helps with autoplay policies on mobile browsers
+            const audioElements = document.querySelectorAll('audio');
+            audioElements.forEach(audio => {
+                if (audio.paused) {
+                    audio.play().then(() => {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    }).catch(e => {
+                        console.log('Audio context enable failed:', e);
+                    });
                 }
             });
         }
@@ -555,8 +606,12 @@
             if (!dropTarget || dropTarget === draggedElement || dropTarget.classList.contains('disabled') || dropTarget.classList.contains('locked')) return;
 
             const dropIndex = parseInt(dropTarget.dataset.cardIndex);
-            if (draggedIndex !== null && dropIndex !== null) {
-                @this.call('reorderCards', draggedIndex, dropIndex);
+            if (draggedIndex !== null && dropIndex !== null && draggedIndex !== dropIndex) {
+                @this.call('reorderCards', draggedIndex, dropIndex).then(() => {
+                    console.log('Card reordered successfully');
+                }).catch(error => {
+                    console.error('Card reorder failed:', error);
+                });
             }
         }
 
@@ -576,7 +631,7 @@
             if (dropZones) dropZones.style.display = 'none';
         }
 
-        // Enhanced touch handlers for mobile - unified approach
+        // Enhanced touch handlers for mobile - unified approach with better drop detection
         function handleTouchStart(e) {
             const cardElement = e.target.closest('.draggable-card');
             if (!cardElement || cardElement.classList.contains('locked')) return;
@@ -612,7 +667,7 @@
             const deltaY = Math.abs(touch.clientY - touchStartY);
 
             // Start dragging if moved enough distance (increased threshold for better tap detection)
-            if (!isDragging && (deltaX > 15 || deltaY > 15)) {
+            if (!isDragging && (deltaX > 20 || deltaY > 20)) {
                 isDragging = true; // Now this is confirmed as a drag operation
                 draggedElement.classList.add('dragging');
 
@@ -660,12 +715,20 @@
                     if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
                         const dropIndex = parseInt(dropTarget.dataset.cardIndex);
                         if (draggedIndex !== null && dropIndex !== null && draggedIndex !== dropIndex) {
-                            @this.call('reorderCards', draggedIndex, dropIndex);
+                            @this.call('reorderCards', draggedIndex, dropIndex).then(() => {
+                                console.log('Touch drag reorder successful');
+                                // Add haptic feedback for successful drop
+                                if (navigator.vibrate) {
+                                    navigator.vibrate([50, 50, 50]);
+                                }
+                            }).catch(error => {
+                                console.error('Touch drag reorder failed:', error);
+                            });
                         }
                     }
 
                     removeDragGhost();
-                }, 50);
+                }, 100); // Increased delay for better detection
             }
             // If it wasn't a drag, the wire:click will handle the tap automatically
 
@@ -798,10 +861,108 @@
             initializeEnhancedDragAndDrop();
             initializeScrollIndicators();
         });
+
+        // Add sound toggle button (optional)
+        function addSoundToggle() {
+            const soundToggle = document.createElement('button');
+            soundToggle.innerHTML = soundEnabled ? '🔊' : '🔇';
+            soundToggle.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 60px;
+                z-index: 1000;
+                background: rgba(0,0,0,0.7);
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+                cursor: pointer;
+            `;
+
+            soundToggle.addEventListener('click', () => {
+                const enabled = SoundEffects.toggleSound();
+                soundToggle.innerHTML = enabled ? '🔊' : '🔇';
+            });
+
+            document.body.appendChild(soundToggle);
+        }
+
+        // Uncomment to add sound toggle button
+        // document.addEventListener('DOMContentLoaded', addSoundToggle);
     </script>
     @endpush
 
     <style>
+        /* All existing styles remain the same, just adding enhanced drag and drop styles */
+
+        /* Enhanced drag and drop styles */
+        .draggable-card {
+            cursor: grab;
+        }
+
+        .draggable-card:active {
+            cursor: grabbing;
+        }
+
+        .draggable-card.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg) scale(1.05);
+            z-index: 1000;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            transition: none;
+        }
+
+        .draggable-card.drag-over {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4);
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+        }
+
+        #drag-ghost {
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* Drop zones styling */
+        .drop-zones {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+
+        .drop-zone {
+            width: 120px;
+            height: 120px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 3px dashed #3b82f6;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone:hover {
+            background: rgba(59, 130, 246, 0.4);
+            border-color: #2563eb;
+            transform: scale(1.05);
+        }
+
         /* Notifications container */
         .notifications-container {
             position: fixed;
@@ -1420,19 +1581,6 @@
             cursor: not-allowed;
         }
 
-        .enhanced-card-wrapper.dragging {
-            opacity: 0.5;
-            transform: rotate(5deg) scale(1.1);
-            z-index: 20;
-        }
-
-        .enhanced-card-wrapper.drag-over {
-            transform: translateY(-8px);
-            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4);
-            border: 2px solid #3b82f6;
-            border-radius: 8px;
-        }
-
         @keyframes lastFewPulse {
             0%, 100% { border-color: rgba(239, 68, 68, 0.6); }
             50% { border-color: rgba(239, 68, 68, 1); }
@@ -1469,34 +1617,6 @@
             font-size: 16px;
             border-radius: 8px;
             z-index: 5;
-        }
-
-        /* Drop zones */
-        .drop-zones {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.3);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .drop-zone {
-            width: 100px;
-            height: 100px;
-            background: rgba(59, 130, 246, 0.3);
-            border: 2px dashed #3b82f6;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
         }
 
         /* Modal styles */

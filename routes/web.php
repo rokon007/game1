@@ -36,6 +36,7 @@ use App\Livewire\Backend\NumberAnnouncer;
 use App\Livewire\Backend\AgentComponent;
 use App\Livewire\Backend\ReferralSettings;
 use App\Livewire\Backend\HowToGuideManager;
+use App\Livewire\Backend\HajariGameSettings;
 use App\Livewire\Frontend\NewChat\Main;
 use App\Http\Controllers\CkeditorController;
 
@@ -80,6 +81,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::get('/agent', AgentComponent::class)->name('agent');
     Route::get('/referral-settings', ReferralSettings::class)->name('referral-settings');
     Route::get('/how-to-guides', HowToGuideManager::class)->name('howto');
+    Route::get('/game-settings', HajariGameSettings::class)->name('hajari_game_settings');
 });
 
 Route::post('/ckeditor/upload', [CkeditorController::class, 'upload'])->name('ckeditor.upload');
