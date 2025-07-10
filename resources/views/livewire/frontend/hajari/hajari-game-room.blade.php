@@ -5,28 +5,28 @@
     <!-- Audio elements for sound effects -->
     <audio id="dealSound" preload="auto">
         <source src="{{ asset('sounds/card-deal.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/card-deal.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/card-deal.ogg') }}" type="audio/ogg">
+        {{-- <source src="{{ asset('sounds/card-deal.wav') }}" type="audio/wav">
+        <source src="{{ asset('sounds/card-deal.ogg') }}" type="audio/ogg"> --}}
     </audio>
     <audio id="turnSound" preload="auto">
         <source src="{{ asset('sounds/turn-notification.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/turn-notification.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/turn-notification.ogg') }}" type="audio/ogg">
+        {{-- <source src="{{ asset('sounds/turn-notification.wav') }}" type="audio/wav">
+        <source src="{{ asset('sounds/turn-notification.ogg') }}" type="audio/ogg"> --}}
     </audio>
     <audio id="winRoundSound" preload="auto">
         <source src="{{ asset('sounds/round-win.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/round-win.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/round-win.ogg') }}" type="audio/ogg">
+        {{-- <source src="{{ asset('sounds/round-win.wav') }}" type="audio/wav">
+        <source src="{{ asset('sounds/round-win.ogg') }}" type="audio/ogg"> --}}
     </audio>
     <audio id="playCardSound" preload="auto">
         <source src="{{ asset('sounds/card-play.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/card-play.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/card-play.ogg') }}" type="audio/ogg">
+        {{-- <source src="{{ asset('sounds/card-play.wav') }}" type="audio/wav">
+        <source src="{{ asset('sounds/card-play.ogg') }}" type="audio/ogg"> --}}
     </audio>
     <audio id="gameOverSound" preload="auto">
         <source src="{{ asset('sounds/game-over.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/game-over.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/game-over.ogg') }}" type="audio/ogg">
+        {{-- <source src="{{ asset('sounds/game-over.wav') }}" type="audio/wav">
+        <source src="{{ asset('sounds/game-over.ogg') }}" type="audio/ogg"> --}}
     </audio>
 
     <!-- Game notifications container -->
@@ -312,24 +312,20 @@
         let arrangementTimer = null;
         let touchTimeout = null;
         let soundEnabled = true;
+        let dragThreshold = 15; // Minimum distance to start dragging
 
-        // Enhanced Sound Effects controller with better error handling and fallbacks
+        // Enhanced Sound Effects controller
         const SoundEffects = {
             async playSound(audioId, fallbackBeep = false) {
                 try {
                     const audio = document.getElementById(audioId);
                     if (audio && soundEnabled) {
-                        // Reset audio to beginning
                         audio.currentTime = 0;
-
-                        // Try to play the audio
                         const playPromise = audio.play();
-
                         if (playPromise !== undefined) {
                             await playPromise;
                         }
                     } else if (fallbackBeep && soundEnabled) {
-                        // Fallback to system beep or web audio API
                         this.playFallbackSound();
                     }
                 } catch (error) {
@@ -342,7 +338,6 @@
 
             playFallbackSound() {
                 try {
-                    // Create a simple beep using Web Audio API
                     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                     const oscillator = audioContext.createOscillator();
                     const gainNode = audioContext.createGain();
@@ -380,16 +375,13 @@
             }
         };
 
-        // Initialize enhanced drag and drop
+        // Initialize everything
         document.addEventListener('DOMContentLoaded', function() {
             initializeEnhancedDragAndDrop();
             initializeScrollIndicators();
             optimizeForLandscape();
-            setupMobileCardSelection();
             initializePusherEvents();
             startArrangementTimer();
-
-            // Initialize audio elements
             initializeAudio();
 
             // Load sound preference
@@ -405,19 +397,8 @@
             audioElements.forEach(id => {
                 const audio = document.getElementById(id);
                 if (audio) {
-                    audio.volume = 0.6; // Set volume to 60%
+                    audio.volume = 0.6;
                     audio.preload = 'auto';
-
-                    // Add event listeners for better error handling
-                    audio.addEventListener('canplaythrough', () => {
-                        console.log(`Audio ${id} loaded successfully`);
-                    });
-
-                    audio.addEventListener('error', (e) => {
-                        console.log(`Audio ${id} failed to load:`, e);
-                    });
-
-                    // Try to load the audio
                     audio.load();
                 }
             });
@@ -428,7 +409,6 @@
         }
 
         function enableAudioContext() {
-            // This helps with autoplay policies on mobile browsers
             const audioElements = document.querySelectorAll('audio');
             audioElements.forEach(audio => {
                 if (audio.paused) {
@@ -458,7 +438,6 @@
                             if (timerElement) timerElement.textContent = timeString;
                             if (headerTimer) headerTimer.textContent = timeString;
 
-                            // Change color when time is running out
                             if (timeLeft <= 30) {
                                 if (timerElement) timerElement.classList.add('urgent');
                                 if (headerTimer) headerTimer.classList.add('urgent');
@@ -474,7 +453,6 @@
         }
 
         function initializePusherEvents() {
-            // Game updated event
             window.addEventListener('gameUpdated', event => {
                 showNotification(event.detail.data.message || 'Game updated');
                 @this.call('loadGameState');
@@ -485,14 +463,12 @@
                 }
             });
 
-            // Card played event
             window.addEventListener('cardPlayed', event => {
                 showNotification(`${event.detail.player_name} played cards`);
                 @this.call('loadGameState');
                 SoundEffects.playCardSound();
             });
 
-            // Round winner event
             window.addEventListener('roundWinner', event => {
                 const winnerPosition = event.detail.winner_position;
                 const winnerName = event.detail.winner_name;
@@ -503,41 +479,33 @@
                 }, 1000);
             });
 
-            // Clear center cards event
             window.addEventListener('clearCenterCards', () => {
                 clearCenterCards();
             });
 
-            // Hide score modal event
             window.addEventListener('hideScoreModal', () => {
                 setTimeout(() => {
                     @this.call('closeScoreModal');
                 }, 5000);
             });
 
-            // Auto-refresh game state
             setInterval(() => {
                 @this.call('loadGameState');
             }, 3000);
         }
 
-        // Enhanced mobile card selection - now empty to avoid conflicts
-        function setupMobileCardSelection() {
-            // This function is intentionally empty to avoid conflicts
-            // Touch handling is now managed in the unified touch handlers below
-        }
-
+        // FIXED: Enhanced drag and drop with proper drop detection
         function initializeEnhancedDragAndDrop() {
             const container = document.getElementById('cards-container');
             if (!container) return;
 
-            // Mouse events for desktop
+            // Desktop drag and drop
             container.addEventListener('dragstart', handleDragStart);
             container.addEventListener('dragover', handleDragOver);
             container.addEventListener('drop', handleDrop);
             container.addEventListener('dragend', handleDragEnd);
 
-            // Touch events for mobile - unified approach
+            // Mobile touch events
             container.addEventListener('touchstart', handleTouchStart, { passive: false });
             container.addEventListener('touchmove', handleTouchMove, { passive: false });
             container.addEventListener('touchend', handleTouchEnd, { passive: false });
@@ -559,7 +527,6 @@
             scrollContainer.addEventListener('scroll', updateScrollIndicators);
             updateScrollIndicators();
 
-            // Click handlers for scroll indicators
             leftIndicator.addEventListener('click', () => {
                 scrollContainer.scrollBy({ left: -100, behavior: 'smooth' });
             });
@@ -569,19 +536,25 @@
             });
         }
 
-        // Enhanced drag handlers for desktop
+        // FIXED: Desktop drag handlers with better drop detection
         function handleDragStart(e) {
-            if (!e.target.closest('.draggable-card') || e.target.closest('.disabled') || e.target.closest('.locked')) return;
+            const cardElement = e.target.closest('.draggable-card');
+            if (!cardElement || cardElement.classList.contains('locked') || cardElement.getAttribute('draggable') !== 'true') {
+                e.preventDefault();
+                return;
+            }
 
-            draggedElement = e.target.closest('.draggable-card');
-            draggedIndex = parseInt(draggedElement.dataset.cardIndex);
-            draggedElement.classList.add('dragging');
+            draggedElement = cardElement;
+            draggedIndex = parseInt(cardElement.dataset.cardIndex);
 
-            const dropZones = document.getElementById('drop-zones');
-            if (dropZones) dropZones.style.display = 'flex';
+            // Add visual feedback
+            cardElement.classList.add('dragging');
+            cardElement.style.opacity = '0.5';
 
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/html', '');
+
+            console.log('Drag started:', draggedIndex);
         }
 
         function handleDragOver(e) {
@@ -589,7 +562,14 @@
             e.dataTransfer.dropEffect = 'move';
 
             const dropTarget = e.target.closest('.draggable-card');
-            if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('disabled') && !dropTarget.classList.contains('locked')) {
+
+            // Remove previous drag-over effects
+            document.querySelectorAll('.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+
+            // Add drag-over effect to valid drop target
+            if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
                 dropTarget.classList.add('drag-over');
             }
         }
@@ -597,66 +577,76 @@
         function handleDrop(e) {
             e.preventDefault();
 
-            // Remove drag-over class from all cards
+            const dropTarget = e.target.closest('.draggable-card');
+
+            // Remove all drag-over effects
             document.querySelectorAll('.drag-over').forEach(el => {
                 el.classList.remove('drag-over');
             });
 
-            const dropTarget = e.target.closest('.draggable-card');
-            if (!dropTarget || dropTarget === draggedElement || dropTarget.classList.contains('disabled') || dropTarget.classList.contains('locked')) return;
+            if (!dropTarget || dropTarget === draggedElement || dropTarget.classList.contains('locked')) {
+                console.log('Invalid drop target');
+                return;
+            }
 
             const dropIndex = parseInt(dropTarget.dataset.cardIndex);
+
             if (draggedIndex !== null && dropIndex !== null && draggedIndex !== dropIndex) {
+                console.log('Dropping card from', draggedIndex, 'to', dropIndex);
+
+                // Call Livewire method to reorder cards
                 @this.call('reorderCards', draggedIndex, dropIndex).then(() => {
                     console.log('Card reordered successfully');
+                    showNotification('Card position changed');
+
+                    // Add haptic feedback if available
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50);
+                    }
                 }).catch(error => {
                     console.error('Card reorder failed:', error);
+                    showNotification('Failed to move card');
                 });
             }
         }
 
         function handleDragEnd(e) {
-            // Remove drag-over class from all cards
+            // Clean up drag state
             document.querySelectorAll('.drag-over').forEach(el => {
                 el.classList.remove('drag-over');
             });
 
             if (draggedElement) {
                 draggedElement.classList.remove('dragging');
+                draggedElement.style.opacity = '';
                 draggedElement = null;
                 draggedIndex = null;
             }
 
-            const dropZones = document.getElementById('drop-zones');
-            if (dropZones) dropZones.style.display = 'none';
+            console.log('Drag ended');
         }
 
-        // Enhanced touch handlers for mobile - unified approach with better drop detection
+        // FIXED: Mobile touch handlers with better drop detection
         function handleTouchStart(e) {
             const cardElement = e.target.closest('.draggable-card');
-            if (!cardElement || cardElement.classList.contains('locked')) return;
-
-            // Clear any existing timeout
-            if (touchTimeout) {
-                clearTimeout(touchTimeout);
-                touchTimeout = null;
+            if (!cardElement || cardElement.classList.contains('locked') || cardElement.getAttribute('draggable') !== 'true') {
+                return;
             }
 
-            // Only setup drag for arrangement phase
-            if (cardElement.getAttribute('draggable') === 'true') {
-                const touch = e.touches[0];
-                touchStartX = touch.clientX;
-                touchStartY = touch.clientY;
-                dragStartTime = Date.now();
-                draggedElement = cardElement;
-                draggedIndex = parseInt(draggedElement.dataset.cardIndex);
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            dragStartTime = Date.now();
 
-                const rect = draggedElement.getBoundingClientRect();
-                dragOffset.x = touch.clientX - rect.left;
-                dragOffset.y = touch.clientY - rect.top;
+            // Store potential drag element
+            draggedElement = cardElement;
+            draggedIndex = parseInt(cardElement.dataset.cardIndex);
 
-                // Don't prevent default here to allow tap events to work
-            }
+            const rect = cardElement.getBoundingClientRect();
+            dragOffset.x = touch.clientX - rect.left;
+            dragOffset.y = touch.clientY - rect.top;
+
+            isDragging = false; // Reset dragging state
         }
 
         function handleTouchMove(e) {
@@ -666,34 +656,42 @@
             const deltaX = Math.abs(touch.clientX - touchStartX);
             const deltaY = Math.abs(touch.clientY - touchStartY);
 
-            // Start dragging if moved enough distance (increased threshold for better tap detection)
-            if (!isDragging && (deltaX > 20 || deltaY > 20)) {
-                isDragging = true; // Now this is confirmed as a drag operation
+            // Start dragging if moved enough distance
+            if (!isDragging && (deltaX > dragThreshold || deltaY > dragThreshold)) {
+                isDragging = true;
+
+                // Prevent default to stop scrolling
+                e.preventDefault();
+
+                // Add visual feedback
                 draggedElement.classList.add('dragging');
+                draggedElement.style.opacity = '0.5';
 
-                const dropZones = document.getElementById('drop-zones');
-                if (dropZones) dropZones.style.display = 'flex';
-
+                // Create drag ghost
                 createDragGhost(touch.clientX, touch.clientY);
 
-                // Add haptic feedback if available
+                // Add haptic feedback
                 if (navigator.vibrate) {
                     navigator.vibrate(50);
                 }
+
+                console.log('Touch drag started:', draggedIndex);
             }
 
             if (isDragging) {
-                e.preventDefault(); // Only prevent scrolling when actually dragging
+                e.preventDefault();
                 updateDragGhost(touch.clientX, touch.clientY);
 
-                // Check for drop target
+                // Find drop target
                 const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
                 const dropTarget = elementBelow?.closest('.draggable-card');
 
-                // Remove previous drag-over classes
-                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                // Remove previous drag-over effects
+                document.querySelectorAll('.drag-over').forEach(el => {
+                    el.classList.remove('drag-over');
+                });
 
-                // Add drag-over class to current target
+                // Add drag-over effect to valid drop target
                 if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
                     dropTarget.classList.add('drag-over');
                 }
@@ -704,43 +702,49 @@
             if (!draggedElement) return;
 
             if (isDragging) {
-                // This was a drag operation
                 const touch = e.changedTouches[0];
 
-                // Small delay to ensure elementFromPoint works correctly
+                // Small delay to ensure proper element detection
                 setTimeout(() => {
                     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
                     const dropTarget = elementBelow?.closest('.draggable-card');
 
                     if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
                         const dropIndex = parseInt(dropTarget.dataset.cardIndex);
+
                         if (draggedIndex !== null && dropIndex !== null && draggedIndex !== dropIndex) {
+                            console.log('Touch dropping card from', draggedIndex, 'to', dropIndex);
+
+                            // Call Livewire method to reorder cards
                             @this.call('reorderCards', draggedIndex, dropIndex).then(() => {
-                                console.log('Touch drag reorder successful');
-                                // Add haptic feedback for successful drop
+                                console.log('Touch card reordered successfully');
+                                showNotification('Card position changed');
+
+                                // Add success haptic feedback
                                 if (navigator.vibrate) {
                                     navigator.vibrate([50, 50, 50]);
                                 }
                             }).catch(error => {
-                                console.error('Touch drag reorder failed:', error);
+                                console.error('Touch card reorder failed:', error);
+                                showNotification('Failed to move card');
                             });
                         }
                     }
 
+                    // Clean up
                     removeDragGhost();
-                }, 100); // Increased delay for better detection
+                }, 100);
             }
-            // If it wasn't a drag, the wire:click will handle the tap automatically
 
-            // General cleanup
-            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            // Clean up drag state
+            document.querySelectorAll('.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
 
             if (draggedElement) {
                 draggedElement.classList.remove('dragging');
+                draggedElement.style.opacity = '';
             }
-
-            const dropZones = document.getElementById('drop-zones');
-            if (dropZones) dropZones.style.display = 'none';
 
             // Reset state
             draggedElement = null;
@@ -749,8 +753,10 @@
             dragStartTime = 0;
         }
 
-        // Helper functions
+        // Helper functions for drag ghost
         function createDragGhost(x, y) {
+            if (!draggedElement) return;
+
             const ghost = draggedElement.cloneNode(true);
             ghost.id = 'drag-ghost';
             ghost.style.position = 'fixed';
@@ -777,7 +783,7 @@
             if (ghost) ghost.remove();
         }
 
-        // Enhanced animation for round winner with fan stacks
+        // Animation and utility functions
         function animateCardsToWinner(winnerPosition) {
             const playerStacks = document.querySelectorAll('.fan-player-stack');
             const winnerElement = document.getElementById(`player-position-${winnerPosition}`);
@@ -813,7 +819,6 @@
             }
         }
 
-        // Landscape optimization
         function optimizeForLandscape() {
             function adjustLayout() {
                 const isLandscape = window.innerWidth > window.innerHeight;
@@ -821,7 +826,6 @@
 
                 if (isLandscape && isMobile) {
                     document.body.classList.add('mobile-landscape');
-                    // Force full screen
                     setTimeout(() => {
                         window.scrollTo(0, 0);
                         if (document.documentElement.requestFullscreen) {
@@ -861,45 +865,14 @@
             initializeEnhancedDragAndDrop();
             initializeScrollIndicators();
         });
-
-        // Add sound toggle button (optional)
-        function addSoundToggle() {
-            const soundToggle = document.createElement('button');
-            soundToggle.innerHTML = soundEnabled ? '🔊' : '🔇';
-            soundToggle.style.cssText = `
-                position: fixed;
-                top: 10px;
-                right: 60px;
-                z-index: 1000;
-                background: rgba(0,0,0,0.7);
-                color: white;
-                border: none;
-                border-radius: 50%;
-                width: 40px;
-                height: 40px;
-                font-size: 16px;
-                cursor: pointer;
-            `;
-
-            soundToggle.addEventListener('click', () => {
-                const enabled = SoundEffects.toggleSound();
-                soundToggle.innerHTML = enabled ? '🔊' : '🔇';
-            });
-
-            document.body.appendChild(soundToggle);
-        }
-
-        // Uncomment to add sound toggle button
-        // document.addEventListener('DOMContentLoaded', addSoundToggle);
     </script>
     @endpush
 
     <style>
-        /* All existing styles remain the same, just adding enhanced drag and drop styles */
-
         /* Enhanced drag and drop styles */
         .draggable-card {
             cursor: grab;
+            transition: all 0.3s ease;
         }
 
         .draggable-card:active {
@@ -907,7 +880,7 @@
         }
 
         .draggable-card.dragging {
-            opacity: 0.5;
+            opacity: 0.5 !important;
             transform: rotate(5deg) scale(1.05);
             z-index: 1000;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
@@ -919,48 +892,12 @@
             box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4);
             border: 2px solid #3b82f6;
             border-radius: 8px;
+            background: rgba(59, 130, 246, 0.1);
         }
 
         #drag-ghost {
             pointer-events: none;
             user-select: none;
-        }
-
-        /* Drop zones styling */
-        .drop-zones {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.3);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(2px);
-        }
-
-        .drop-zone {
-            width: 120px;
-            height: 120px;
-            background: rgba(59, 130, 246, 0.2);
-            border: 3px dashed #3b82f6;
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .drop-zone:hover {
-            background: rgba(59, 130, 246, 0.4);
-            border-color: #2563eb;
-            transform: scale(1.05);
         }
 
         /* Notifications container */
@@ -972,7 +909,6 @@
             pointer-events: none;
         }
 
-        /* Notification styling */
         .notification {
             background: rgba(0, 0, 0, 0.8);
             color: white;
