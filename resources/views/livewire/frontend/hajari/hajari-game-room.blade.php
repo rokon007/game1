@@ -552,7 +552,7 @@
             cardElement.style.opacity = '0.5';
 
             e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', '');
+            e.dataTransfer.setData('text/html', ''); // Required for Firefox to enable drag
 
             console.log('Drag started:', draggedIndex);
         }
@@ -705,6 +705,7 @@
                 const touch = e.changedTouches[0];
 
                 // Small delay to ensure proper element detection
+                // This delay helps in cases where the touchup might register before the element under it is fully stable
                 setTimeout(() => {
                     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
                     const dropTarget = elementBelow?.closest('.draggable-card');
@@ -733,7 +734,7 @@
 
                     // Clean up
                     removeDragGhost();
-                }, 100);
+                }, 100); // 100ms delay
             }
 
             // Clean up drag state
@@ -763,7 +764,7 @@
             ghost.style.left = (x - dragOffset.x) + 'px';
             ghost.style.top = (y - dragOffset.y) + 'px';
             ghost.style.zIndex = '9999';
-            ghost.style.pointerEvents = 'none';
+            ghost.style.pointerEvents = 'none'; // Ensure ghost doesn't interfere with touch events
             ghost.style.transform = 'rotate(5deg) scale(1.1)';
             ghost.style.opacity = '0.8';
             ghost.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.3)';
@@ -884,7 +885,7 @@
             transform: rotate(5deg) scale(1.05);
             z-index: 1000;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-            transition: none;
+            transition: none; /* Disable transition during drag for smoother movement */
         }
 
         .draggable-card.drag-over {
