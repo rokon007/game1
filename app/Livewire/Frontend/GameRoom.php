@@ -151,6 +151,40 @@ class GameRoom extends Component
         }
     }
 
+
+    public function loadNumbers()
+    {
+        $this->announcedNumbers = Announcement::where('game_id', $this->games_Id)
+            ->pluck('number')
+            ->toArray();
+
+        $this->sheetTickets = Ticket::where('user_id', Auth::id())
+            ->where('ticket_number', 'LIKE', $this->sheet_Id . '-%')
+            ->orderBy('ticket_number')
+            ->get()
+            ->map(function ($ticket) {
+                $winningPatterns = [];
+                if (Schema::hasColumn('tickets', 'winning_patterns') && $ticket->winning_patterns) {
+                    $winningPatterns = is_string($ticket->winning_patterns)
+                        ? json_decode($ticket->winning_patterns, true)
+                        : $ticket->winning_patterns;
+                }
+
+                return [
+                    'id' => $ticket->id,
+                    'number' => $ticket->ticket_number,
+                    'numbers' => is_string($ticket->numbers)
+                        ? json_decode($ticket->numbers, true)
+                        : $ticket->numbers,
+                    'is_winner' => $ticket->is_winner,
+                    'winning_patterns' => $winningPatterns,
+                    'created_at' => $ticket->created_at->format('d M Y h:i A'),
+                    'game' => $ticket->game,
+                ];
+            })
+            ->toArray();
+    }
+
     // টেস্ট মেথড যোগ করুন
     public function testWinnerHandler()
     {
