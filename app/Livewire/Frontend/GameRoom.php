@@ -39,8 +39,6 @@ class GameRoom extends Component
     public $totalParticipants;
     public $winnerPattarns;
     public $simultaneousWinners = [];
-
-    // নতুন property যোগ করা হয়েছে
     public $processingPatterns = [];
 
     protected $listeners = [
@@ -292,7 +290,6 @@ class GameRoom extends Component
         $this->winnerSelfAnnounced();
     }
 
-    // উন্নত checkWinners method
     public function checkWinners()
     {
         if ($this->checkGameOver()) {
@@ -336,7 +333,6 @@ class GameRoom extends Component
         }
     }
 
-    // FIXED: একাধিক winners একসাথে process করার জন্য
     private function processMultipleWinners($detectedWinners)
     {
         try {
@@ -407,13 +403,32 @@ class GameRoom extends Component
         }
     }
 
-    // নতুন method: একটি pattern এর সব winners process করার জন্য
+    // FIXED: Prize sharing logic
     private function processPatternWinners($pattern, $winners)
     {
         try {
+            // Check if this pattern is already being processed
+            if (in_array($pattern, $this->processingPatterns)) {
+                Log::info("Pattern $pattern is already being processed, skipping...");
+                return;
+            }
+
+            // Mark pattern as being processed
+            $this->processingPatterns[] = $pattern;
+
             $game = Game::find($this->games_Id);
             if (!$game) {
                 Log::error("Game not found: {$this->games_Id}");
+                return;
+            }
+
+            // Check if pattern is already claimed in database
+            $existingWinners = Winner::where('game_id', $this->games_Id)
+                ->where('pattern', $pattern)
+                ->exists();
+
+            if ($existingWinners) {
+                Log::info("Pattern $pattern already has winners in database, skipping...");
                 return;
             }
 
@@ -423,14 +438,21 @@ class GameRoom extends Component
                 return;
             }
 
-            // Prize calculation
+            // FIXED: Prize calculation - ensure proper division
             $totalPrizeAmount = $this->getPrizeAmountForPattern($game, $pattern);
-            $prizePerWinner = $totalPrizeAmount / $numberOfWinners;
+            $prizePerWinner = round($totalPrizeAmount / $numberOfWinners, 2);
 
-            Log::info("Processing pattern winners for $pattern", [
+            // IMPORTANT: Verify the calculation
+            $totalDistributed = $prizePerWinner * $numberOfWinners;
+            $remainder = $totalPrizeAmount - $totalDistributed;
+
+            Log::info("PRIZE CALCULATION DEBUG", [
+                'pattern' => $pattern,
                 'total_prize' => $totalPrizeAmount,
                 'number_of_winners' => $numberOfWinners,
                 'prize_per_winner' => $prizePerWinner,
+                'total_distributed' => $totalDistributed,
+                'remainder' => $remainder,
                 'winners' => array_column($winners, 'user_id')
             ]);
 
@@ -446,20 +468,21 @@ class GameRoom extends Component
                 return;
             }
 
-            // System থেকে একবার total amount deduct করা
-            $systemUser->decrement('credit', $totalPrizeAmount);
+            // FIXED: System থেকে শুধুমাত্র actual distributed amount deduct করা
+            $actualAmountToDeduct = $prizePerWinner * $numberOfWinners;
+            $systemUser->decrement('credit', $actualAmountToDeduct);
 
             // System transaction (একবার)
             Transaction::create([
                 'user_id' => $systemUser->id,
                 'type' => 'debit',
-                'amount' => $totalPrizeAmount,
-                'details' => "Prize for $pattern in game: {$game->title} (shared among $numberOfWinners winners)",
+                'amount' => $actualAmountToDeduct,
+                'details' => "Prize for $pattern in game: {$game->title} (shared among $numberOfWinners winners - $prizePerWinner each)",
             ]);
 
-            Log::info("System credit deducted: $totalPrizeAmount for pattern: $pattern");
+            Log::info("System credit deducted: $actualAmountToDeduct for pattern: $pattern");
 
-            // প্রতিটি winner এর জন্য Winner record তৈরি করা এবং prize distribute করা
+            // FIXED: প্রতিটি winner এর জন্য সঠিক amount distribute করা
             foreach ($winners as $winnerData) {
                 $userId = $winnerData['user_id'];
                 $ticketId = $winnerData['ticket_id'];
@@ -471,7 +494,7 @@ class GameRoom extends Component
                     'ticket_id' => $ticketId,
                     'pattern' => $pattern,
                     'won_at' => now(),
-                    'prize_amount' => $prizePerWinner,
+                    'prize_amount' => $prizePerWinner, // FIXED: Shared amount, not full amount
                     'prize_processed' => true
                 ]);
 
@@ -482,14 +505,14 @@ class GameRoom extends Component
                     continue;
                 }
 
-                // Winner এর credit বাড়ানো
+                // FIXED: Winner এর credit এ শুধুমাত্র shared amount যোগ করা
                 $winnerUser->increment('credit', $prizePerWinner);
 
                 // Winner transaction
                 Transaction::create([
                     'user_id' => $winnerUser->id,
                     'type' => 'credit',
-                    'amount' => $prizePerWinner,
+                    'amount' => $prizePerWinner, // FIXED: Shared amount
                     'details' => "Won $pattern in game: {$game->title}" .
                                ($numberOfWinners > 1 ? " (shared with " . ($numberOfWinners - 1) . " other winners)" : ''),
                 ]);
@@ -507,26 +530,22 @@ class GameRoom extends Component
                     $this->sentNotification = true;
                 }
 
-                Log::info("Prize distributed to user $userId: $prizePerWinner credits for pattern $pattern");
+                Log::info("PRIZE DISTRIBUTED: User $userId received $prizePerWinner credits for pattern $pattern (shared among $numberOfWinners winners)");
             }
 
             // System notification
-            $systemNotificationMessage = "Prize of $totalPrizeAmount credits awarded for $pattern (shared among $numberOfWinners winners)";
+            $systemNotificationMessage = "Prize of $actualAmountToDeduct credits awarded for $pattern (shared among $numberOfWinners winners - $prizePerWinner each)";
             Notification::send($systemUser, new CreditTransferred($systemNotificationMessage));
 
-            Log::info("All prizes processed successfully for pattern $pattern. Total winners: $numberOfWinners, Total amount: $totalPrizeAmount");
+            Log::info("SUCCESS: All prizes processed for pattern $pattern. Winners: $numberOfWinners, Amount per winner: $prizePerWinner, Total distributed: $actualAmountToDeduct");
 
         } catch (\Exception $e) {
             Log::error("Error processing pattern winners for $pattern: " . $e->getMessage());
             Log::error("Stack trace: " . $e->getTraceAsString());
+        } finally {
+            // Remove pattern from processing list
+            $this->processingPatterns = array_diff($this->processingPatterns, [$pattern]);
         }
-    }
-
-    // Legacy method - এখন আর ব্যবহার হবে না
-    private function processPrizesForPatternImmediate($pattern)
-    {
-        Log::info("processPrizesForPatternImmediate called but now using processPatternWinners instead");
-        // এই method এখন deprecated, processPatternWinners ব্যবহার করা হচ্ছে
     }
 
     public function loadNumbers()
@@ -561,8 +580,6 @@ class GameRoom extends Component
             })
             ->toArray();
     }
-
-    // বাকি সব methods একই রকম থাকবে...
 
     private function checkCornerNumbers($numbers)
     {
@@ -655,17 +672,9 @@ class GameRoom extends Component
         return true;
     }
 
-    // Legacy method - এখন আর ব্যবহার হবে না
-    private function updateTicketWinningStatus($ticketId, $winningPatterns)
-    {
-        // This method is now deprecated in favor of processMultipleWinners
-    }
-
-    // Legacy method - backward compatibility এর জন্য রাখা হয়েছে
     public function processDelayedPrizes($data)
     {
         Log::info("processDelayedPrizes called but using immediate processing instead");
-        // এখন আর এই method ব্যবহার হবে না
     }
 
     private function getPrizeAmountForPattern($game, $pattern)
