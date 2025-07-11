@@ -40,8 +40,6 @@ class GameRoom extends Component
     public $winnerPattarns;
     public $simultaneousWinners = [];
 
-
-
     protected $listeners = [
         'echo:game.*,number.announced' => 'handleNumberAnnounced',
         'echo:game.*,game.winner' => 'handleWinnerAnnounced',
@@ -57,42 +55,18 @@ class GameRoom extends Component
     {
         $this->sheet_Id = $sheetId;
         $this->games_Id = $gameId;
-
         $this->totalParticipants = Ticket::where('game_id', $gameId)
             ->distinct('user_id')
             ->count('user_id');
-
         $this->loadNumbers();
         $this->initWinningPatterns();
         $this->checkGameOver();
-
         $this->gameScheduledAt = $this->sheetTickets[0]['game']['scheduled_at'] ?? null;
         $this->updateTimer();
         $this->getWinnerPattarns();
 
-        // Create game_locks table if not exists
-        $this->ensureGameLocksTableExists();
-
+        // ডিবাগ লগ যোগ করুন
         Log::info('GameRoom mounted for game: ' . $gameId);
-    }
-
-    // Ensure game_locks table exists
-    private function ensureGameLocksTableExists()
-    {
-        try {
-            if (!Schema::hasTable('game_locks')) {
-                Schema::create('game_locks', function ($table) {
-                    $table->id();
-                    $table->string('lock_key')->unique();
-                    $table->timestamp('created_at');
-                    $table->timestamp('expires_at');
-                    $table->index(['lock_key', 'expires_at']);
-                });
-                Log::info('game_locks table created successfully');
-            }
-        } catch (\Exception $e) {
-            Log::error('Error creating game_locks table: ' . $e->getMessage());
-        }
     }
 
     public function updateTimer()
@@ -110,17 +84,21 @@ class GameRoom extends Component
         }
 
         $this->remainingTime = gmdate('H:i:s', abs($diff));
+
+        // Livewire v3 স্টাইলে ডেলাইড ডিসপ্যাচ
         $this->dispatch('tick', delay: 1000);
     }
 
     public function handleWinnerAnnounced($payload = null)
     {
+        // ডিবাগ লগ যোগ করুন
         Log::info('handleWinnerAnnounced called', [
             'payload' => $payload,
             'game_id' => $this->games_Id,
             'method' => 'handleWinnerAnnounced'
         ]);
 
+        // গেমের সকল উইনার লোড করুন
         $this->winners = Winner::where('game_id', $this->games_Id)
             ->with('user')
             ->orderByDesc('won_at')
@@ -129,6 +107,8 @@ class GameRoom extends Component
         Log::info('Winners loaded', ['winners_count' => $this->winners->count()]);
 
         $this->winnerAllart = true;
+
+        // UI আপডেট করুন
         $this->dispatch('winnerAnnounced', ['winners' => $this->winners]);
         $this->dispatch('winnerAllartMakeFalse');
         $this->getWinnerPattarns();
@@ -136,16 +116,19 @@ class GameRoom extends Component
 
     public function handleNumberAnnounced($payload = null)
     {
+        // ডিবাগ লগ যোগ করুন
         Log::info('handleNumberAnnounced called', [
             'payload' => $payload,
             'game_id' => $this->games_Id,
             'method' => 'handleNumberAnnounced'
         ]);
 
+        // If game is over, don't process any more numbers
         if ($this->gameOver) {
             return;
         }
 
+        // Extract number from payload
         $number = null;
         if (is_array($payload) && isset($payload['number'])) {
             $number = $payload['number'];
@@ -153,6 +136,7 @@ class GameRoom extends Component
             $number = $payload->number;
         }
 
+        // Add the new number to announced numbers if valid
         if ($number && !in_array($number, $this->announcedNumbers)) {
             $this->announcedNumbers[] = $number;
             $this->dispatch('play-number-audio', number: $number);
@@ -166,6 +150,7 @@ class GameRoom extends Component
         }
     }
 
+    // টেস্ট মেথড যোগ করুন
     public function testWinnerHandler()
     {
         Log::info('Test winner handler called manually');
@@ -189,7 +174,9 @@ class GameRoom extends Component
             ->with('user')
             ->orderByDesc('won_at')
             ->get();
-        $this->dispatch('openGameoverModal');
+        $this->winnerAllart = true;
+        $this->dispatch('winnerAllartMakeFalse');
+        $this->getWinnerPattarns();
     }
 
     public function getWinnerPattarns()
@@ -208,10 +195,12 @@ class GameRoom extends Component
     public function handleGameOver($data)
     {
         Log::info('Winner announced event received', ['payload' => $data]);
+        // গেমের সকল উইনার লোড করুন
         $this->winners = Winner::where('game_id', $this->games_Id)
             ->with('user')
             ->orderByDesc('won_at')
             ->get();
+
         $this->dispatch('openGameoverModal');
     }
 
@@ -223,10 +212,12 @@ class GameRoom extends Component
 
     public function gameOverSelfAnnounced()
     {
+        // গেমের সকল উইনার লোড করুন
         $this->winners = Winner::where('game_id', $this->games_Id)
             ->with('user')
             ->orderByDesc('won_at')
             ->get();
+
         $this->dispatch('openGameoverModal');
     }
 
@@ -287,6 +278,7 @@ class GameRoom extends Component
     private function dispatchGlobalGameOverEvent()
     {
         broadcast(new GameOverEvent($this->games_Id))->toOthers();
+
         $this->winners = Winner::where('game_id', $this->games_Id)
             ->with('user')
             ->orderByDesc('won_at')
@@ -307,6 +299,7 @@ class GameRoom extends Component
         } catch (\Exception $e) {
             Log::error("WinnerBroadcasting failed: " . $e->getMessage());
         }
+
         $this->winnerSelfAnnounced();
     }
 
@@ -316,365 +309,62 @@ class GameRoom extends Component
             return;
         }
 
-        $newWinners = [];
-
         foreach ($this->sheetTickets as $index => $ticket) {
             $ticketId = $ticket['id'];
             $numbers = $ticket['numbers'];
             $winningPatterns = [];
 
-            // Check all patterns
             if ($this->checkCornerNumbers($numbers)) {
                 if (!$this->isPatternClaimedInGame('corner')) {
                     $winningPatterns[] = 'corner';
+                    $this->winningPatterns['corner']['claimed'] = true;
                 }
             }
+
             if ($this->checkTopLine($numbers)) {
                 if (!$this->isPatternClaimedInGame('top_line')) {
                     $winningPatterns[] = 'top_line';
+                    $this->winningPatterns['top_line']['claimed'] = true;
                 }
             }
+
             if ($this->checkMiddleLine($numbers)) {
                 if (!$this->isPatternClaimedInGame('middle_line')) {
                     $winningPatterns[] = 'middle_line';
+                    $this->winningPatterns['middle_line']['claimed'] = true;
                 }
             }
+
             if ($this->checkBottomLine($numbers)) {
                 if (!$this->isPatternClaimedInGame('bottom_line')) {
                     $winningPatterns[] = 'bottom_line';
+                    $this->winningPatterns['bottom_line']['claimed'] = true;
                 }
             }
+
             if ($this->checkFullHouse($numbers)) {
                 if (!$this->isPatternClaimedInGame('full_house')) {
                     $winningPatterns[] = 'full_house';
+                    $this->winningPatterns['full_house']['claimed'] = true;
                 }
             }
 
             if (!empty($winningPatterns)) {
-                $newWinners[] = [
-                    'ticket_id' => $ticketId,
-                    'patterns' => $winningPatterns,
-                    'index' => $index,
-                    'user_id' => $ticket['user_id'] ?? Auth::id() // Fixed: Added fallback
-                ];
-            }
-        }
+                $this->updateTicketWinningStatus($ticketId, $winningPatterns);
+                $this->sheetTickets[$index]['is_winner'] = true;
+                $this->sheetTickets[$index]['winning_patterns'] = $winningPatterns;
 
-        // Process all winners at once to avoid race conditions
-        if (!empty($newWinners)) {
-            $this->processMultipleWinners($newWinners);
-        }
-    }
-
-    private function processMultipleWinners($newWinners)
-    {
-        try {
-            DB::transaction(function () use ($newWinners) {
-                $patternsToProcess = [];
-
-                foreach ($newWinners as $winnerData) {
-                    $ticketId = $winnerData['ticket_id'];
-                    $patterns = $winnerData['patterns'];
-                    $index = $winnerData['index'];
-                    $userId = $winnerData['user_id'];
-
-                    $ticket = Ticket::find($ticketId);
-                    if (!$ticket) continue;
-
-                    // Mark ticket as winner
-                    $ticket->is_winner = true;
-                    if (Schema::hasColumn('tickets', 'winning_patterns')) {
-                        $ticket->winning_patterns = $patterns;
-                    }
-                    $ticket->save();
-
-                    // Update UI
-                    $this->sheetTickets[$index]['is_winner'] = true;
-                    $this->sheetTickets[$index]['winning_patterns'] = $patterns;
-
-                    foreach ($patterns as $pattern) {
-                        // Check if pattern is already being processed or won
-                        $patternAlreadyWon = Winner::where('game_id', $this->games_Id)
-                            ->where('pattern', $pattern)
-                            ->exists();
-
-                        if (!$patternAlreadyWon) {
-                            // Add pattern to list for prize processing if not already won
-                            if (!in_array($pattern, $patternsToProcess)) {
-                                $patternsToProcess[] = $pattern;
-                            }
-
-                            // Create winner record immediately with prize_amount = 0
-                            Winner::create([
-                                'user_id' => $userId,
-                                'game_id' => $this->games_Id,
-                                'ticket_id' => $ticket->id,
-                                'pattern' => $pattern,
-                                'won_at' => now(),
-                                'prize_amount' => 0,
-                                'prize_processed' => false
-                            ]);
-
-                            Log::info("বিজয়ী রেকর্ড তৈরি হয়েছে ব্যবহারকারী {$userId}, প্যাটার্ন: $pattern, গেম: {$this->games_Id}");
-
-                            // Update pattern status
-                            $this->winningPatterns[$pattern]['claimed'] = true;
-
-                            // Dispatch UI events for immediate feedback
-                            $this->dispatch('play-winner-audio', pattern: $pattern);
-                            $this->dispatch('winner-alert',
-                                title: 'Congratulations!',
-                                message: 'You won ' . $this->winningPatterns[$pattern]['name'] . '!',
-                                pattern: $pattern
-                            );
-                        }
-                    }
+                foreach ($winningPatterns as $pattern) {
+                    $this->dispatch('play-winner-audio', pattern: $pattern);
+                    $this->dispatch('winner-alert', title: 'Congratulations!',
+                        message: 'You won ' . $this->winningPatterns[$pattern]['name'] . '!',
+                        pattern: $pattern);
                 }
 
-                // Process prizes for each unique pattern immediately
-                foreach ($patternsToProcess as $pattern) {
-                    // Use dispatch with delay to ensure all winner records are created
-                    $this->dispatch('process-delayed-prizes', [
-                        'pattern' => $pattern,
-                        'game_id' => $this->games_Id
-                    ], delay: 1000); // 1 second delay
-                }
-
-                // Dispatch winner event once for all patterns that were newly claimed
-                if (!empty($patternsToProcess)) {
-                    $this->dispatchGlobalWinerEvent();
-                }
-
-            }, 5); // 5 retry attempts for deadlock
-
-        } catch (\Exception $e) {
-            Log::error('Error in processMultipleWinners: ' . $e->getMessage());
-
-            // Fallback to individual processing
-            foreach ($newWinners as $winnerData) {
-                try {
-                    $this->updateTicketWinningStatus($winnerData['ticket_id'], $winnerData['patterns']);
-                } catch (\Exception $fallbackError) {
-                    Log::error('Fallback processing failed for ticket ' . $winnerData['ticket_id'] . ': ' . $fallbackError->getMessage());
+                if ($this->checkGameOver()) {
+                    break;
                 }
             }
-        }
-    }
-
-    private function processPrizesForPatternImmediate($pattern)
-    {
-        $maxAttempts = 3; // Reduced attempts
-        $delayBetweenAttempts = 500; // 0.5 seconds
-
-        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-            try {
-                $lockKey = "prize_processing_{$this->games_Id}_{$pattern}";
-
-                // Clean expired locks first
-                DB::table('game_locks')
-                    ->where('expires_at', '<', now())
-                    ->delete();
-
-                // Try to acquire lock
-                $lockAcquired = DB::table('game_locks')->insertOrIgnore([
-                    'lock_key' => $lockKey,
-                    'created_at' => now(),
-                    'expires_at' => now()->addMinutes(2) // Reduced lock time
-                ]);
-
-                if (!$lockAcquired) {
-                    Log::info("Pattern $pattern is already being processed (attempt $attempt/$maxAttempts)");
-                    if ($attempt < $maxAttempts) {
-                        usleep($delayBetweenAttempts * 1000);
-                        continue;
-                    }
-                    return;
-                }
-
-                try {
-                    DB::transaction(function () use ($pattern, $lockKey) {
-                        $game = Game::find($this->games_Id);
-                        if (!$game) {
-                            Log::error("গেম আইডি {$this->games_Id} পাওয়া যায়নি।");
-                            return;
-                        }
-
-                        // Check if already processed
-                        $alreadyProcessed = Winner::where('game_id', $this->games_Id)
-                            ->where('pattern', $pattern)
-                            ->where('prize_processed', true)
-                            ->exists();
-
-                        if ($alreadyProcessed) {
-                            Log::info("প্যাটার্ন $pattern এর জন্য পুরস্কার ইতিমধ্যে প্রক্রিয়া করা হয়েছে।");
-                            return;
-                        }
-
-                        // Get all unprocessed winners for this pattern
-                        $winners = Winner::where('game_id', $this->games_Id)
-                            ->where('pattern', $pattern)
-                            ->where('prize_processed', false)
-                            ->lockForUpdate()
-                            ->with('user', 'ticket')
-                            ->get();
-
-                        $numberOfWinners = $winners->count();
-                        if ($numberOfWinners == 0) {
-                            Log::info("প্যাটার্ন $pattern এর জন্য কোনো অপ্রক্রিয়াজাত বিজয়ী পাওয়া যায়নি।");
-                            return;
-                        }
-
-                        // Calculate prize distribution
-                        $totalPrizeAmount = $this->getPrizeAmountForPattern($game, $pattern);
-                        $prizePerWinner = round($totalPrizeAmount / $numberOfWinners, 2);
-
-                        Log::info("Processing prizes for pattern $pattern. Total prize: $totalPrizeAmount, Winners: $numberOfWinners, Prize per winner: $prizePerWinner");
-
-                        // Get system user
-                        $systemUser = User::where('role', 'admin')->first();
-                        if (!$systemUser) {
-                            throw new \Exception('সিস্টেম ব্যবহারকারী পাওয়া যায়নি');
-                        }
-
-                        // Check if system user has enough credit
-                        if ($systemUser->credit < $totalPrizeAmount) {
-                            Log::error("System user doesn't have enough credit. Required: $totalPrizeAmount, Available: {$systemUser->credit}");
-                            throw new \Exception('সিস্টেমে পর্যাপ্ত ক্রেডিট নেই');
-                        }
-
-                        // Deduct from system user
-                        $systemUser->decrement('credit', $totalPrizeAmount);
-
-                        // System transaction
-                        Transaction::create([
-                            'user_id' => $systemUser->id,
-                            'type' => 'debit',
-                            'amount' => $totalPrizeAmount,
-                            'details' => "Prize for $pattern in game: {$game->title} (shared among $numberOfWinners winners)",
-                        ]);
-
-                        $simultaneousWinnersData = [];
-
-                        // Process each winner
-                        foreach ($winners as $winner) {
-                            $winnerUser = $winner->user;
-                            if (!$winnerUser) {
-                                Log::error("Winner user not found for winner ID: {$winner->id}");
-                                continue;
-                            }
-
-                            // Add prize to winner
-                            $winnerUser->increment('credit', $prizePerWinner);
-
-                            // Update winner record
-                            $winner->update([
-                                'prize_amount' => $prizePerWinner,
-                                'prize_processed' => true
-                            ]);
-
-                            // Winner transaction
-                            Transaction::create([
-                                'user_id' => $winnerUser->id,
-                                'type' => 'credit',
-                                'amount' => $prizePerWinner,
-                                'details' => "Won $pattern in game: {$game->title}" .
-                                            ($numberOfWinners > 1 ? " (shared with " . ($numberOfWinners - 1) . " other winners)" : ''),
-                            ]);
-
-                            // Send notification
-                            $notificationMessage = $numberOfWinners > 1
-                                ? "You won $prizePerWinner credits for $pattern in game: {$game->title} (shared with " . ($numberOfWinners - 1) . " other winners)"
-                                : "You won $prizePerWinner credits for $pattern in game: {$game->title}";
-
-                            Notification::send($winnerUser, new CreditTransferred($notificationMessage));
-
-                            // Set notification for current user
-                            if ($winner->user_id == Auth::id()) {
-                                $this->textNote = $notificationMessage;
-                                $this->sentNotification = true;
-                            } else {
-                                $this->textNote = '';
-                                $this->sentNotification = false;
-                            }
-
-                            // Collect simultaneous winners data
-                            $simultaneousWinnersData[] = [
-                                'user_id' => $winnerUser->id,
-                                'user_name' => $winnerUser->name,
-                                'pattern' => $winner->pattern,
-                                'prize_amount' => $winner->prize_amount,
-                                'ticket_number' => $winner->ticket->ticket_number,
-                            ];
-                        }
-
-                        // System notification
-                        Notification::send($systemUser, new CreditTransferred(
-                            "Prize of $totalPrizeAmount credits awarded for $pattern (shared among $numberOfWinners winners)"
-                        ));
-
-                        Log::info("প্যাটার্ন $pattern এর জন্য সমস্ত পুরস্কার সফলভাবে প্রক্রিয়া করা হয়েছে। মোট বিজয়ী: $numberOfWinners");
-
-                        // Update simultaneous winners
-                        $this->simultaneousWinners = $simultaneousWinnersData;
-
-                        // Dispatch event for frontend
-                        $this->dispatch('simultaneousWinnersAnnounced', [
-                            'pattern' => $pattern,
-                            'winners' => $this->simultaneousWinners
-                        ]);
-
-                    }, 3); // Reduced retry attempts
-
-                    break; // Success, exit retry loop
-
-                } finally {
-                    // Always release lock
-                    DB::table('game_locks')->where('lock_key', $lockKey)->delete();
-                }
-
-            } catch (\Exception $e) {
-                Log::error("প্যাটার্ন $pattern এর জন্য পুরস্কার প্রক্রিয়াকরণে ত্রুটি: " . $e->getMessage() . " (চেষ্টা: $attempt/$maxAttempts)");
-
-                if ($attempt < $maxAttempts) {
-                    usleep($delayBetweenAttempts * 1000);
-                } else {
-                    // Final attempt failed, log and continue
-                    Log::error("Final attempt failed for pattern $pattern: " . $e->getMessage());
-                }
-            }
-        }
-    }
-
-    // Handle simultaneous winners announced event
-    public function handleSimultaneousWinnersAnnounced($payload)
-    {
-        Log::info('Simultaneous winners announced event received', ['payload' => $payload]);
-
-        if (isset($payload['winners']) && is_array($payload['winners'])) {
-            $this->simultaneousWinners = $payload['winners'];
-
-            // Dispatch to frontend for UI updates
-            $this->dispatch('showSimultaneousWinnersModal', [
-                'pattern' => $payload['pattern'] ?? 'Unknown',
-                'winners' => $this->simultaneousWinners
-            ]);
-        }
-    }
-
-    // Improved delayed prize processing
-    public function processDelayedPrizes($data)
-    {
-        $pattern = $data['pattern'];
-        $gameId = $data['game_id'];
-
-        Log::info("Processing delayed prizes for pattern: $pattern, game: $gameId");
-
-        // Small delay to ensure all winner records are created
-        usleep(500000); // 0.5 seconds
-
-        $game = Game::find($gameId);
-        if ($game) {
-            $this->processPrizesForPatternImmediate($pattern);
         }
     }
 
@@ -698,7 +388,6 @@ class GameRoom extends Component
 
                 return [
                     'id' => $ticket->id,
-                    'user_id' => $ticket->user_id, // Fixed: Added user_id
                     'number' => $ticket->ticket_number,
                     'numbers' => is_string($ticket->numbers)
                         ? json_decode($ticket->numbers, true)
@@ -711,8 +400,6 @@ class GameRoom extends Component
             })
             ->toArray();
     }
-
-    // ... Rest of the methods remain the same ...
 
     private function checkCornerNumbers($numbers)
     {
@@ -801,6 +488,7 @@ class GameRoom extends Component
                 return false;
             }
         }
+
         return true;
     }
 
@@ -812,6 +500,7 @@ class GameRoom extends Component
         if ($ticket && $game) {
             try {
                 DB::transaction(function () use ($ticket, $winningPatterns, $game) {
+                    // Mark ticket as winner
                     $ticket->is_winner = true;
                     if (Schema::hasColumn('tickets', 'winning_patterns')) {
                         $ticket->winning_patterns = $winningPatterns;
@@ -819,37 +508,169 @@ class GameRoom extends Component
                     $ticket->save();
 
                     foreach ($winningPatterns as $pattern) {
+                        // Check if this pattern has already been won
                         $patternAlreadyWon = Winner::where('game_id', $this->games_Id)
                             ->where('pattern', $pattern)
                             ->exists();
 
                         if (!$patternAlreadyWon) {
+                            // Create a temporary winner record with prize_amount = 0
                             Winner::create([
                                 'user_id' => $ticket->user_id,
                                 'game_id' => $this->games_Id,
                                 'ticket_id' => $ticket->id,
                                 'pattern' => $pattern,
                                 'won_at' => now(),
-                                'prize_amount' => 0,
+                                'prize_amount' => 0, // Temporary value, will be updated
                                 'prize_processed' => false
                             ]);
 
                             Log::info("Winner record created for user {$ticket->user_id}, pattern: $pattern, game: {$this->games_Id}");
 
+                            // $this->sentNotification = true;
                             $this->dispatchGlobalWinerEvent();
 
+                            // Schedule delayed prize processing to allow all simultaneous winners to be recorded
                             $this->dispatch('process-delayed-prizes', [
                                 'pattern' => $pattern,
                                 'game_id' => $this->games_Id
-                            ], delay: 2000);
+                            ], delay: 5000); // 2 second delay
                         }
                     }
                 });
+
             } catch (\Exception $e) {
                 Log::error('Error in updateTicketWinningStatus: ' . $e->getMessage());
                 $ticket->is_winner = true;
                 $ticket->save();
             }
+        }
+    }
+
+    // New method to handle delayed prize processing
+    public function processDelayedPrizes($data)
+    {
+        $pattern = $data['pattern'];
+        $gameId = $data['game_id'];
+
+        Log::info("Processing delayed prizes for pattern: $pattern, game: $gameId");
+
+        $game = Game::find($gameId);
+        if ($game) {
+            $this->processPrizesForPattern($pattern, $game);
+        }
+    }
+
+    // Improved method to process prizes for a pattern
+    private function processPrizesForPattern($pattern, $game)
+    {
+        try {
+            // Use a simple database transaction approach
+            DB::transaction(function () use ($pattern, $game) {
+                // Check if prizes have already been processed for this pattern
+                $alreadyProcessed = Winner::where('game_id', $this->games_Id)
+                    ->where('pattern', $pattern)
+                    ->where('prize_processed', true)
+                    ->exists();
+
+                if ($alreadyProcessed) {
+                    Log::info("Prizes for pattern $pattern have already been processed");
+                    return;
+                }
+
+                // Get all winners for this pattern who haven't had their prize processed
+                // Use lockForUpdate to prevent race conditions
+                $winners = Winner::where('game_id', $this->games_Id)
+                    ->where('pattern', $pattern)
+                    ->where('prize_processed', false)
+                    ->lockForUpdate()
+                    ->with('user', 'ticket')
+                    ->get();
+
+                $numberOfWinners = $winners->count();
+
+                if ($numberOfWinners == 0) {
+                    Log::info("No unprocessed winners found for pattern $pattern");
+                    return;
+                }
+
+                // Calculate prize amount per winner
+                $totalPrizeAmount = $this->getPrizeAmountForPattern($game, $pattern);
+                $prizePerWinner = $totalPrizeAmount / $numberOfWinners;
+
+                Log::info("Processing prizes for pattern $pattern. Total prize: $totalPrizeAmount, Winners: $numberOfWinners, Prize per winner: $prizePerWinner");
+
+                // Get system user
+                $systemUser = User::where('role', 'admin')->first();
+
+                if (!$systemUser) {
+                    throw new \Exception('System user not found');
+                }
+
+                // Deduct total prize amount from system user once
+                $systemUser->decrement('credit', $totalPrizeAmount);
+
+                // Create system debit transaction
+                Transaction::create([
+                    'user_id' => $systemUser->id,
+                    'type' => 'debit',
+                    'amount' => $totalPrizeAmount,
+                    'details' => 'Prize for ' . $pattern . ' in game: ' . $game->title . ' (shared among ' . $numberOfWinners . ' winners)',
+                ]);
+
+                // Process each winner
+                foreach ($winners as $winner) {
+                    $winnerUser = $winner->user;
+
+                    if (!$winnerUser) {
+                        Log::error('Winner user not found for winner record: ' . $winner->id);
+                        continue;
+                    }
+
+                    // Add shared prize amount to winner
+                    $winnerUser->increment('credit', $prizePerWinner);
+
+                    // Update winner record with actual prize amount
+                    $winner->prize_amount = $prizePerWinner;
+                    $winner->prize_processed = true;
+                    $winner->save();
+
+                    Log::info("Prize processed for user {$winnerUser->id}: $prizePerWinner credits for pattern $pattern");
+
+                    // Create winner credit transaction
+                    Transaction::create([
+                        'user_id' => $winnerUser->id,
+                        'type' => 'credit',
+                        'amount' => $prizePerWinner,
+                        'details' => 'Won ' . $pattern . ' in game: ' . $game->title . ($numberOfWinners > 1 ? ' (shared with ' . ($numberOfWinners - 1) . ' other winners)' : ''),
+                    ]);
+
+                    // Send notification to winner
+                    $notificationMessage = $numberOfWinners > 1
+                        ? 'You won ' . $prizePerWinner . ' credits for ' . $pattern . ' in game: ' . $game->title . ' (shared with ' . ($numberOfWinners - 1) . ' other winners)'
+                        : 'You won ' . $prizePerWinner . ' credits for ' . $pattern . ' in game: ' . $game->title;
+
+                    Notification::send($winnerUser, new CreditTransferred($notificationMessage));
+
+                    if ($winner->user_id == Auth::id()) {
+                        $this->textNote = $notificationMessage;
+                         $this->sentNotification = true;
+                    }else{
+                         $this->textNote = '';
+                         $this->sentNotification = false;
+                    }
+                }
+
+                // Send notification to system user
+                $systemNotificationMessage = 'Prize of ' . $totalPrizeAmount . ' credits awarded for ' . $pattern . ' (shared among ' . $numberOfWinners . ' winners)';
+                Notification::send($systemUser, new CreditTransferred($systemNotificationMessage));
+
+                Log::info("All prizes processed successfully for pattern $pattern. Total winners: $numberOfWinners");
+
+            }, 5); // 5 attempts for deadlock retry
+
+        } catch (\Exception $e) {
+            Log::error("Error processing prizes for pattern $pattern: " . $e->getMessage());
         }
     }
 
@@ -882,6 +703,7 @@ class GameRoom extends Component
             'bottom_line' => 'warning',
             'full_house' => 'danger'
         ];
+
         return $colors[$pattern] ?? 'secondary';
     }
 
@@ -892,10 +714,12 @@ class GameRoom extends Component
             if (is_string($winningPatterns)) {
                 $winningPatterns = json_decode($winningPatterns, true);
             }
+
             if (in_array($pattern, $winningPatterns)) {
                 return true;
             }
         }
+
         return false;
     }
 
