@@ -336,12 +336,13 @@ class GameRoom extends Component
         }
     }
 
-    // নতুন method: একাধিক winners একসাথে process করার জন্য
+    // FIXED: একাধিক winners একসাথে process করার জন্য
     private function processMultipleWinners($detectedWinners)
     {
         try {
             DB::transaction(function () use ($detectedWinners) {
                 $allPatternsToProcess = [];
+                $processedPatterns = []; // ইতিমধ্যে process করা patterns track করার জন্য
 
                 foreach ($detectedWinners as $winnerData) {
                     $ticketId = $winnerData['ticket_id'];
@@ -370,11 +371,11 @@ class GameRoom extends Component
                             'ticket_id' => $ticket->id,
                             'pattern' => $pattern,
                             'won_at' => now(),
-                            'prize_amount' => 0,
+                            'prize_amount' => 0, // এখানে 0 রাখা হয়েছে, পরে update হবে
                             'prize_processed' => false
                         ]);
 
-                        // Pattern list এ add করা
+                        // Pattern list এ add করা (শুধুমাত্র একবার)
                         if (!in_array($pattern, $allPatternsToProcess)) {
                             $allPatternsToProcess[] = $pattern;
                         }
@@ -392,12 +393,15 @@ class GameRoom extends Component
                              implode(', ', $winningPatterns) . ", game: {$this->games_Id}");
                 }
 
-                // সব patterns একসাথে process করা
+                // সব patterns একসাথে process করা (শুধুমাত্র একবার প্রতিটি pattern এর জন্য)
                 foreach ($allPatternsToProcess as $pattern) {
                     $this->winningPatterns[$pattern]['claimed'] = true;
 
-                    // তৎক্ষণাৎ prize process করা (delayed এর পরিবর্তে)
-                    $this->processPrizesForPatternImmediate($pattern);
+                    // শুধুমাত্র একবার prize process করা
+                    if (!in_array($pattern, $processedPatterns)) {
+                        $this->processPrizesForPatternImmediate($pattern);
+                        $processedPatterns[] = $pattern;
+                    }
                 }
 
                 $this->dispatchGlobalWinerEvent();
@@ -412,12 +416,15 @@ class GameRoom extends Component
         }
     }
 
-    // নতুন method: তৎক্ষণাৎ prize process করার জন্য
+    // FIXED: তৎক্ষণাৎ prize process করার জন্য
     private function processPrizesForPatternImmediate($pattern)
     {
         try {
             $game = Game::find($this->games_Id);
-            if (!$game) return;
+            if (!$game) {
+                Log::error("Game not found: {$this->games_Id}");
+                return;
+            }
 
             // এই pattern এর সব unprocessed winners পাওয়া
             $winners = Winner::where('game_id', $this->games_Id)
@@ -429,6 +436,7 @@ class GameRoom extends Component
             $numberOfWinners = $winners->count();
 
             if ($numberOfWinners == 0) {
+                Log::info("No unprocessed winners found for pattern: $pattern");
                 return;
             }
 
@@ -436,7 +444,11 @@ class GameRoom extends Component
             $totalPrizeAmount = $this->getPrizeAmountForPattern($game, $pattern);
             $prizePerWinner = $totalPrizeAmount / $numberOfWinners;
 
-            Log::info("Processing immediate prizes for pattern $pattern. Total: $totalPrizeAmount, Winners: $numberOfWinners, Per winner: $prizePerWinner");
+            Log::info("Processing immediate prizes for pattern $pattern", [
+                'total_prize' => $totalPrizeAmount,
+                'number_of_winners' => $numberOfWinners,
+                'prize_per_winner' => $prizePerWinner
+            ]);
 
             // System user
             $systemUser = User::where('role', 'admin')->first();
@@ -444,22 +456,32 @@ class GameRoom extends Component
                 throw new \Exception('System user not found');
             }
 
-            // System থেকে total amount deduct করা
+            // Check if system has enough credit
+            if ($systemUser->credit < $totalPrizeAmount) {
+                Log::error("System user doesn't have enough credit. Required: $totalPrizeAmount, Available: {$systemUser->credit}");
+                return;
+            }
+
+            // System থেকে ONLY একবার total amount deduct করা
             $systemUser->decrement('credit', $totalPrizeAmount);
 
-            // System transaction
+            // System transaction (একবার)
             Transaction::create([
                 'user_id' => $systemUser->id,
                 'type' => 'debit',
                 'amount' => $totalPrizeAmount,
-                'details' => 'Prize for ' . $pattern . ' in game: ' . $game->title .
-                           ' (shared among ' . $numberOfWinners . ' winners)',
+                'details' => "Prize for $pattern in game: {$game->title} (shared among $numberOfWinners winners)",
             ]);
 
-            // প্রতিটি winner এর জন্য prize process করা
+            Log::info("System credit deducted: $totalPrizeAmount for pattern: $pattern");
+
+            // প্রতিটি winner এর জন্য prize distribute করা
             foreach ($winners as $winner) {
                 $winnerUser = $winner->user;
-                if (!$winnerUser) continue;
+                if (!$winnerUser) {
+                    Log::error("Winner user not found for winner ID: {$winner->id}");
+                    continue;
+                }
 
                 // Winner এর credit বাড়ানো
                 $winnerUser->increment('credit', $prizePerWinner);
@@ -474,15 +496,14 @@ class GameRoom extends Component
                     'user_id' => $winnerUser->id,
                     'type' => 'credit',
                     'amount' => $prizePerWinner,
-                    'details' => 'Won ' . $pattern . ' in game: ' . $game->title .
-                               ($numberOfWinners > 1 ? ' (shared with ' . ($numberOfWinners - 1) . ' other winners)' : ''),
+                    'details' => "Won $pattern in game: {$game->title}" .
+                               ($numberOfWinners > 1 ? " (shared with " . ($numberOfWinners - 1) . " other winners)" : ''),
                 ]);
 
                 // Notification
                 $notificationMessage = $numberOfWinners > 1
-                    ? 'You won ' . $prizePerWinner . ' credits for ' . $pattern . ' in game: ' . $game->title .
-                      ' (shared with ' . ($numberOfWinners - 1) . ' other winners)'
-                    : 'You won ' . $prizePerWinner . ' credits for ' . $pattern . ' in game: ' . $game->title;
+                    ? "You won $prizePerWinner credits for $pattern in game: {$game->title} (shared with " . ($numberOfWinners - 1) . " other winners)"
+                    : "You won $prizePerWinner credits for $pattern in game: {$game->title}";
 
                 Notification::send($winnerUser, new CreditTransferred($notificationMessage));
 
@@ -491,17 +512,19 @@ class GameRoom extends Component
                     $this->textNote = $notificationMessage;
                     $this->sentNotification = true;
                 }
+
+                Log::info("Prize distributed to user {$winnerUser->id}: $prizePerWinner credits");
             }
 
             // System notification
-            $systemNotificationMessage = 'Prize of ' . $totalPrizeAmount . ' credits awarded for ' . $pattern .
-                                       ' (shared among ' . $numberOfWinners . ' winners)';
+            $systemNotificationMessage = "Prize of $totalPrizeAmount credits awarded for $pattern (shared among $numberOfWinners winners)";
             Notification::send($systemUser, new CreditTransferred($systemNotificationMessage));
 
-            Log::info("All prizes processed immediately for pattern $pattern. Total winners: $numberOfWinners");
+            Log::info("All prizes processed successfully for pattern $pattern. Total winners: $numberOfWinners, Total amount: $totalPrizeAmount");
 
         } catch (\Exception $e) {
             Log::error("Error processing immediate prizes for pattern $pattern: " . $e->getMessage());
+            Log::error("Stack trace: " . $e->getTraceAsString());
         }
     }
 
