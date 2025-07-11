@@ -10,6 +10,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('users:update-online-status')->everyMinute();
+        $schedule->command('game-locks:cleanup')->everyMinute();
     }
 
     protected function commands()
