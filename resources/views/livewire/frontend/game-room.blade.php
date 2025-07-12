@@ -776,6 +776,12 @@
     @endif
 
     <script>
+            document.addEventListener('winnerAllartDispay', () => {
+                setTimeout(() => {
+                    @this.call('winnerAllartShowMethod');
+                }, 8000); // ৫ সেকেন্ড বিলম্ব
+            });
+
             document.addEventListener('winnerAllartMakeFalse', () => {
                 setTimeout(() => {
                     @this.call('winnerAllartMakeFalseMethod');

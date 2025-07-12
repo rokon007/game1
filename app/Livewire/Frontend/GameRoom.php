@@ -100,6 +100,72 @@ class GameRoom extends Component
         $this->dispatch('winnerAnnounced', ['winners' => $this->winners]);
         $this->dispatch('winnerAllartMakeFalse');
         $this->getWinnerPattarns();
+        $this->checkWinners();
+    }
+
+    public function checkWinners()
+    {
+        if ($this->checkGameOver()) {
+            return;
+        }
+
+        foreach ($this->sheetTickets as $index => $ticket) {
+            $ticketId = $ticket['id'];
+            $numbers = $ticket['numbers'];
+            $winningPatterns = [];
+
+            if ($this->checkCornerNumbers($numbers)) {
+                if (!$this->isPatternClaimedInGame('corner')) {
+                    $winningPatterns[] = 'corner';
+                    $this->winningPatterns['corner']['claimed'] = true;
+                }
+            }
+
+            if ($this->checkTopLine($numbers)) {
+                if (!$this->isPatternClaimedInGame('top_line')) {
+                    $winningPatterns[] = 'top_line';
+                    $this->winningPatterns['top_line']['claimed'] = true;
+                }
+            }
+
+            if ($this->checkMiddleLine($numbers)) {
+                if (!$this->isPatternClaimedInGame('middle_line')) {
+                    $winningPatterns[] = 'middle_line';
+                    $this->winningPatterns['middle_line']['claimed'] = true;
+                }
+            }
+
+            if ($this->checkBottomLine($numbers)) {
+                if (!$this->isPatternClaimedInGame('bottom_line')) {
+                    $winningPatterns[] = 'bottom_line';
+                    $this->winningPatterns['bottom_line']['claimed'] = true;
+                }
+            }
+
+            if ($this->checkFullHouse($numbers)) {
+                if (!$this->isPatternClaimedInGame('full_house')) {
+                    $winningPatterns[] = 'full_house';
+                    $this->winningPatterns['full_house']['claimed'] = true;
+                }
+            }
+
+            if (!empty($winningPatterns)) {
+                $this->updateTicketWinningStatus($ticketId, $winningPatterns);
+                $this->sheetTickets[$index]['is_winner'] = true;
+                $this->sheetTickets[$index]['winning_patterns'] = $winningPatterns;
+
+                foreach ($winningPatterns as $pattern) {
+                    $this->dispatch('play-winner-audio', pattern: $pattern);
+                    $this->dispatch('winner-alert', title: 'Congratulations!',
+                        message: 'You won ' . $this->winningPatterns[$pattern]['name'] . '!',
+                        pattern: $pattern);
+                }
+
+                if ($this->checkGameOver()) {
+                    break;
+                }
+            }
+        }
     }
 
     public function handleNumberAnnounced($payload = null)
@@ -149,8 +215,9 @@ class GameRoom extends Component
             ->with('user')
             ->orderByDesc('won_at')
             ->get();
-        $this->winnerAllart = true;
-        $this->dispatch('winnerAllartMakeFalse');
+        //$this->winnerAllart = true;
+        $this->dispatch('winnerAllartDispay');
+        // $this->dispatch('winnerAllartMakeFalse');
         $this->getWinnerPattarns();
     }
 
@@ -160,6 +227,12 @@ class GameRoom extends Component
             ->with('user')
             ->orderByDesc('won_at')
             ->get();
+    }
+
+     public function winnerAllartShowMethod()
+    {
+        $this->winnerAllart = true;
+        $this->dispatch('winnerAllartMakeFalse');
     }
 
     public function winnerAllartMakeFalseMethod()
