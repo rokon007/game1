@@ -372,7 +372,7 @@ class NumberAnnouncer extends Component
         $this->showSheet();
     }
 
-    // IMPROVED METHOD: Check winners for all tickets in the game
+    // IMPROVED METHOD: Check winners for all tickets in the game - allowing multiple pattern wins per ticket
     private function checkWinnersForAllTickets()
     {
         if ($this->checkGameOver()) {
@@ -392,9 +392,9 @@ class NumberAnnouncer extends Component
         $patterns = ['corner', 'top_line', 'middle_line', 'bottom_line', 'full_house'];
 
         foreach ($patterns as $pattern) {
-            // Skip if pattern already claimed
+            // Skip if pattern already claimed globally
             if ($this->isPatternClaimedInGame($pattern)) {
-                Log::info("Pattern $pattern already claimed, skipping");
+                Log::info("Pattern $pattern already claimed globally, skipping");
                 continue;
             }
 
@@ -402,8 +402,9 @@ class NumberAnnouncer extends Component
 
             // Check each ticket for this pattern
             foreach ($allTickets as $ticket) {
-                // Skip if ticket already won
-                if ($ticket->is_winner) {
+                // Check if this specific ticket has already won this specific pattern
+                if ($this->hasTicketWonPattern($ticket, $pattern)) {
+                    Log::info("Ticket {$ticket->id} already won pattern $pattern, skipping");
                     continue;
                 }
 
@@ -433,19 +434,46 @@ class NumberAnnouncer extends Component
 
                 if ($isWinner) {
                     $patternWinners[] = $ticket;
-                    Log::info("Found winner for pattern $pattern: User {$ticket->user_id}, Ticket {$ticket->id}");
+                    Log::info("Found NEW winner for pattern $pattern: User {$ticket->user_id}, Ticket {$ticket->id}");
                 }
             }
 
             // Process winners for this pattern
             if (!empty($patternWinners)) {
-                Log::info("Processing " . count($patternWinners) . " winners for pattern: $pattern");
+                Log::info("Processing " . count($patternWinners) . " NEW winners for pattern: $pattern");
                 $this->processWinnersForPattern($pattern, $patternWinners);
             }
         }
     }
 
-    // Check if pattern is already claimed
+    // NEW METHOD: Check if a specific ticket has already won a specific pattern
+    private function hasTicketWonPattern($ticket, $pattern)
+    {
+        // Check in Winner table if this ticket has already won this pattern
+        $hasWonInWinnerTable = Winner::where('game_id', $this->gameId)
+            ->where('ticket_id', $ticket->id)
+            ->where('pattern', $pattern)
+            ->exists();
+
+        if ($hasWonInWinnerTable) {
+            return true;
+        }
+
+        // Also check in ticket's winning_patterns field if it exists
+        if (Schema::hasColumn('tickets', 'winning_patterns') && $ticket->winning_patterns) {
+            $winningPatterns = is_string($ticket->winning_patterns)
+                ? json_decode($ticket->winning_patterns, true)
+                : $ticket->winning_patterns;
+
+            if (is_array($winningPatterns) && in_array($pattern, $winningPatterns)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Check if pattern is already claimed globally in the game
     private function isPatternClaimedInGame($pattern)
     {
         return Winner::where('game_id', $this->gameId)
@@ -580,7 +608,7 @@ class NumberAnnouncer extends Component
         return true;
     }
 
-    // Process all winners for a specific pattern at once
+    // IMPROVED METHOD: Process all winners for a specific pattern at once - allowing multiple wins per ticket
     private function processWinnersForPattern($pattern, $winnerTickets)
     {
         if (empty($winnerTickets)) {
@@ -595,13 +623,13 @@ class NumberAnnouncer extends Component
 
         try {
             DB::transaction(function () use ($pattern, $winnerTickets, $game) {
-                // Double-check that this pattern hasn't been claimed yet
+                // Double-check that this pattern hasn't been claimed yet globally
                 $existingWinners = Winner::where('game_id', $this->gameId)
                     ->where('pattern', $pattern)
                     ->count();
 
                 if ($existingWinners > 0) {
-                    Log::info("Pattern $pattern already has winners, skipping");
+                    Log::info("Pattern $pattern already has winners globally, skipping");
                     return;
                 }
 
@@ -620,7 +648,7 @@ class NumberAnnouncer extends Component
 
                 // Create all winner records and update tickets
                 foreach ($winnerTickets as $ticket) {
-                    // Mark ticket as winner
+                    // Get existing winning patterns for this ticket
                     $existingPatterns = [];
                     if (Schema::hasColumn('tickets', 'winning_patterns') && $ticket->winning_patterns) {
                         $existingPatterns = is_string($ticket->winning_patterns)
@@ -632,14 +660,18 @@ class NumberAnnouncer extends Component
                         $existingPatterns = [];
                     }
 
-                    $existingPatterns[] = $pattern;
+                    // Add new pattern to existing patterns (avoid duplicates)
+                    if (!in_array($pattern, $existingPatterns)) {
+                        $existingPatterns[] = $pattern;
+                    }
 
+                    // Update ticket with new winning pattern
                     $ticket->update([
-                        'is_winner' => true,
+                        'is_winner' => true, // Mark as winner if not already
                         'winning_patterns' => Schema::hasColumn('tickets', 'winning_patterns') ? $existingPatterns : null
                     ]);
 
-                    // Create winner record
+                    // Create winner record for this specific pattern
                     Winner::create([
                         'user_id' => $ticket->user_id,
                         'game_id' => $this->gameId,
@@ -650,7 +682,7 @@ class NumberAnnouncer extends Component
                         'prize_processed' => true
                     ]);
 
-                    Log::info("Created winner record for user {$ticket->user_id}, ticket {$ticket->id}, pattern: $pattern, prize: $prizePerWinner");
+                    Log::info("Created winner record for user {$ticket->user_id}, ticket {$ticket->id}, pattern: $pattern, prize: $prizePerWinner. Total patterns won by this ticket: " . count($existingPatterns));
                 }
 
                 // Process prize distribution
@@ -695,7 +727,7 @@ class NumberAnnouncer extends Component
                                 Log::error("Failed to send notification to user {$winnerUser->id}: " . $e->getMessage());
                             }
 
-                            Log::info("Added $prizePerWinner credits to user {$winnerUser->id} for pattern $pattern");
+                            Log::info("Added $prizePerWinner credits to user {$winnerUser->id} for pattern $pattern (may have multiple pattern wins)");
                         }
                     }
 
