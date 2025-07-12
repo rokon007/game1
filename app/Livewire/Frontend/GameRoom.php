@@ -168,6 +168,98 @@ class GameRoom extends Component
         }
     }
 
+    private function checkCornerNumbers($numbers)
+    {
+        $topRow = $numbers[0];
+        $bottomRow = $numbers[2];
+
+        $topLeft = null;
+        for ($i = 0; $i < 9; $i++) {
+            if ($topRow[$i] !== null) {
+                $topLeft = $topRow[$i];
+                break;
+            }
+        }
+
+        $topRight = null;
+        for ($i = 8; $i >= 0; $i--) {
+            if ($topRow[$i] !== null) {
+                $topRight = $topRow[$i];
+                break;
+            }
+        }
+
+        $bottomLeft = null;
+        for ($i = 0; $i < 9; $i++) {
+            if ($bottomRow[$i] !== null) {
+                $bottomLeft = $bottomRow[$i];
+                break;
+            }
+        }
+
+        $bottomRight = null;
+        for ($i = 8; $i >= 0; $i--) {
+            if ($bottomRow[$i] !== null) {
+                $bottomRight = $bottomRow[$i];
+                break;
+            }
+        }
+
+        $corners = array_filter([$topLeft, $topRight, $bottomLeft, $bottomRight], function ($value) {
+            return $value !== null;
+        });
+
+        foreach ($corners as $corner) {
+            if (!in_array($corner, $this->announcedNumbers)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function checkTopLine($numbers)
+    {
+        return $this->checkLine($numbers[0]);
+    }
+
+    private function checkMiddleLine($numbers)
+    {
+        return $this->checkLine($numbers[1]);
+    }
+
+    private function checkBottomLine($numbers)
+    {
+        return $this->checkLine($numbers[2]);
+    }
+
+    private function checkLine($line)
+    {
+        $lineNumbers = array_filter($line, function ($value) {
+            return $value !== null;
+        });
+
+        foreach ($lineNumbers as $number) {
+            if (!in_array($number, $this->announcedNumbers)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function checkFullHouse($numbers)
+    {
+        for ($i = 0; $i < 3; $i++) {
+            if (!$this->checkLine($numbers[$i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
     public function handleNumberAnnounced($payload = null)
     {
         Log::info('handleNumberAnnounced called', [
