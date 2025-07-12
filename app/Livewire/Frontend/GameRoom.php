@@ -150,7 +150,6 @@ class GameRoom extends Component
             }
 
             if (!empty($winningPatterns)) {
-                $this->updateTicketWinningStatus($ticketId, $winningPatterns);
                 $this->sheetTickets[$index]['is_winner'] = true;
                 $this->sheetTickets[$index]['winning_patterns'] = $winningPatterns;
 
