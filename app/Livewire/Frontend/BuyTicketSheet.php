@@ -18,6 +18,7 @@ class BuyTicketSheet extends Component
     public $selectedGameId, $blance;
     public $tickets;
     public $sheetUid;
+     public $agreements = [];
 
     public function sheetShow($sheetUid)
     {
@@ -46,6 +47,18 @@ class BuyTicketSheet extends Component
         $this->blance=auth()->user()->credit;
     }
 
+    public function validateAgreement($gameId)
+    {
+        // ভ্যালিডেশন চেক
+        if (empty($this->agreements[$gameId])) {
+            $this->addError('agreements.'.$gameId, 'You must agree to the terms and conditions');
+            return;
+        }
+
+        // যদি চেকবক্স টিক করা থাকে তাহলে টিকেট কিনুন
+        $this->buySheet();
+    }
+
     public function buySheet()
     {
         $user = Auth::user();
@@ -56,6 +69,12 @@ class BuyTicketSheet extends Component
 
         if (!$game) {
             session()->flash('error', 'Selected game not found or inactive.');
+            return;
+        }
+
+        // চেকবক্স ভ্যালিডেশন (অতিরিক্ত সুরক্ষা)
+        if (empty($this->agreements[$this->selectedGameId])) {
+            $this->addError('agreements.'.$this->selectedGameId, 'You must agree to the terms and conditions');
             return;
         }
 

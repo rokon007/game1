@@ -133,7 +133,7 @@
 
                     <!-- Pagination -->
                     @if($games->hasPages())
-                        <div class="mt-8">
+                        <div class="mt-3 mb-5 pb-5">
                             {{ $games->links() }}
                         </div>
                     @endif

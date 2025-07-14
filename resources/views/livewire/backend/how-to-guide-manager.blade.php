@@ -1,188 +1,428 @@
 <main>
     @section('title')
-        <title>Admin | How To Guide Manager </title>
+        <title>Admin | How-To Guide Manager</title>
     @endsection
+
     @section('css')
         @include('livewire.layout.backend.inc.css')
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css"
               integrity="sha512-dPXYcDub/aeb08c63jRq/k6GaKccl256JQy/AnOq7CAnEZ9FzSL9wSbcZkMp4R26vBsMLFYH4kQ67/bbV8XaCQ=="
               crossorigin="anonymous" referrerpolicy="no-referrer" />
-              {{-- <script src="//unpkg.com/alpinejs" defer></script> --}}
-
     @endsection
-
 
     <main class="page-content">
         <!--breadcrumb-->
         <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
-          <div class="breadcrumb-title pe-3">Admin</div>
-          <div class="ps-3">
-            <nav aria-label="breadcrumb">
-              <ol class="breadcrumb mb-0 p-0">
-                <li class="breadcrumb-item"><a href="javascript:;"><i class="bx bx-home-alt"></i></a>
-                </li>
-                <li class="breadcrumb-item active" aria-current="page">How To Guide Manager</li>
-              </ol>
-            </nav>
-          </div>
+            <div class="breadcrumb-title pe-3">Content Management</div>
+            <div class="ps-3">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0 p-0">
+                        <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}"><i class="bx bx-home-alt"></i></a></li>
+                        <li class="breadcrumb-item active" aria-current="page">How-To Guides</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="ms-auto">
+                <button class="btn btn-primary" wire:click="resetForm">
+                    <i class="bi bi-plus-circle me-1"></i> Add New Guide
+                </button>
+            </div>
         </div>
         <!--end breadcrumb-->
 
         @if (session()->has('success'))
-            <div class="col-md-12 text-center">
-                <center>
-                    <div class="col-md-5">
-                        <div class="alert border-0 bg-success alert-dismissible fade show py-2">
-                            <div class="d-flex align-items-center">
-                            <div class="fs-3 text-white"><i class="bi bi-check-circle-fill"></i>
-                            </div>
-                            <div class="ms-3">
-                                <div class="text-white">{{ session('success') }}</div>
-                            </div>
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <div class="col-12">
+                <div class="alert alert-success border-0 bg-success alert-dismissible fade show">
+                    <div class="d-flex align-items-center">
+                        <div class="font-35 text-white"><i class="bx bxs-check-circle"></i></div>
+                        <div class="ms-3">
+                            <h6 class="mb-0 text-white">Success</h6>
+                            <div class="text-white">{{ session('success') }}</div>
                         </div>
                     </div>
-                </center>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             </div>
         @endif
 
-          <div class="card">
-            <div class="card-header py-3">
-              <h6 class="mb-0">{{ $isEditMode ? 'Edit' : 'Add New' }} How-To Guide</h6>
+        <div class="card radius-10">
+            <div class="card-header bg-transparent border-bottom">
+                <div class="d-flex align-items-center">
+                    <h5 class="mb-0">{{ $isEditMode ? 'Edit' : 'Add New' }} How-To Guide</h5>
+                </div>
             </div>
             <div class="card-body">
-               <div class="row">
-                 <div class="col-12 col-lg-4 d-flex">
-                   <div class="card border shadow-none w-100">
-                     <div class="card-body">
-                         <form class="row g-3" wire:submit.prevent="{{ $isEditMode ? 'update' : 'save' }}">
-                         <div class="col-12">
-                            <label>Title</label>
-                            <input type="text" class="form-control" wire:model="title">
-                            @error('title') <small class="text-danger">{{ $message }}</small> @enderror
-                        </div>
-
-                        <div class="col-12">
-                            <label for="description" class="form-label">Description</label>
-                            <div wire:ignore>
-                                <textarea id="note" data-note="@this" wire:model="description" class="form-control" rows="4"></textarea>
-                            </div>
-                            @error('description') <span class="text-danger">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div class="col-12">
-                            <label>Video URL</label>
-                            <input type="text" class="form-control" wire:model="video_url">
-                            @error('video_url') <small class="text-danger">{{ $message }}</small> @enderror
-                        </div>
-
-                        <div class="row mt-3">
-                            <div class="col-md-6">
-                                <div class="d-grid">
-                                    <button type="submit" class="btn btn-{{ $isEditMode ? 'warning' : 'primary' }}">
-                                        <span wire:loading.delay.long wire:target="{{ $isEditMode ? 'update' : 'save' }}" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        {{ $isEditMode ? 'Update' : 'Add' }}
-                                    </button>
-                                </div>
-                            </div>
-
-                            @if ($isEditMode)
-                                <div class="col-md-6 mt-2 mt-md-0">
-                                    <div class="d-grid">
-                                        <button type="button" wire:click="resetForm" class="btn btn-secondary">
-                                            Cancel
-                                        </button>
+                <div class="row">
+                    <!-- Form Section -->
+                    <div class="col-12 col-lg-4">
+                        <div class="card border shadow-none">
+                            <div class="card-body">
+                                <form wire:submit.prevent="{{ $isEditMode ? 'update' : 'save' }}">
+                                    @csrf
+                                    <div class="mb-3">
+                                        <label class="form-label">Title</label>
+                                        <input type="text" class="form-control" wire:model="title" placeholder="Enter guide title">
+                                        @error('title') <small class="text-danger">{{ $message }}</small> @enderror
                                     </div>
-                                </div>
-                            @endif
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Description</label>
+                                        <div wire:ignore>
+                                            <textarea id="editor" wire:model="description"></textarea>
+                                        </div>
+                                        @error('description') <small class="text-danger">{{ $message }}</small> @enderror
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Video URL</label>
+                                        <input type="text" class="form-control" wire:model="video_url" placeholder="https://example.com/video">
+                                        @error('video_url') <small class="text-danger">{{ $message }}</small> @enderror
+                                    </div>
+
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-{{ $isEditMode ? 'warning' : 'primary' }}">
+                                            <span wire:loading.delay wire:target="{{ $isEditMode ? 'update' : 'save' }}" class="spinner-border spinner-border-sm me-1"></span>
+                                            <i class="bi bi-{{ $isEditMode ? 'pencil' : 'save' }} me-1"></i>
+                                            {{ $isEditMode ? 'Update' : 'Save' }} Guide
+                                        </button>
+
+                                        @if($isEditMode)
+                                            <button type="button" wire:click="resetForm" class="btn btn-secondary">
+                                                <i class="bi bi-x-circle me-1"></i> Cancel
+                                            </button>
+                                        @endif
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-
-
-
-                        {{-- <div class="col-12">
-                          <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
-                                <span wire:loading.delay.long wire:target="store" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                {{ $prize_id ? 'Update' : 'Create' }} Prize
-                            </button>
-                          </div>
-                        </div> --}}
-                       </form>
-                     </div>
-                   </div>
-                 </div>
-                 <div class="col-12 col-lg-8 d-flex">
-                  <div class="card border shadow-none w-100">
-                    <div class="card-body">
-                      <div class="table-responsive">
-                         <table class="table align-middle">
-                           <thead class="table-light">
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Video</th>
-                                    <th>Actions</th>
-                                </tr>
-                           </thead>
-                           <tbody>
-                                @forelse($guides as $guide)
-                                    <tr>
-                                        <td>{{ $guide->title }}</td>
-                                        <td>
-                                            @if ($guide->video_url)
-                                                <a href="{{ $guide->video_url }}" target="_blank">Watch</a>
-                                            @else
-                                                N/A
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <button wire:click="edit({{ $guide->id }})" class="btn btn-sm btn-warning">Edit</button>
-                                            <button wire:click="delete({{ $guide->id }})" class="btn btn-sm btn-danger" onclick="confirm('Are you sure?') || event.stopImmediatePropagation()">Delete</button>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr><td colspan="3">No guides found.</td></tr>
-                                @endforelse
-                            </tbody>
-                         </table>
-                      </div>
                     </div>
-                  </div>
-                </div>
-               </div><!--end row-->
-            </div>
-          </div>
 
+                    <!-- List Section -->
+                    <div class="col-12 col-lg-8 mt-3 mt-lg-0">
+                        <div class="card border shadow-none">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Title</th>
+                                                <th>Video</th>
+                                                <th>Last Updated</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse($guides as $guide)
+                                                <tr>
+                                                    <td>{{ Str::limit($guide->title, 30) }}</td>
+                                                    <td>
+                                                        @if($guide->video_url)
+                                                            <a href="{{ $guide->video_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                                <i class="bi bi-play-circle me-1"></i> Watch
+                                                            </a>
+                                                        @else
+                                                            <span class="text-muted">N/A</span>
+                                                        @endif
+                                                    </td>
+                                                    <td>{{ $guide->updated_at->format('d M, Y') }}</td>
+                                                    <td>
+                                                        <div class="d-flex gap-2">
+                                                            <button wire:click="edit({{ $guide->id }})" class="btn btn-sm btn-warning">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button wire:click="delete({{ $guide->id }})"
+                                                                    onclick="return confirm('Are you sure you want to delete this guide?') || event.stopImmediatePropagation()"
+                                                                    class="btn btn-sm btn-danger">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="4" class="text-center py-4">
+                                                        <div class="py-3">
+                                                            <i class="bi bi-info-circle-fill fs-1 text-primary"></i>
+                                                            <h5 class="mt-3">No Guides Found</h5>
+                                                            <p class="text-muted">Start by adding your first how-to guide</p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
+    {{-- @section('JS')
+        <script src="https://cdn.ckeditor.com/ckeditor5/25.0.0/classic/ckeditor.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                let editor;
 
+                // Initialize CKEditor with simpleUpload
+                ClassicEditor
+                    .create(document.querySelector('#editor'), {
+                        toolbar: {
+                            items: [
+                                'heading', '|',
+                                'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|',
+                                'outdent', 'indent', '|',
+                                'imageUpload', 'blockQuote', 'insertTable', 'mediaEmbed', 'undo', 'redo'
+                            ]
+                        },
+                        image: {
+                            toolbar: [
+                                'imageTextAlternative', 'imageStyle:full', 'imageStyle:side'
+                            ]
+                        },
+                        simpleUpload: {
+                            uploadUrl: "{{ route('ckeditor.upload') }}",
+                            headers: {
+                                'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                            }
+                        }
+                    })
+                    .then(editorInstance => {
+                        editor = editorInstance;
 
+                        // Update Livewire when editor content changes
+                        editor.model.document.on('change:data', () => {
+                            @this.set('description', editor.getData());
+                        });
+
+                        // Listen for Livewire events
+                        setupEventListeners();
+                    })
+                    .catch(error => {
+                        console.error('CKEditor initialization error:', error);
+                    });
+
+                function setupEventListeners() {
+                    // Listen for updateEditor event
+                    window.addEventListener('updateEditor', function(event) {
+                        if (editor && event.detail && event.detail.content !== undefined) {
+                            editor.setData(event.detail.content || '');
+                        }
+                    });
+
+                    // Listen for resetEditor event
+                    window.addEventListener('resetEditor', function() {
+                        if (editor) {
+                            editor.setData('');
+                        }
+                    });
+
+                    // Listen for resetForm event
+                    window.addEventListener('resetForm', function() {
+                        if (editor) {
+                            editor.setData('');
+                        }
+                    });
+                }
+
+                // Alternative: Listen for Livewire events directly
+                Livewire.on('updateEditor', (event) => {
+                    console.log('updateEditor event received:', event);
+                    if (editor && event.content !== undefined) {
+                        editor.setData(event.content || '');
+                    }
+                });
+
+                Livewire.on('resetEditor', () => {
+                    console.log('resetEditor event received');
+                    if (editor) {
+                        editor.setData('');
+                    }
+                });
+
+                Livewire.on('resetForm', () => {
+                    console.log('resetForm event received');
+                    if (editor) {
+                        editor.setData('');
+                    }
+                });
+            });
+        </script>
+        @include('livewire.layout.backend.inc.js')
+    @endsection --}}
 
     @section('JS')
-     <script src="https://cdn.ckeditor.com/ckeditor5/25.0.0/classic/ckeditor.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            ClassicEditor
-                .create(document.querySelector("#note"), {
-                    ckfinder: {
-                        uploadUrl: "{{ route('ckeditor.upload') }}", // রাউট চেক করুন
-                        headers: {
-                            'X-CSRF-TOKEN': "{{ csrf_token() }}" // CSRF টোকেন যোগ করুন
+        <script src="https://cdn.ckeditor.com/ckeditor5/25.0.0/classic/ckeditor.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                let editor;
+
+                // Initialize CKEditor
+                ClassicEditor
+                    .create(document.querySelector('#editor'), {
+                        ckfinder: {
+                            uploadUrl: "{{ route('ckeditor.upload') }}",
+                            headers: {
+                                'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                            }
                         }
-                    }
-                })
-                .then(editor => {
-                    editor.model.document.on('change:data', () => {
-                        @this.set('description', editor.getData());
+                    })
+                    .then(editorInstance => {
+                        editor = editorInstance;
+
+                        // Update Livewire when editor content changes
+                        editor.model.document.on('change:data', () => {
+                            @this.set('description', editor.getData());
+                        });
+
+                        // Listen for Livewire events
+                        setupEventListeners();
+                    })
+                    .catch(error => {
+                        console.error('CKEditor initialization error:', error);
                     });
-                })
-                .catch(error => {
-                    console.error(error);
+
+                function setupEventListeners() {
+                    // Listen for updateEditor event
+                    window.addEventListener('updateEditor', function(event) {
+                        if (editor && event.detail && event.detail.content !== undefined) {
+                            editor.setData(event.detail.content || '');
+                        }
+                    });
+
+                    // Listen for resetEditor event
+                    window.addEventListener('resetEditor', function() {
+                        if (editor) {
+                            editor.setData('');
+                        }
+                    });
+
+                    // Listen for resetForm event
+                    window.addEventListener('resetForm', function() {
+                        if (editor) {
+                            editor.setData('');
+                        }
+                    });
+                }
+
+                // Alternative: Listen for Livewire events directly
+                Livewire.on('updateEditor', (event) => {
+                    console.log('updateEditor event received:', event);
+                    if (editor && event.content !== undefined) {
+                        editor.setData(event.content || '');
+                    }
                 });
-        });
-    </script>
 
-         @include('livewire.layout.backend.inc.js')
+                Livewire.on('resetEditor', () => {
+                    console.log('resetEditor event received');
+                    if (editor) {
+                        editor.setData('');
+                    }
+                });
+
+                Livewire.on('resetForm', () => {
+                    console.log('resetForm event received');
+                    if (editor) {
+                        editor.setData('');
+                    }
+                });
+            });
+        </script>
+        @include('livewire.layout.backend.inc.js')
     @endsection
-</main>
 
+    {{-- @section('JS')
+        <script src="https://cdn.ckeditor.com/ckeditor5/25.0.0/classic/ckeditor.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                let editor;
+
+                // Initialize CKEditor with proper image upload configuration
+                ClassicEditor
+                    .create(document.querySelector('#editor'), {
+                        toolbar: {
+                            items: [
+                                'heading', '|',
+                                'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|',
+                                'outdent', 'indent', '|',
+                                'imageUpload', 'blockQuote', 'insertTable', 'mediaEmbed', 'undo', 'redo'
+                            ]
+                        },
+                        image: {
+                            toolbar: [
+                                'imageTextAlternative', 'imageStyle:full', 'imageStyle:side'
+                            ]
+                        },
+                        simpleUpload: {
+                            uploadUrl: "{{ route('ckeditor.upload') }}",
+                            headers: {
+                                'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                            }
+                        }
+                    })
+                    .then(editorInstance => {
+                        editor = editorInstance;
+
+                        // Update Livewire when editor content changes
+                        editor.model.document.on('change:data', () => {
+                            @this.set('description', editor.getData());
+                        });
+
+                        // Listen for Livewire events
+                        setupEventListeners();
+                    })
+                    .catch(error => {
+                        console.error('CKEditor initialization error:', error);
+                    });
+
+                function setupEventListeners() {
+                    // Listen for updateEditor event
+                    window.addEventListener('updateEditor', function(event) {
+                        if (editor && event.detail && event.detail.content !== undefined) {
+                            editor.setData(event.detail.content || '');
+                        }
+                    });
+
+                    // Listen for resetEditor event
+                    window.addEventListener('resetEditor', function() {
+                        if (editor) {
+                            editor.setData('');
+                        }
+                    });
+
+                    // Listen for resetForm event
+                    window.addEventListener('resetForm', function() {
+                        if (editor) {
+                            editor.setData('');
+                        }
+                    });
+                }
+
+                // Alternative: Listen for Livewire events directly
+                Livewire.on('updateEditor', (event) => {
+                    console.log('updateEditor event received:', event);
+                    if (editor && event.content !== undefined) {
+                        editor.setData(event.content || '');
+                    }
+                });
+
+                Livewire.on('resetEditor', () => {
+                    console.log('resetEditor event received');
+                    if (editor) {
+                        editor.setData('');
+                    }
+                });
+
+                Livewire.on('resetForm', () => {
+                    console.log('resetForm event received');
+                    if (editor) {
+                        editor.setData('');
+                    }
+                });
+            });
+        </script>
+        @include('livewire.layout.backend.inc.js')
+    @endsection --}}
+</main>

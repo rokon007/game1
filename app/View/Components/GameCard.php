@@ -35,10 +35,10 @@ class GameCard extends Component
     public function getStatusBadge(): array
     {
         return match($this->game->status) {
-            'pending' => ['class' => 'bg-yellow-100 text-yellow-800', 'text' => 'Waiting for Players'],
-            'playing' => ['class' => 'bg-green-100 text-green-800', 'text' => 'In Progress'],
-            'completed' => ['class' => 'bg-gray-100 text-gray-800', 'text' => 'Completed'],
-            'cancelled' => ['class' => 'bg-red-100 text-red-800', 'text' => 'Cancelled'],
+            'pending' => ['class' => 'badge rounded-pill badge-warning', 'text' => 'Waiting for Players'],
+            'playing' => ['class' => 'badge rounded-pill badge-success', 'text' => 'In Progress'],
+            'completed' => ['class' => 'badge rounded-pill badge-secondary', 'text' => 'Completed'],
+            'cancelled' => ['class' => 'badge rounded-pill badge-danger', 'text' => 'Cancelled'],
             default => ['class' => 'bg-gray-100 text-gray-800', 'text' => 'Unknown']
         };
     }

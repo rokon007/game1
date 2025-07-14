@@ -38,7 +38,7 @@ class AdBannerManagementComponent extends Component
         'text' => 'required|string|max:255',
         'url' => 'nullable|url',
         'status' => 'required|boolean',
-        'photo1' => 'required|image|mimes:jpeg,png,jpg,gif|max:1024',
+        'photo1' => 'required|image|mimes:jpeg,png,jpg,gif',
         'button_name' => 'nullable|string|max:255',
     ];
 
@@ -106,7 +106,7 @@ class AdBannerManagementComponent extends Component
             "text1.$id" => 'nullable|string|max:255',
             "url1.$id" => 'nullable|url',
             "status1.$id" => 'required|boolean',
-            "photo.$id" => 'nullable|image|mimes:jpeg,png,jpg,gif|max:1024',
+            "photo.$id" => 'nullable|image|mimes:jpeg,png,jpg,gif',
             "button_name1.$id" => 'nullable|string|max:255',
         ]);
 

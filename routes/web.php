@@ -84,8 +84,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::get('/game-settings', HajariGameSettings::class)->name('hajari_game_settings');
 });
 
-Route::post('/ckeditor/upload', [CkeditorController::class, 'upload'])->name('ckeditor.upload');
-Route::post('/delete-image', [CkeditorController::class, 'deleteImage'])->name('delete.image');
+
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
@@ -116,6 +115,9 @@ Route::middleware(['auth', 'verified', 'banned'])->group(function(){
     Route::get('/games/invitation/{invitation}', function(\App\Models\HajariGameInvitation $invitation) {
         return view('games.invitation', compact('invitation'));
     })->name('games.invitation');
+
+    Route::post('/ckeditor/upload', [CkeditorController::class, 'upload'])->name('ckeditor.upload');
+    Route::post('/delete-image', [CkeditorController::class, 'deleteImage'])->name('delete.image');
 });
 
 Route::get('/chat', Main::class)->name('chat');

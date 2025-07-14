@@ -2,6 +2,7 @@
     @section('title')
         <title>Admin | Dashboard</title>
     @endsection
+
     @section('css')
         @include('livewire.layout.backend.inc.css')
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css"
@@ -9,173 +10,254 @@
               crossorigin="anonymous" referrerpolicy="no-referrer" />
     @endsection
 
-
     <main class="page-content">
-        <section class="py-4">
-            <div class="container">
-                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 row-cols-xxl-4">
-                    <div class="col">
-                        <div class="card radius-10 bg-primary">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="">
-                                        <p class="mb-1 text-white">Account Blance</p>
-                                        <h4 class="mb-0 text-white">
-                                            ৳ {{$user_credit}}
-                                        </h4>
-                                    </div>
-                                    <div class="ms-auto fs-2 text-white">
-                                        <i class="bi bi-currency-exchange"></i>
-                                    </div>
-                                </div>
-                                <hr class="my-2 border-top border-light">
-                                <small class="mb-0 text-white"><i class="bi bi-wallet2"></i>
-                                    <span>
-                                        <button wire:click='addMony' type="button" class="btn btn-sm btn-success px-5 radius-30">Add Money</button>
-                                    </span>
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="card radius-10 bg-orange">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                            <div class="">
-                                <p class="mb-1 text-white">Total Posts</p>
-                                <h4 class="mb-0 text-white">249</h4>
-                            </div>
-                            <div class="ms-auto fs-2 text-white">
-                                <i class="bi bi-pencil"></i>
-                            </div>
-                            </div>
-                            <hr class="my-2 border-top border-light">
-                            <small class="mb-0 text-white"><i class="bi bi-arrow-up"></i> <span>+10.5% from last week</span></small>
-                        </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="card radius-10 bg-orange">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                            <div class="">
-                                <p class="mb-1 text-white">Total Posts</p>
-                                <h4 class="mb-0 text-white">249</h4>
-                            </div>
-                            <div class="ms-auto fs-2 text-white">
-                                <i class="bi bi-pencil"></i>
-                            </div>
-                            </div>
-                            <hr class="my-2 border-top border-light">
-                            <small class="mb-0 text-white"><i class="bi bi-arrow-up"></i> <span>+10.5% from last week</span></small>
-                        </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="card radius-10 bg-purple">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                            <div class="">
-                                <p class="mb-1 text-white">Articles</p>
-                                <h4 class="mb-0 text-white">645</h4>
-                            </div>
-                            <div class="ms-auto fs-2 text-white">
-                                <i class="bi bi-book"></i>
-                            </div>
-                            </div>
-                            <hr class="my-2 border-top border-light">
-                            <small class="mb-0 text-white"><i class="bi bi-arrow-up"></i> <span>+16.5% from last week</span></small>
-                        </div>
-                        </div>
-                    </div>
+        <!--breadcrumb-->
+        <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
+            <div class="breadcrumb-title pe-3">Dashboard</div>
+            <div class="ps-3">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0 p-0">
+                        <li class="breadcrumb-item"><a href="javascript:;"><i class="bx bx-home-alt"></i></a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Overview</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="ms-auto">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary">Generate Report</button>
                 </div>
             </div>
-        </section>
-        <section>
-            <div class="row">
-                <div class="col-md-4">
-                    <button wire:click='testClick' class="btn btn-primary">Click</button>
-                </div>
-            </div>
-        </section>
-            @if ($rechargeModal)
-                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5)">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content border-success">
-                            <form wire:submit.prevent='updateUser'>
-                                <div class="modal-header bg-success text-white">
-                                    <h5 class="modal-title">Recharge {{auth()->user()->name}}'s Account</h5>
-                                </div>
-                                <div class="modal-body">
+        </div>
+        <!--end breadcrumb-->
 
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <div class="border p-3 rounded">
-                                                <div class="row g-3">
-                                                    <input type="hidden" wire:model='rechargeUser_id'>
-                                                    <div class="col-12" style="display: {{$amountMode ? 'block' : 'none'}}">
-                                                        <label class="form-label"> Amount</label>
-                                                        <input wire:model='amount' type="number" class="form-control">
-                                                        @error('amount')<small class="text-danger mb-2">{{ $message }}</small>@enderror
-                                                    </div>
-                                                    <div class="col-12">
-                                                        <div class="card radius-10 bg-success" style="display: {{$confirmMode ? 'block' : 'none'}}">
-                                                            <div class="card-body">
-                                                                <div class="d-flex align-items-center">
-                                                                    <h4 class="mb-0 text-white text-center">৳ {{$amount}}</h4>
-                                                                </div>
-                                                                <p class="text-white text-center">Plese enter your admin password for confermation</p>
-                                                                <input wire:model='password' type="password" class="form-control">
-                                                                @error('password')<small class="text-danger mb-2">{{ $message }}</small>@enderror
-                                                            </div>
-                                                        </div>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-4">
+            <!-- Balance Card -->
+            <div class="col">
+                <div class="card radius-10 bg-primary bg-gradient">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="">
+                                <p class="mb-1 text-white">Account Balance</p>
+                                <h4 class="mb-0 text-white">৳ {{ number_format($user_credit) }}</h4>
+                            </div>
+                            <div class="ms-auto fs-2 text-white">
+                                <i class="bi bi-wallet2"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center mt-3">
+                            <button wire:click='addMony' class="btn btn-sm btn-light text-primary px-4 radius-10">
+                                <i class="bi bi-plus-circle me-1"></i> Add Money
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Users Card -->
+            <div class="col">
+                <div class="card radius-10 bg-info bg-gradient">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="">
+                                <p class="mb-1 text-white">Total Users</p>
+                                <h4 class="mb-0 text-white">{{ $totalUsers }}</h4>
+                            </div>
+                            <div class="ms-auto fs-2 text-white">
+                                <i class="bi bi-people-fill"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height:4px;">
+                            <div class="progress-bar bg-white" role="progressbar" style="width: 75%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Users Card -->
+            <div class="col">
+                <div class="card radius-10 bg-success bg-gradient">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="">
+                                <p class="mb-1 text-white">Active Users</p>
+                                <h4 class="mb-0 text-white">{{ \App\Models\User::where('is_online', true)->count() }}</h4>
+                            </div>
+                            <div class="ms-auto fs-2 text-white">
+                                <i class="bi bi-lightning-charge-fill"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height:4px;">
+                            <div class="progress-bar bg-white" role="progressbar" style="width: 65%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Card -->
+            <div class="col">
+                <div class="card radius-10 bg-danger bg-gradient">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="">
+                                <p class="mb-1 text-white">Transactions</p>
+                                <h4 class="mb-0 text-white">{{ \App\Models\Transaction::count() }}</h4>
+                            </div>
+                            <div class="ms-auto fs-2 text-white">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height:4px;">
+                            <div class="progress-bar bg-white" role="progressbar" style="width: 85%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recharge Modal -->
+        @if ($rechargeModal)
+            <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5)">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content border-0 shadow">
+                        <form wire:submit.prevent='updateUser'>
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">
+                                    <i class="bi bi-wallet2 me-2"></i>Account Recharge
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" wire:click='closeRechargeModal'></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="card border-0">
+                                    <div class="card-body">
+                                        <input type="hidden" wire:model='rechargeUser_id'>
+
+                                        <!-- Amount Input -->
+                                        <div class="mb-3" style="display: {{$amountMode ? 'block' : 'none'}}">
+                                            <label class="form-label">Amount</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">৳</span>
+                                                <input wire:model='amount' type="number" class="form-control" placeholder="Enter amount">
+                                            </div>
+                                            @error('amount')
+                                                <small class="text-danger">{{ $message }}</small>
+                                            @enderror
+                                        </div>
+
+                                        <!-- Confirmation -->
+                                        <div style="display: {{$confirmMode ? 'block' : 'none'}}">
+                                            <div class="alert alert-success border-0">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-0 text-success">Recharge Amount: ৳{{ number_format($amount) }}</h6>
                                                     </div>
                                                 </div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label">Enter Password</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                                    <input wire:model='password' type="password" class="form-control" placeholder="Your password">
+                                                </div>
+                                                @error('password')
+                                                    <small class="text-danger">{{ $message }}</small>
+                                                @enderror
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="modal-footer">
-                                    @if ($amountMode)
-                                        <button wire:click="rechargeNext" type="button" class="btn btn-primary">Next</button>
-                                    @else
-                                       <button wire:click="comfirm('{{ $rechargeUser_id }}')" type="button" class="btn btn-danger">
-                                        <span wire:loading.delay.long wire:target="comfirm('{{ $rechargeUser_id }}')" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                        Send Credit
+                            </div>
+                            <div class="modal-footer">
+                                @if ($amountMode)
+                                    <button wire:click="rechargeNext" type="button" class="btn btn-primary">
+                                        <i class="bi bi-arrow-right me-1"></i>Next
                                     </button>
-                                    @endif
-                                    <button class="btn btn-secondary" wire:click='closeRechargeModal'>Close</button>
-                                </div>
-                            </form>
-                        </div>
+                                @else
+                                    <button wire:click="comfirm('{{ $rechargeUser_id }}')" type="button" class="btn btn-success">
+                                        <span wire:loading.delay wire:target="comfirm" class="spinner-border spinner-border-sm me-1"></span>
+                                        <i class="bi bi-check-circle me-1"></i>Confirm
+                                    </button>
+                                @endif
+                                <button type="button" class="btn btn-secondary" wire:click='closeRechargeModal'>
+                                    <i class="bi bi-x-circle me-1"></i>Close
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-            @endif
+            </div>
+        @endif
 
-            @if($transactionSuccess)
-                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5)">
-                    <div class="modal-dialog modal-dialog-centered" role="document">
-                        <div class="modal-content border-success">
-                            <div class="modal-header bg-success text-white">
-                                <h5 class="modal-title">Transaction Successful</h5>
+        <!-- Success Modal -->
+        @if($transactionSuccess)
+            <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5)">
+                <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                    <div class="modal-content border-0">
+                        <div class="modal-body text-center p-4">
+                            <div class="mb-3">
+                                <i class="bi bi-check-circle-fill text-success" style="font-size: 3.5rem;"></i>
                             </div>
-                            <div class="modal-body text-center">
-                                <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
-                                <p class="mt-3 mb-0 fs-5">Your transaction was completed successfully.</p>
-                            </div>
-                            <div class="modal-footer justify-content-center">
-                                <button class="btn btn-success" wire:click="$set('transactionSuccess', false)">Close</button>
-                            </div>
+                            <h5 class="mb-3 text-success">Success!</h5>
+                            <p class="mb-4">Transaction completed successfully</p>
+                            <button class="btn btn-success px-4" wire:click="$set('transactionSuccess', false)">
+                                <i class="bi bi-check-lg me-1"></i>OK
+                            </button>
                         </div>
                     </div>
                 </div>
-            @endif
+            </div>
+        @endif
+
+        <!-- Recent Activities -->
+        <div class="card mt-4 radius-10">
+            <div class="card-header bg-transparent border-bottom">
+                <h5 class="mb-0">Recent Activities</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>User</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach(\App\Models\Transaction::latest()->take(5)->get() as $transaction)
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ $transaction->user->avatar ?? asset('assets/images/avatars/avatar-1.png') }}"
+                                             class="rounded-circle" width="35" height="35" alt="">
+                                        <div class="ms-2">
+                                            <h6 class="mb-0">{{ $transaction->user->name }}</h6>
+                                            <small class="text-muted">{{ $transaction->user->mobile }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ $transaction->type == 'credit' ? 'success' : 'danger' }}-subtle text-{{ $transaction->type == 'credit' ? 'success' : 'danger' }} p-2 radius-30">
+                                        {{ ucfirst($transaction->type) }}
+                                    </span>
+                                </td>
+                                <td>৳{{ number_format($transaction->amount) }}</td>
+                                <td>{{ $transaction->created_at->format('d M, Y') }}</td>
+                                <td>
+                                    <span class="badge bg-success p-2 radius-30">Completed</span>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </main>
 
-
-
     @section('JS')
-         @include('livewire.layout.backend.inc.js')
+        @include('livewire.layout.backend.inc.js')
     @endsection
 </main>
-

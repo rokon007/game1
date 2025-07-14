@@ -19,9 +19,11 @@ class Dashboard extends Component
     public $amount, $password;
     public $transactionSuccess=false;
     public $rechargeUser_id;
+    public $totalUsers;
 
     public function mount()
     {
+        $this->totalUsers = User::count();
         $this->getCredit();
         $this->rechargeUser_id=auth()->user()->id;
     }

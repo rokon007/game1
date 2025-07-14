@@ -15,7 +15,7 @@ return new class extends Migration
             $table->bigIncrements('id'); // BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
             $table->string('lock_key', 255)->unique(); // VARCHAR(255) NOT NULL UNIQUE
             $table->timestamp('created_at'); // TIMESTAMP NOT NULL
-            $table->timestamp('expires_at'); // TIMESTAMP NOT NULL
+            $table->timestamp('expires_at')->nullable(); // TIMESTAMP NOT NULL
             $table->index(['lock_key', 'expires_at'], 'idx_lock_key_expires'); // INDEX idx_lock_key_expires
         });
     }

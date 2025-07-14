@@ -1,4 +1,4 @@
-<div class="col-12">
+<div class="col-lg-6 col-sm-12">
     <!-- Single Vendor -->
     <div class="single-vendor-wrap bg-img p-4 bg-overlay" style="background-image: url('img/bg-img/12.jpg')">
         <div class="flex justify-between items-start mb-3">
@@ -24,7 +24,7 @@
 
             <div class="flex items-center text-sm text-white">
                 <i class="fas fa-coins mr-2"></i>
-                <span>Bid Amount: <span class="font-semibold text-green-600">৳{{ number_format($game->bid_amount, 2) }}</span></span>
+                <span>Bid Amount: <span class="badge rounded-pill badge-warning">{{ number_format($game->bid_amount, 2) }} Credit</span></span>
             </div>
 
             <div class="flex items-center text-sm text-white">
@@ -38,10 +38,11 @@
             </div>
 
             {{-- <div class="ratings lh-1">
-                <div class="flex items-center text-sm text-gray-600">
-                    <i class="fas fa-user mr-2"></i>
-                    <span>Created by <span class="font-medium">{{ $game->creator->name }}</span></span>
-                </div>
+                @if($getParticipantsCount() < 4)
+                        <div class="badge rounded-pill badge-danger">
+                            +{{ 4-$getParticipantsCount() }}
+                        </div>
+                    @endif
                 <span class="text-white">
                     (99% Positive Seller)
                 </span>
@@ -51,26 +52,37 @@
         <!-- Players Preview -->
         <div class="px-6 pb-4">
             <div class="flex items-center space-x-2">
-                <span class="text-xs text-white">Players:</span>
-                <div class="flex -space-x-2">
+                <span class="text-white">Players:</span>
+                <div class="d-flex align-items-center mt-2">
                     @foreach($game->participants->take(4) as $participant)
-                        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium border-2 border-white"
-                            title="{{ $participant->user->name }}">
-                            {{ substr($participant->user->name, 0, 1) }}
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center"
+                            style="width: 30px; height: 30px; font-size: 10px; margin-right:10px;">
+                            {{ strtoupper(substr($participant->user->name, 0, 1)) }}
                         </div>
                     @endforeach
-
-                    @if($getParticipantsCount() > 4)
-                        <div class="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-medium border-2 border-white">
-                            +{{ $getParticipantsCount() - 4 }}
+                    @if($getParticipantsCount() < 4)
+                        <!-- এই অংশ সবসময় ব্লিঙ্ক করবে -->
+                        <div class="badge rounded-pill badge-danger blink">
+                            +{{ 4 - $getParticipantsCount() }}
                         </div>
+                        <!-- শেষ -->
                     @endif
                 </div>
             </div>
         </div>
+        <style>
+            @keyframes blink-animation {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0; }
+            }
+
+            .blink {
+                animation: blink-animation 1s infinite;
+            }
+        </style>
 
         <!-- Action Buttons -->
-        <div class="px-6 py-4 bg-gray-50 border-t">
+        <div class="">
             @if($isCreator())
                 <!-- Creator Actions -->
                 <div class="flex gap-2">
@@ -86,8 +98,7 @@
                 </div>
             @elseif($isParticipant())
                 <!-- Participant Actions -->
-                <a href="{{ route('games.show', $game) }}"
-                class="btn btn-success btn-sm mt-3">
+                <a href="{{ route('games.show', $game) }}" class="btn btn-success btn-sm mt-3" >
                     @if($game->status === 'playing')
                         Join Game Room
                     @else
@@ -98,7 +109,7 @@
                 <!-- Join Actions -->
                 <div class="flex gap-2">
                     <button wire:click="joinGame({{ $game->id }})"
-                            class="flex-1 btn btn-primary btn-sm mt-3">
+                            class="flex-1 btn btn-warning btn-sm mt-3 blink">
                         Join Game
                     </button>
                     <button wire:click="requestToJoin({{ $game->id }})"
@@ -108,12 +119,12 @@
                 </div>
             @else
                 <!-- Cannot Join -->
-                <div class="text-center text-danger text-sm py-2">
+                <div class="badge rounded-pill badge-primary">
                     @if($game->status === 'completed')
                         Game Completed
                     @elseif($game->status === 'playing')
                         Game in Progress
-                    @elseif($getParticipantsCount() >= $game->max_players)
+                    @elseif($getParticipantsCount() === 4)
                         Game Full
                     @else
                         Cannot Join
@@ -122,11 +133,11 @@
             @endif
         </div>
         <!-- Vendor Profile-->
-        <div class="vendor-profile shadow">
+        {{-- <div class="vendor-profile shadow">
             <figure class="m-0">
                 <img src="img/product/dw.png" alt="">
             </figure>
-        </div>
+        </div> --}}
     </div>
 </div>
 
