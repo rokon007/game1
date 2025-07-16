@@ -30,12 +30,18 @@ class GameRoom extends Component
     public $gameScheduledAt;
     public $totalParticipants;
     public $winnerPattarns;
+    public $title = '';
+    public $body = '';
+    public $noticeModel = false;
 
     protected $listeners = [
         'echo:game.*,number.announced' => 'handleNumberAnnounced',
         'echo:game.*,game.winner' => 'handleWinnerAnnounced',
         'echo:game.*,game.over' => 'handleGameOver',
+        'echo:game.*,notice.broadcasted' => 'handleNoticeBroadcasted',
+        'echo:game.*,winner.broadcasted' => 'handleWinnerBroadcasted',
         'numberAnnounced' => 'onNumberReceived',
+        'noticeReceived' => 'handleNoticeReceived',
         'updateProgress' => 'updateTransferProgress',
         'transfer-completed' => 'onTransferCompleted',
         'tick' => 'updateTimer'
@@ -56,6 +62,79 @@ class GameRoom extends Component
         $this->getWinnerPattarns();
 
         Log::info('GameRoom mounted for game: ' . $gameId);
+    }
+
+    public function handleWinnerBroadcasted($data)
+    {
+        Log::info('WinnerBroadcasted event received in GameRoom', [
+            'payload' => $data,
+        ]);
+        $userId = $data['winnerUserId'];
+        $winningPatterns = is_array($data['pattern']) ? $data['pattern'] : [$data['pattern']];
+        try {
+            if ($userId === auth()->user()->id) {
+                foreach ($winningPatterns as $pattern) {
+                    $this->dispatch('play-winner-audio', pattern: $pattern);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error handling sound broadcast: ' . $e->getMessage());
+        }
+    }
+
+
+    public function handleNoticeBroadcasted($data)
+    {
+        Log::info('NoticeBroadcasted event received in GameRoom', [
+            'payload' => $data,
+            'game_id' => $this->games_Id
+        ]);
+
+        try {
+            // Handle different data formats
+            if (is_array($data)) {
+                $this->title = $data['title'] ?? 'Notice';
+                $this->body = $data['body'] ?? 'No message';
+            } elseif (is_object($data)) {
+                $this->title = $data->title ?? 'Notice';
+                $this->body = $data->body ?? 'No message';
+            } else {
+                Log::warning('Unexpected data format for notice', ['data' => $data]);
+                $this->title = 'Notice';
+                $this->body = 'Notification received';
+            }
+
+            $this->noticeModel = true;
+
+            Log::info('Notice modal opened', [
+                'title' => $this->title,
+                'body' => $this->body
+            ]);
+
+            // Auto close after 10 seconds
+            $this->dispatch('closeNoticeModal');
+
+        } catch (\Exception $e) {
+            Log::error('Error handling notice broadcast: ' . $e->getMessage());
+        }
+    }
+
+    public function handleNoticeReceived($data)
+    {
+        Log::info('Notice received via Livewire event', ['data' => $data]);
+
+        $this->title = $data['title'] ?? 'Notice';
+        $this->body = $data['body'] ?? 'No message';
+        $this->noticeModel = true;
+
+        $this->dispatch('closeNoticeModal');
+    }
+
+    public function setNoticeModelClose()
+    {
+        $this->noticeModel = false;
+        $this->title = '';
+        $this->body = '';
     }
 
     public function updateTimer()

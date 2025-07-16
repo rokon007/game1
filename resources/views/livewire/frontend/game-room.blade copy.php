@@ -604,7 +604,7 @@
 
         </div>
 
-    {{-- <!-- Intro Video Modal -->
+    <!-- Intro Video Modal -->
     <div x-data="{
         showIntroVideo: true,
         videoLoaded: false,
@@ -662,100 +662,6 @@
                 <div x-show="!videoLoaded" id="intro-video-loading">
                      <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcmk4bnVqeHBscXdvank4YTY3NWMzNDIyc3U4NDNnY3lrZWwybW9leiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/IwSG1QKOwDjQk/giphy.gif" alt="Loading" class="w-32 h-32">
                 </div>
-                <button x-on:click="skipVideo" id="skip-video" class="btn btn-danger btn-sm rounded-pill px-4 py-2 text-white">
-                    <i class="fas fa-forward me-1"></i> Skip
-                </button>
-            </div>
-        </div>
-    </div> --}}
-
-    <!-- Intro Video Modal - Fixed to handle missing files -->
-    <div x-data="{
-        showIntroVideo: false,
-        videoLoaded: false,
-        init() {
-            // Check if video files exist before showing modal
-            this.checkVideoFiles();
-        },
-        checkVideoFiles() {
-            const video = document.createElement('video');
-            video.src = '{{ asset('videos/intro.mp4') }}';
-
-            video.addEventListener('loadstart', () => {
-                this.showIntroVideo = true;
-                this.setupVideo();
-            });
-
-            video.addEventListener('error', () => {
-                console.log('Intro video not found, skipping intro');
-                this.showIntroVideo = false;
-            });
-
-            // Try to load the video
-            video.load();
-        },
-        setupVideo() {
-            const video = this.$refs.introVideo;
-            const audio = this.$refs.introAudio;
-
-            if (!video) return;
-
-            video.addEventListener('canplay', () => {
-                this.videoLoaded = true;
-                video.play().catch(error => {
-                    console.error('Video autoplay failed:', error);
-                });
-
-                if (audio) {
-                    audio.play().catch(error => {
-                        console.error('Audio playback failed:', error);
-                    });
-                }
-
-                if (window.innerWidth <= 768) {
-                    if (video.requestFullscreen) {
-                        video.requestFullscreen().catch(err => console.error('Fullscreen error:', err));
-                    } else if (video.webkitRequestFullscreen) {
-                        video.webkitRequestFullscreen();
-                    } else if (video.msRequestFullscreen) {
-                        video.msRequestFullscreen();
-                    }
-                }
-            });
-
-            video.addEventListener('ended', () => {
-                this.showIntroVideo = false;
-                if (audio) audio.pause();
-                if (document.fullscreenElement) {
-                    document.exitFullscreen();
-                }
-            });
-        },
-        skipVideo() {
-            this.showIntroVideo = false;
-            const video = this.$refs.introVideo;
-            const audio = this.$refs.introAudio;
-
-            if (audio) audio.pause();
-            if (video) video.pause();
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
-            }
-        }
-        }">
-        <div x-show="showIntroVideo" class="modal-overlay" x-transition.opacity.duration.300ms>
-            <div class="modal-content">
-                <video x-ref="introVideo" id="intro-video" playsinline muted>
-                    <source src="{{ asset('videos/intro.mp4') }}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-                <audio x-ref="introAudio" id="intro-audio">
-                    <source src="{{ asset('audio/intro.mp3') }}" type="audio/mpeg">
-                    Your browser does not support the audio tag.
-                </audio>
-                {{-- <div x-show="!videoLoaded" id="intro-video-loading">
-                    <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcmk4bnVqeHBscXdvank4YTY3NWMzNDIyc3U4NDNnY3lrZWwybW9leiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/IwSG1QKOwDjQk/giphy.gif" alt="Loading" class="w-32 h-32">
-                </div> --}}
                 <button x-on:click="skipVideo" id="skip-video" class="btn btn-danger btn-sm rounded-pill px-4 py-2 text-white">
                     <i class="fas fa-forward me-1"></i> Skip
                 </button>
@@ -870,6 +776,12 @@
     @endif
 
     <script>
+            Echo.channel('game-room.' + {{ $games_Id }})
+            .listen('.notice.broadcasted', (e) => {
+                console.log('Notice received via Echo:', e);
+                Livewire.dispatch('noticeReceived', { title: e.title, body: e.body });
+            });
+
             document.addEventListener('winnerAllartDispay', () => {
                 setTimeout(() => {
                     @this.call('winnerAllartShowMethod');
@@ -962,25 +874,22 @@
     @endif
 
     @if ($noticeModel)
-        <!-- Broadcast Notice Modal - Enhanced -->
-        <div class="modal fade show d-block" id="noticeModal" tabindex="-1" aria-labelledby="noticeModalLabel" aria-hidden="true" style="background-color: rgba(0,0,0,0.7);">
+        <!-- Broadcast Notice Modal -->
+        <div class="modal fade show d-block" id="noticeModal" tabindex="-1" aria-labelledby="noticeModalLabel" aria-hidden="true" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 shadow-lg" style="background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);">
-                    <div class="modal-header border-0 text-center">
-                        <h5 class="modal-title fw-bold text-dark w-100" id="noticeModalLabel">
-                            <i class="fas fa-bullhorn me-2 text-dark"></i>{{ $title }}
+                <div class="modal-content border-warning shadow-lg">
+                    <div class="modal-header bg-warning text-black">
+                        <h5 class="modal-title fw-bold" id="noticeModalLabel">
+                            <i class="fas fa-bullhorn me-2"></i>{{ $title }}
                         </h5>
                     </div>
-                    <div class="modal-body text-center py-4">
-                        <div class="notice-content bg-white rounded-3 p-4 shadow-sm">
-                            <div class="notice-icon mb-3">
-                                <i class="fas fa-info-circle text-warning" style="font-size: 3rem;"></i>
-                            </div>
-                            <p class="text-dark mb-0 fs-5 fw-medium">{{ $body }}</p>
+                    <div class="modal-body bg-light">
+                        <div class="alert alert-warning border-0 mb-0">
+                            <p class="text-dark mb-0 fs-6">{{ $body }}</p>
                         </div>
                     </div>
-                    <div class="modal-footer border-0 justify-content-center">
-                        <button wire:click="setNoticeModelClose" class="btn btn-dark fw-semibold px-4 py-2 rounded-pill">
+                    <div class="modal-footer border-0 bg-light">
+                        <button wire:click="setNoticeModelClose" class="btn btn-warning fw-semibold">
                             <i class="fas fa-times me-1"></i>Close
                         </button>
                     </div>
@@ -988,51 +897,33 @@
             </div>
         </div>
     @endif
+    {{-- <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            window.Echo.channel('game-room')
+                .listen('.notice.broadcasted', (e) => {
+                    Livewire.hook('message.processed', () => {
+                        const titleEl = document.getElementById('notice-title');
+                        const bodyEl = document.getElementById('notice-body');
+                        const modalEl = document.getElementById('noticeModal');
 
-    <script>
-        // Additional Echo setup for notice events
-        document.addEventListener('livewire:initialized', () => {
-            console.log('Livewire initialized, setting up additional Echo listeners');
+                        if (titleEl && bodyEl && modalEl) {
+                            titleEl.textContent = e.title;
+                            bodyEl.textContent = e.body;
 
-            // Ensure Echo is available
-            if (typeof Echo !== 'undefined') {
-                // Get or create the channel
-                const channel = Echo.channel('game.{{ $games_Id }}');
+                            const modal = new bootstrap.Modal(modalEl);
+                            modal.show();
 
-                // Add specific listener for notice events
-                channel.listen('.notice.broadcasted', (event) => {
-                    console.log('Direct Echo notice listener triggered:', event);
-
-                    // Find the Livewire component and call the method
-                    const component = Livewire.find('{{ $_instance->getId() }}');
-                    if (component) {
-                        component.call('handleNoticeBroadcasted', event);
-                    } else {
-                        console.error('Livewire component not found');
-                    }
+                            setTimeout(() => {
+                                modal.hide();
+                            }, 7000);
+                        }
+                    });
                 });
-
-                // Verify the listener is registered
-                console.log('Notice listener registered on channel:', channel);
-
-            } else {
-                console.error('Echo is not defined');
-            }
         });
+    </script> --}}
 
-        // Debug function to test notice manually
-        window.testNotice = function() {
-            const testData = {
-                gameId: '{{ $games_Id }}',
-                title: 'Test Notice',
-                body: 'This is a test notice'
-            };
 
-            @this.call('handleNoticeBroadcasted', testData);
-        };
 
-        console.log('Notice debugging enabled. Use testNotice() to test manually.');
-    </script>
 
     </div>
 

@@ -15,6 +15,8 @@ use App\Events\GameOverEvent;
 use Livewire\Component;
 use Illuminate\Support\Facades\Log;
 use App\Events\GameRedirectEvent;
+use App\Events\BroadcastNoticeEvent;
+use App\Events\WinnerSoundEvent;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +62,10 @@ class NumberAnnouncer extends Component
     public $announcedNumbers = [];
     public $sheet_Id;
     public $games_Id;
+    public $b_notice = false;
+    public $ntitle = '';
+    public $nbody = '';
+    public $selectedParticipantId=0;
 
     protected $listeners = [
         'echo:game.*,game.winner' => 'handleWinnerAnnounced',
@@ -70,6 +76,38 @@ class NumberAnnouncer extends Component
     ];
 
     protected $paginationTheme = 'bootstrap';
+
+     public function broadcastNotice()
+    {
+        $this->b_notice = true;
+    }
+
+    public function broadcast()
+    {
+        // Validate input
+        if (!$this->ntitle || !$this->nbody) {
+            session()->flash('error', 'Title and Body are required');
+            return;
+        }
+
+        try {
+            Log::info('Broadcasting notice', [
+                'gameId' => $this->gameId,
+                'title' => $this->ntitle,
+                'body' => $this->nbody
+            ]);
+
+            // Broadcast the event with correct channel name
+            broadcast(new BroadcastNoticeEvent($this->gameId, $this->ntitle, $this->nbody));
+
+            session()->flash('success', 'Notice broadcasted successfully');
+            $this->reset(['ntitle', 'nbody', 'b_notice']);
+
+        } catch (\Exception $e) {
+            Log::error('Error broadcasting notice: ' . $e->getMessage());
+            session()->flash('error', 'Failed to broadcast notice');
+        }
+    }
 
     public function updatedSearch()
     {
@@ -170,6 +208,7 @@ class NumberAnnouncer extends Component
     public function setUserSheet($userId)
     {
         $this->users_id = $userId;
+        $this->selectedParticipantId = $userId;
         $user = User::find($userId);
         $this->unique_id = $user->unique_id . "'s Sheet";
         $this->showSheet();
@@ -681,6 +720,9 @@ class NumberAnnouncer extends Component
                         'prize_amount' => $prizePerWinner,
                         'prize_processed' => true
                     ]);
+
+                    $winnerUserId=$ticket->user_id;
+                    broadcast(new WinnerSoundEvent($this->gameId, $winnerUserId, $pattern));
 
                     Log::info("Created winner record for user {$ticket->user_id}, ticket {$ticket->id}, pattern: $pattern, prize: $prizePerWinner. Total patterns won by this ticket: " . count($existingPatterns));
                 }

@@ -130,7 +130,19 @@
                                             </span>
                                         </div>
                                         <div class="">
-                                            <p class="mb-0">{{ $user->name }} <br><span class="badge bg-primary">Id: {{$user->unique_id}}</span></p>
+                                            <p class="mb-0">{{ $user->name }}
+                                                <br><span class="badge bg-primary">Id: {{$user->unique_id}}</span>
+                                                <br><span class="badge bg-warning">Credit: {{$user->credit }}</span>
+                                                <a style="cursor: pointer;"
+                                                    class="badge bg-danger"
+                                                    wire:click='deduction({{ $user->id }})'
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="bottom"
+                                                    title="Credit Deduction"
+                                                    aria-label="Deduction">
+                                                    <i class="bi bi-dash-circle-fill text-white"></i>
+                                                </a>
+                                            </p>
                                         </div>
                                     </div>
                                 </td>
@@ -188,6 +200,56 @@
                     </table>
                      <div>
                         {{ $users->links() }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{-- Deduction Modal --}}
+        <div wire:ignore.self class="modal fade" id="deductionModel" tabindex="-1" aria-labelledby="deductionModelLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content shadow-lg rounded-3">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="deductionModelLabel">Credits deduction for {{ $name }} ID: {{$unique_id}}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" wire:click="$set('deductionModel', false)"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Current Blance</label>
+                            <input type="text" class="form-control bg-light" value="{{ $credit }}" readonly>
+                        </div>
+                        <div class="col-12" style="display: {{$amountMode ? 'block' : 'none'}}">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Deduction Note</label>
+                                <input type="text" class="form-control bg-light"  wire:model='details'>
+                                @error('details')<small class="text-danger mb-2">{{ $message }}</small>@enderror
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Deduction Amount</label>
+                                <input type="number" class="form-control bg-light" wire:model='amount'>
+                                @error('amount')<small class="text-danger mb-2">{{ $message }}</small>@enderror
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="card radius-10 bg-success" style="display: {{$confirmMode ? 'block' : 'none'}}">
+                                <div class="card-body">
+
+                                    <p class="text-white text-center">Plese enter your admin password for confermation</p>
+                                    <input wire:model='password' type="password" class="form-control">
+                                    @error('password')<small class="text-danger mb-2">{{ $message }}</small>@enderror
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        @if ($amountMode)
+                            <button wire:click="rechargeNext" type="button" class="btn btn-primary">Next</button>
+                        @else
+                            <button wire:click="comfirm" type="button" class="btn btn-danger">
+                            <span wire:loading.delay.long wire:target="comfirm" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <i class="bi bi-save2"></i> Deduction
+                        </button>
+                        @endif
+                        <button class="btn btn-secondary" wire:click="$set('deductionModel', false)">Close</button>
                     </div>
                 </div>
             </div>
@@ -256,10 +318,39 @@
                 </div>
             </div>
         </div>
+         @if($transactionSuccess)
+                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5)">
+                    <div class="modal-dialog modal-dialog-centered" role="document">
+                        <div class="modal-content border-success">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title">Credits deducted Successful</h5>
+                            </div>
+                            <div class="modal-body text-center">
+                                <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                                <p class="mt-3 mb-0 fs-5">Your transaction was completed successfully.</p>
+                            </div>
+                            <div class="modal-footer justify-content-center">
+                                <button class="btn btn-success" wire:click="$set('transactionSuccess', false)">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
         @push('scripts')
             <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
             <script>
+                Livewire.on('openDeductionModel', () => {
+                    const modal = new bootstrap.Modal(document.getElementById('deductionModel'));
+                    modal.show();
+                });
+                Livewire.on('closeDeductionModel', () => {
+                    const modalEl = document.getElementById('deductionModel');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    modal.hide();
+                });
+
+
                 Livewire.on('openChangeIdModal', () => {
                     const modal = new bootstrap.Modal(document.getElementById('changeIdModal'));
                     modal.show();
