@@ -212,6 +212,10 @@
         </style>
     @endsection
 
+    @section('preloader')
+        <livewire:layout.frontend.preloader />
+    @endsection
+
     @section('header')
         <livewire:layout.frontend.header />
     @endsection

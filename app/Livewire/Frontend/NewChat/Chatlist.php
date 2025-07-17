@@ -63,7 +63,14 @@ class Chatlist extends Component
     public function createConversation($receiverId)
     {
         //checking the conversation First if it exists or no
-        $checkConversation = Conversation::where('receiver_id', auth()->user()->id)->where('sender_id', $receiverId)->orWhere('receiver_id', $receiverId)->where('sender_id', auth()->user()->id)->get();
+        $checkConversation = Conversation::where(function ($query) use ($receiverId) {
+            $query->where('receiver_id', auth()->user()->id)
+                  ->where('sender_id', $receiverId);
+        })->orWhere(function ($query) use ($receiverId) {
+            $query->where('receiver_id', $receiverId)
+                  ->where('sender_id', auth()->user()->id);
+        })->get();
+
         if(count($checkConversation)==0)
         {
             // dd('no convo');
@@ -74,21 +81,27 @@ class Chatlist extends Component
             $createdConversation->last_time_message = $createMessage->created_at;
             $createdConversation->save();
             $this->dispatch('refresh-chatlist');
-        $this->reset();
+            // After creating a new conversation, immediately select it
+            $receiverInstance = User::find($receiverId);
+            $senderInstance = auth()->user();
+            $this->chatUserSelected( $createdConversation, $receiverInstance->id, $senderInstance->id);
+            $this->reset();
 
 
         }
-
         elseif(count($checkConversation) >= 1)
         {
-            //dd('convo exists');
-            $conversation = Conversation::with(['senderInverseRelation', 'receiverInverseRelation'])
-                ->where('sender_id', auth()->user()->id)
-                ->first();
-            //dd($conversation);
+            // Find the specific conversation between the two users
+            $conversation = $checkConversation->first(function ($convo) use ($receiverId) {
+                return ($convo->sender_id == auth()->user()->id && $convo->receiver_id == $receiverId) ||
+                       ($convo->sender_id == $receiverId && $convo->receiver_id == auth()->user()->id);
+            });
+
             if ($conversation)
              {
-                $this->chatUserSelected( $conversation, $conversation->receiver_id, $conversation->sender_id);
+                $receiverInstance = User::find($receiverId);
+                $senderInstance = auth()->user(); // The current authenticated user is the sender in this context
+                $this->chatUserSelected( $conversation, $receiverInstance->id, $senderInstance->id);
             }
         }
     }
@@ -111,7 +124,8 @@ class Chatlist extends Component
     {
         $this->conversations = Conversation::with(['senderInverseRelation','receiverInverseRelation'])->where('sender_id', auth()->user()->id)->orWhere('receiver_id', auth()->user()->id)->orderBy('last_time_message', 'DESC')->get();
         return view('livewire.frontend.new-chat.chatlist',[
-          'conversations', $this->conversations,
+          'conversations' => $this->conversations, // Fix: Pass conversations with key
         ]);
     }
 }
+

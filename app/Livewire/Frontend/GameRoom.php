@@ -68,17 +68,72 @@ class GameRoom extends Component
     {
         Log::info('WinnerBroadcasted event received in GameRoom', [
             'payload' => $data,
+            'current_user_id' => auth()->id()
         ]);
-        $userId = $data['winnerUserId'];
-        $winningPatterns = is_array($data['pattern']) ? $data['pattern'] : [$data['pattern']];
+
         try {
-            if ($userId === auth()->user()->id) {
-                foreach ($winningPatterns as $pattern) {
-                    $this->dispatch('play-winner-audio', pattern: $pattern);
-                }
+            // Extract data from different possible formats
+            $winnerUserId = $data['winnerUserId'] ?? $data['winner_user_id'] ?? null;
+            $pattern = $data['pattern'] ?? null;
+            $gameId = $data['gameId'] ?? $data['game_id'] ?? null;
+
+            // Validate required data
+            if (!$winnerUserId || !$pattern || !$gameId) {
+                Log::warning('Invalid winner broadcast data', [
+                    'winnerUserId' => $winnerUserId,
+                    'pattern' => $pattern,
+                    'gameId' => $gameId
+                ]);
+                return;
             }
+
+            // Check if this is for the current game
+            if ($gameId != $this->games_Id) {
+                Log::info('Winner broadcast for different game', [
+                    'broadcast_game' => $gameId,
+                    'current_game' => $this->games_Id
+                ]);
+                return;
+            }
+
+            // Handle multiple patterns
+            $patterns = is_array($pattern) ? $pattern : [$pattern];
+
+            Log::info('Processing winner patterns', [
+                'patterns' => $patterns,
+                'winner_user_id' => $winnerUserId,
+                'current_user_id' => auth()->id()
+            ]);
+
+            // Play sound for the winner
+            if ($winnerUserId == auth()->id()) {
+                Log::info('Playing winner sound for current user');
+                foreach ($patterns as $singlePattern) {
+                    // $this->dispatch('play-winner-audio', [
+                    //     'pattern' => $singlePattern,
+                    //     'isWinner' => true
+                    // ]);
+                    $this->dispatch('play-winner-audio', pattern: $singlePattern);
+
+                     $this->textNote = 'You won credits for ' . $singlePattern . ' in game ';
+                     $this->sentNotification = true;
+                }
+            } else {
+                // Play general winner sound for other players
+                Log::info('Playing general winner sound for other players');
+                $this->dispatch('play-general-winner-audio', [
+                    'pattern' => $patterns[0] ?? 'general'
+                ]);
+            }
+
+            // Reload game data
+            $this->loadNumbers();
+            $this->getWinnerPattarns();
+
         } catch (\Exception $e) {
-            Log::error('Error handling sound broadcast: ' . $e->getMessage());
+            Log::error('Error handling winner broadcast: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 

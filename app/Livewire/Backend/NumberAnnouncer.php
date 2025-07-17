@@ -411,6 +411,13 @@ class NumberAnnouncer extends Component
         $this->showSheet();
     }
 
+    // NEW METHOD: Allows clicking on a number badge to announce it
+    public function selectAndAnnounceNumber($number)
+    {
+        $this->selectedNumber = $number;
+        $this->announceNumber();
+    }
+
     // IMPROVED METHOD: Check winners for all tickets in the game - allowing multiple pattern wins per ticket
     private function checkWinnersForAllTickets()
     {
@@ -721,8 +728,41 @@ class NumberAnnouncer extends Component
                         'prize_processed' => true
                     ]);
 
-                    $winnerUserId=$ticket->user_id;
-                    broadcast(new WinnerSoundEvent($this->gameId, $winnerUserId, $pattern));
+                    // Enhanced winner sound event with user name and immediate broadcast
+                    $winnerUser = $ticket->user;
+
+                    Log::info("Broadcasting WinnerSoundEvent", [
+                        'game_id' => $this->gameId,
+                        'winner_user_id' => $ticket->user_id,
+                        'pattern' => $pattern,
+                        'winner_name' => $winnerUser->name ?? $winnerUser->unique_id
+                    ]);
+
+                    try {
+                        // Broadcast immediately after creating winner record
+                        $winnerSoundEvent = new WinnerSoundEvent(
+                            $this->gameId,
+                            $ticket->user_id,
+                            $pattern,
+                            $winnerUser->name ?? $winnerUser->unique_id
+                        );
+
+                        broadcast($winnerSoundEvent)->toOthers();
+
+                        Log::info("WinnerSoundEvent broadcasted successfully", [
+                            'game_id' => $this->gameId,
+                            'winner_user_id' => $ticket->user_id,
+                            'pattern' => $pattern
+                        ]);
+
+                    } catch (\Exception $e) {
+                        Log::error("Failed to broadcast WinnerSoundEvent: " . $e->getMessage(), [
+                            'game_id' => $this->gameId,
+                            'winner_user_id' => $ticket->user_id,
+                            'pattern' => $pattern,
+                            'error' => $e->getTraceAsString()
+                        ]);
+                    }
 
                     Log::info("Created winner record for user {$ticket->user_id}, ticket {$ticket->id}, pattern: $pattern, prize: $prizePerWinner. Total patterns won by this ticket: " . count($existingPatterns));
                 }

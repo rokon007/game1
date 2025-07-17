@@ -468,6 +468,12 @@
                 playWinnerAudio(pattern);
             });
 
+             // Audio for general winning patterns
+            @this.on('play-general-winner-audio', (data) => {
+                const pattern = data.pattern;
+                playGeneralWinnerAudio(pattern);
+            });
+
             // Function to play audio for announced numbers
             function playNumberAudio(number) {
                 console.log(`Playing audio for number: ${number}`);
@@ -506,6 +512,28 @@
                     'middle_line': 'middle_line.mp3',
                     'bottom_line': 'bottom_line.mp3',
                     'full_house': 'full_house.mp3'
+                };
+
+                const audioFileName = patternAudioMap[pattern] || null;
+
+                if (audioFileName) {
+                    const audioPath = `/sounds/winners/${audioFileName}`;
+                    playAudio(audioPath);
+                }
+            }
+
+
+            // Function to play general audio for winning patterns
+            function playGeneralWinnerAudio(pattern) {
+                console.log(`Playing audio for General winning pattern: ${pattern}`);
+
+                // Map pattern to audio file name
+                const patternAudioMap = {
+                    'corner': 'general_corner_numbers.mp3',
+                    'top_line': 'general_top_line.mp3',
+                    'middle_line': 'general_middle_line.mp3',
+                    'bottom_line': 'general_bottom_line.mp3',
+                    'full_house': 'general_full_house.mp3'
                 };
 
                 const audioFileName = patternAudioMap[pattern] || null;
@@ -999,6 +1027,19 @@
                 // Get or create the channel
                 const channel = Echo.channel('game.{{ $games_Id }}');
 
+                // Winner sound event listener - CRITICAL
+                channel.listen('.winner.broadcasted', (event) => {
+                    console.log('Winner sound event received via Echo:', event);
+
+                    // Find the Livewire component and call the method
+                    const component = Livewire.find('{{ $_instance->getId() }}');
+                    if (component) {
+                        component.call('handleWinnerBroadcasted', event);
+                    } else {
+                        console.error('Livewire component not found');
+                    }
+                });
+
                 // Add specific listener for notice events
                 channel.listen('.notice.broadcasted', (event) => {
                     console.log('Direct Echo notice listener triggered:', event);
@@ -1032,6 +1073,9 @@
         };
 
         console.log('Notice debugging enabled. Use testNotice() to test manually.');
+
+
+
     </script>
 
     </div>

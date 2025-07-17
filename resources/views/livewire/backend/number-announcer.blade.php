@@ -66,6 +66,13 @@
                 box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
             }
 
+            .number-badge.uncalled {
+                /* background: linear-gradient(135deg, #DAF7A6,  #55ff33 );
+                color: white;
+                transform: scale(1.05); */
+                border: 2px solid #0d6efd;
+            }
+
             .number-badge.new-called {
                 animation: pulse 1.5s infinite;
                 background: linear-gradient(135deg, #ffc107, #fd7e14);
@@ -401,10 +408,19 @@
                                 <div class="gameOver-text">Game Over</div>
                             @endif
 
-                            <div class="number-grid">
+                            {{-- <div class="number-grid">
                                 @for ($i = 1; $i <= 90; $i++)
                                     <div class="number-badge {{ in_array($i, $calledNumbers) ? 'called' : '' }}
                                          {{ $i == end($calledNumbers) ? 'new-called' : '' }}">
+                                        {{ $i }}
+                                    </div>
+                                @endfor
+                            </div> --}}
+                            <div class="number-grid">
+                                @for ($i = 1; $i <= 90; $i++)
+                                    <div class="number-badge {{ in_array($i, $calledNumbers) ? 'called' : 'uncalled' }}
+                                        {{ $i == end($calledNumbers) ? 'new-called' : '' }}"
+                                        wire:click="selectAndAnnounceNumber({{ $i }})" {{ in_array($i, $calledNumbers) || $gameOver ? 'style=pointer-events:none;' : '' }} style="cursor: pointer">
                                         {{ $i }}
                                     </div>
                                 @endfor
@@ -497,7 +513,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($winners->take(5) as $winner)
+                                @foreach($winners as $winner)
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
@@ -575,7 +591,7 @@
                         <h5 class="modal-title text-white">🎉 Winner Announcement 🎉</h5>
                     </div>
                     <div class="modal-body">
-                        @foreach($winners->take(3) as $winner)
+                        @foreach($winners as $winner)
                             <div class="card border-0 bg-transparent text-white mb-3">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center">

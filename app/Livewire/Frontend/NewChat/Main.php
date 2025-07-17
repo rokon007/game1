@@ -42,9 +42,16 @@ class Main extends Component
 
     public function createConversation($receiverId)
     {
-        //checking the conversation First if it exists or no
-        $checkConversation = Conversation::where('receiver_id', auth()->user()->id)->where('sender_id', $receiverId)->orWhere('receiver_id', $receiverId)->where('sender_id', auth()->user()->id)->get();
-        if(count($checkConversation)==0)
+        // checking the conversation First if it exists or no
+        $checkConversation = Conversation::where(function ($query) use ($receiverId) {
+            $query->where('receiver_id', auth()->user()->id)
+                  ->where('sender_id', $receiverId);
+        })->orWhere(function ($query) use ($receiverId) {
+            $query->where('receiver_id', $receiverId)
+                  ->where('sender_id', auth()->user()->id);
+        })->get();
+
+        if(count($checkConversation) == 0)
         {
             // dd('no convo');
             $createdConversation = Conversation::create(['receiver_id' => $receiverId , 'sender_id' => auth()->user()->id, 'last_message' => 'Click to start chat']);
@@ -54,35 +61,36 @@ class Main extends Component
             $createdConversation->last_time_message = $createMessage->created_at;
             $createdConversation->save();
             $this->dispatch('refresh-chatlist');
-        $this->reset();
+
+            // After creating a new conversation, immediately select it
+            $receiverInstance = User::find($receiverId);
+            $senderInstance = auth()->user();
+            $this->dispatch('chatUserSelected1', conversation: $createdConversation, receiverId: $receiverInstance->id, senderId: $senderInstance->id);
+            $this->reset();
 
 
         }
-
         elseif(count($checkConversation) >= 1)
         {
-            //dd('convo exists');
-            $conversation = Conversation::with(['senderInverseRelation', 'receiverInverseRelation'])
-                ->where('receiver_id', auth()->user()->id)
-                ->first();
-            //dd($conversation);
-            if ($conversation)
-             {
-               // $this->chatUserSelected( $conversation, $conversation->receiver_id, $conversation->sender_id);
-              // $this->dispatch('chatUserSelected1', conversation: $conversation,receiverId: $conversation->receiver_id,senderId: $conversation->sender_id);
-               $this->dispatch('chatUserSelected1', conversation: $conversation, receiverId: $conversation->receiver_id, senderId: $conversation->sender_id);
+            // Find the specific conversation between the two users
+            $conversation = $checkConversation->first(function ($convo) use ($receiverId) {
+                return ($convo->sender_id == auth()->user()->id && $convo->receiver_id == $receiverId) ||
+                       ($convo->sender_id == $receiverId && $convo->receiver_id == auth()->user()->id);
+            });
 
+            if ($conversation)
+            {
+               $receiverInstance = User::find($receiverId);
+               $senderInstance = auth()->user(); // The current authenticated user is the sender in this context
+               $this->dispatch('chatUserSelected1', conversation: $conversation, receiverId: $receiverInstance->id, senderId: $senderInstance->id);
             }
         }
     }
-
-
 
     public function render()
     {
         if(strlen($this->searchUser) >= 1)
         {
-
             $this->dispatch('chatListHide');
             $this->results = User::where('unique_id', 'like','%'. $this->searchUser. '%')->get();
         }else{
@@ -90,5 +98,5 @@ class Main extends Component
         }
         return view('livewire.frontend.new-chat.main', ['result' => $this->results])->layout('livewire.layout.frontend.base');
     }
-
 }
+

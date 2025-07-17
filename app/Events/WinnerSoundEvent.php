@@ -4,11 +4,10 @@ namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class WinnerSoundEvent implements ShouldBroadcast
 {
@@ -17,43 +16,70 @@ class WinnerSoundEvent implements ShouldBroadcast
     public $gameId;
     public $winnerUserId;
     public $pattern;
+    public $winnerName;
 
-    /**
-     * Create a new event instance.
-     */
-    public function __construct($gameId,$winnerUserId,$pattern)
+    public function __construct($gameId, $winnerUserId, $pattern, $winnerName = null)
     {
         $this->gameId = $gameId;
         $this->winnerUserId = $winnerUserId;
         $this->pattern = $pattern;
+        $this->winnerName = $winnerName;
+
+        Log::info('WinnerSoundEvent created', [
+            'gameId' => $this->gameId,
+            'winnerUserId' => $this->winnerUserId,
+            'pattern' => $this->pattern,
+            'winnerName' => $this->winnerName
+        ]);
     }
 
-    /**
-     * Get the channels the event should broadcast on.
-     */
     public function broadcastOn(): Channel
     {
-        // Use consistent channel naming with game room
-        return new Channel('game.' . $this->gameId);
+        $channel = new Channel('game.' . $this->gameId);
+
+        Log::info('WinnerSoundEvent broadcasting on channel', [
+            'channel' => 'game.' . $this->gameId,
+            'gameId' => $this->gameId
+        ]);
+
+        return $channel;
     }
 
-    /**
-     * Broadcast event name (optional).
-     */
     public function broadcastAs(): string
     {
+        Log::info('WinnerSoundEvent broadcast as: winner.broadcasted');
         return 'winner.broadcasted';
     }
 
-    /**
-     * Data to broadcast with the event
-     */
     public function broadcastWith(): array
     {
-        return [
-            'gId' => $this->gameId,
+        $data = [
+            'gameId' => $this->gameId,
+            'winnerUserId' => $this->winnerUserId,
+            'pattern' => $this->pattern,
+            'winnerName' => $this->winnerName,
+            'timestamp' => now()->toISOString()
+        ];
+
+        Log::info('WinnerSoundEvent broadcasting with data', $data);
+
+        return $data;
+    }
+
+    /**
+     * Determine if this event should broadcast.
+     */
+    public function broadcastWhen(): bool
+    {
+        $shouldBroadcast = !empty($this->gameId) && !empty($this->winnerUserId) && !empty($this->pattern);
+
+        Log::info('WinnerSoundEvent broadcast condition', [
+            'shouldBroadcast' => $shouldBroadcast,
+            'gameId' => $this->gameId,
             'winnerUserId' => $this->winnerUserId,
             'pattern' => $this->pattern
-        ];
+        ]);
+
+        return $shouldBroadcast;
     }
 }
