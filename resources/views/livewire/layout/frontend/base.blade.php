@@ -9,6 +9,7 @@
     @yield('meta_description')
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="theme-color" content="#625AFA">
+    <meta name="google-site-verification" content="UbkvPt_oAAGgpEZayP4bF_JG9vrdCLqhwF39WZ0gTDA" />
     <!-- Title -->
     @yield('title')
     @yield('css')

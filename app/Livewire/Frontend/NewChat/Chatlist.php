@@ -85,7 +85,7 @@ class Chatlist extends Component
             $receiverInstance = User::find($receiverId);
             $senderInstance = auth()->user();
             $this->chatUserSelected( $createdConversation, $receiverInstance->id, $senderInstance->id);
-            $this->reset();
+            //$this->reset();
 
 
         }

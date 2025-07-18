@@ -215,6 +215,13 @@
     @section('preloader')
         <livewire:layout.frontend.preloader />
     @endsection
+    @section('offcanvas')
+        <livewire:layout.frontend.offcanvas />
+    @endsection
+
+    @section('pwa_alart')
+        <livewire:layout.frontend.pwa_alart />
+    @endsection
 
     @section('header')
         <livewire:layout.frontend.header />
