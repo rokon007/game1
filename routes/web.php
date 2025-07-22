@@ -39,6 +39,7 @@ use App\Livewire\Backend\HowToGuideManager;
 use App\Livewire\Backend\HajariGameSettings;
 use App\Livewire\Frontend\NewChat\Main;
 use App\Http\Controllers\CkeditorController;
+use App\Livewire\SitemapXml;
 
 use Illuminate\Http\Request;
 
@@ -67,6 +68,8 @@ Route::post('/set-timezone', function (Request $request) {
 Route::get('/how-to-use', HowToUse::class)->name('how.to.use');
 
 Route::get('/', Home::class)->name('home');
+// XML সাইটম্যাপ রুট
+Route::get('/sitemap.xml', SitemapXml::class)->name('sitemap.xml');
 
 // Admin Routes (requires admin role and authentication)
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin'])->group(function () {

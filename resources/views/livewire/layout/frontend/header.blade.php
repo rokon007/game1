@@ -42,7 +42,11 @@ new class extends Component
 <div class="header-area" id="headerArea">
     <div class="container h-100 d-flex align-items-center justify-content-between d-flex rtl-flex-d-row-r">
       <!-- Logo Wrapper -->
-      <div class="logo-wrapper"><a href="{{route('home')}}"><img style="width:200px" src="{{asset('assets/frontend/img/core-img/PNG.png')}}" alt=""></a></div>
+        <div class="logo-wrapper">
+            <a href="{{route('home')}}">
+                <img style="width:200px" src="{{asset('assets/frontend/img/core-img/PNG.png')}}" alt="">
+            </a>
+        </div>
       <div class="navbar-logo-container d-flex align-items-center">
         <!-- Cart Icon -->
         {{-- <div class="cart-icon-wrap"><a href="#"><i class="ti ti-basket-bolt"></i><span>{{$cartCount}}</span></a></div> --}}
@@ -51,7 +55,7 @@ new class extends Component
             <!-- User notifications Icon -->
                 <div class="cart-icon-wrap ms-2">
                     <a href="{{route('notifications')}}">
-                        <i class="ti ti-bell-ringing lni-tada-effect"></i>
+                        <i class="ti ti-bell-ringing lni-tada-effect" style="color:blue"></i>
                         {{-- <span wire:poll.1s> --}}
                         <span>
                             @php
@@ -64,7 +68,7 @@ new class extends Component
                 <!-- User massege Icon -->
                 <div class="cart-icon-wrap ms-2">
                     <a href="{{ route('chat') }}">
-                        <i class="ti ti-message-circle"></i>
+                        <i class="ti ti-mail" style="color: green;"></i>
 
                         <livewire:frontend.header.unread-chat-count />
                     </a>
@@ -88,7 +92,7 @@ new class extends Component
         @endif
         <!-- Navbar Toggler -->
         <div class="suha-navbar-toggler ms-2" data-bs-toggle="offcanvas" data-bs-target="#suhaOffcanvas" aria-controls="suhaOffcanvas">
-          <div><span></span><span></span><span></span></div>
+          <div style="color: blue;"><span style="color: blue;"></span><span style="color: blue;"></span><span style="color: blue;"></span></div>
         </div>
       </div>
     </div>

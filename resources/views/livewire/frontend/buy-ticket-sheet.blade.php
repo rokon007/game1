@@ -213,7 +213,7 @@
     @endsection
 
     @section('preloader')
-        <livewire:layout.frontend.preloader />
+        {{-- <livewire:layout.frontend.preloader /> --}}
     @endsection
     @section('offcanvas')
         <livewire:layout.frontend.offcanvas />
@@ -313,7 +313,7 @@
                                 <div class="">
                                     <div class="card-body p-4"
                                     @if($selectedGameId == $game->id)
-                                     style=""
+                                     style="background-color: #FFDAB9"
                                     @else
                                      style="background: linear-gradient(135deg, #2c3e50 0%, #4a6491 100%);"
                                     @endif

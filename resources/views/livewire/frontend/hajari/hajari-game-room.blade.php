@@ -5,28 +5,18 @@
     <!-- Audio elements for sound effects -->
     <audio id="dealSound" preload="auto">
         <source src="{{ asset('sounds/card-deal.mp3') }}" type="audio/mpeg">
-        {{-- <source src="{{ asset('sounds/card-deal.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/card-deal.ogg') }}" type="audio/ogg"> --}}
     </audio>
     <audio id="turnSound" preload="auto">
         <source src="{{ asset('sounds/turn-notification.mp3') }}" type="audio/mpeg">
-        {{-- <source src="{{ asset('sounds/turn-notification.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/turn-notification.ogg') }}" type="audio/ogg"> --}}
     </audio>
     <audio id="winRoundSound" preload="auto">
         <source src="{{ asset('sounds/round-win.mp3') }}" type="audio/mpeg">
-        {{-- <source src="{{ asset('sounds/round-win.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/round-win.ogg') }}" type="audio/ogg"> --}}
     </audio>
     <audio id="playCardSound" preload="auto">
         <source src="{{ asset('sounds/card-play.mp3') }}" type="audio/mpeg">
-        {{-- <source src="{{ asset('sounds/card-play.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/card-play.ogg') }}" type="audio/ogg"> --}}
     </audio>
     <audio id="gameOverSound" preload="auto">
         <source src="{{ asset('sounds/game-over.mp3') }}" type="audio/mpeg">
-        {{-- <source src="{{ asset('sounds/game-over.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/game-over.ogg') }}" type="audio/ogg"> --}}
     </audio>
 
     <!-- Game notifications container -->
@@ -38,7 +28,7 @@
             <div class="game-info">
                 <h1 class="game-title">{{ Str::limit($game->title, 12) }}</h1>
                 <div class="game-stats">
-                    <span>৳{{ number_format($game->bid_amount, 0) }}</span>
+                    <span>爰ｳ{{ number_format($game->bid_amount, 0) }}</span>
                     <span>R{{ $gameState['current_round'] ?? 1 }}</span>
                     <span>T{{ $gameState['current_turn'] ?? 1 }}</span>
                     @if($isArrangementPhase && $arrangementTimeLeft > 0)
@@ -55,7 +45,7 @@
                         <div class="player-name">{{ Str::limit($participant->user->name, 4) }}</div>
                         <div class="player-points">{{ $participant->total_points ?? 0 }}</div>
                         @if($participant->cards_locked ?? false)
-                            <div class="lock-indicator">🔒</div>
+                            <div class="lock-indicator">白</div>
                         @endif
                     </div>
                 @endforeach
@@ -280,7 +270,7 @@
     @if($showWinnerModal)
         <div class="modal-overlay" wire:click="closeWinnerModal">
             <div class="winner-modal">
-                <h2>🎉 Game Over! 🎉</h2>
+                <h2>脂 Game Over! 脂</h2>
                 <div class="final-winner">
                     <div class="winner-name">{{ $winnerData['winner_name'] ?? '' }}</div>
                     <div class="winner-title">WINNER!</div>
@@ -302,17 +292,13 @@
 
     @push('scripts')
     <script>
+        // Global state for dragging
         let draggedElement = null;
         let draggedIndex = null;
-        let touchStartX = 0;
-        let touchStartY = 0;
         let isDragging = false;
         let dragOffset = { x: 0, y: 0 };
-        let dragStartTime = 0;
         let arrangementTimer = null;
-        let touchTimeout = null;
         let soundEnabled = true;
-        let dragThreshold = 15; // Minimum distance to start dragging
 
         // Enhanced Sound Effects controller
         const SoundEffects = {
@@ -335,41 +321,33 @@
                     }
                 }
             },
-
             playFallbackSound() {
                 try {
                     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                     const oscillator = audioContext.createOscillator();
                     const gainNode = audioContext.createGain();
-
                     oscillator.connect(gainNode);
                     gainNode.connect(audioContext.destination);
-
                     oscillator.frequency.value = 800;
                     oscillator.type = 'sine';
-
                     gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-
                     oscillator.start(audioContext.currentTime);
                     oscillator.stop(audioContext.currentTime + 0.1);
                 } catch (e) {
                     console.log('Fallback sound failed:', e);
                 }
             },
-
             playDealSound: () => SoundEffects.playSound('dealSound', true),
             playTurnSound: () => SoundEffects.playSound('turnSound', true),
             playWinRoundSound: () => SoundEffects.playSound('winRoundSound', true),
             playCardSound: () => SoundEffects.playSound('playCardSound', true),
             playGameOverSound: () => SoundEffects.playSound('gameOverSound', true),
-
             toggleSound() {
                 soundEnabled = !soundEnabled;
                 localStorage.setItem('hajari_sound_enabled', soundEnabled);
                 return soundEnabled;
             },
-
             isSoundEnabled() {
                 return soundEnabled;
             }
@@ -377,14 +355,13 @@
 
         // Initialize everything
         document.addEventListener('DOMContentLoaded', function() {
-            initializeEnhancedDragAndDrop();
+            initializeDragAndDrop();
             initializeScrollIndicators();
             optimizeForLandscape();
             initializePusherEvents();
             startArrangementTimer();
             initializeAudio();
 
-            // Load sound preference
             const savedSoundPref = localStorage.getItem('hajari_sound_enabled');
             if (savedSoundPref !== null) {
                 soundEnabled = savedSoundPref === 'true';
@@ -393,7 +370,6 @@
 
         function initializeAudio() {
             const audioElements = ['dealSound', 'turnSound', 'winRoundSound', 'playCardSound', 'gameOverSound'];
-
             audioElements.forEach(id => {
                 const audio = document.getElementById(id);
                 if (audio) {
@@ -402,8 +378,6 @@
                     audio.load();
                 }
             });
-
-            // Enable audio context on first user interaction
             document.addEventListener('click', enableAudioContext, { once: true });
             document.addEventListener('touchstart', enableAudioContext, { once: true });
         }
@@ -425,7 +399,6 @@
         function startArrangementTimer() {
             const timerElement = document.getElementById('live-timer');
             const headerTimer = document.getElementById('arrangement-timer');
-
             if (timerElement || headerTimer) {
                 arrangementTimer = setInterval(() => {
                     @this.call('loadGameState').then(() => {
@@ -434,10 +407,8 @@
                             const minutes = Math.floor(timeLeft / 60);
                             const seconds = timeLeft % 60;
                             const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
                             if (timerElement) timerElement.textContent = timeString;
                             if (headerTimer) headerTimer.textContent = timeString;
-
                             if (timeLeft <= 30) {
                                 if (timerElement) timerElement.classList.add('urgent');
                                 if (headerTimer) headerTimer.classList.add('urgent');
@@ -456,46 +427,30 @@
             window.addEventListener('gameUpdated', event => {
                 showNotification(event.detail.data.message || 'Game updated');
                 @this.call('loadGameState');
-
                 if (event.detail.type === 'game_started') {
                     SoundEffects.playDealSound();
                     startArrangementTimer();
                 }
             });
-
             window.addEventListener('cardPlayed', event => {
                 showNotification(`${event.detail.player_name} played cards`);
                 @this.call('loadGameState');
                 SoundEffects.playCardSound();
             });
-
             window.addEventListener('roundWinner', event => {
                 const winnerPosition = event.detail.winner_position;
                 const winnerName = event.detail.winner_name;
                 SoundEffects.playWinRoundSound();
                 showNotification(`${winnerName} wins the round!`);
-                setTimeout(() => {
-                    animateCardsToWinner(winnerPosition);
-                }, 1000);
+                setTimeout(() => animateCardsToWinner(winnerPosition), 1000);
             });
-
-            window.addEventListener('clearCenterCards', () => {
-                clearCenterCards();
-            });
-
-            window.addEventListener('hideScoreModal', () => {
-                setTimeout(() => {
-                    @this.call('closeScoreModal');
-                }, 5000);
-            });
-
-            setInterval(() => {
-                @this.call('loadGameState');
-            }, 3000);
+            window.addEventListener('clearCenterCards', () => clearCenterCards());
+            window.addEventListener('hideScoreModal', () => setTimeout(() => @this.call('closeScoreModal'), 5000));
+            setInterval(() => @this.call('loadGameState'), 3000);
         }
 
-        // FIXED: Enhanced drag and drop with proper drop detection
-        function initializeEnhancedDragAndDrop() {
+        // --- FIXED DRAG AND DROP LOGIC ---
+        function initializeDragAndDrop() {
             const container = document.getElementById('cards-container');
             if (!container) return;
 
@@ -511,6 +466,152 @@
             container.addEventListener('touchend', handleTouchEnd, { passive: false });
         }
 
+        function handleDragStart(e) {
+            const cardElement = e.target.closest('.draggable-card');
+            if (!cardElement || cardElement.classList.contains('locked') || cardElement.getAttribute('draggable') !== 'true') {
+                e.preventDefault();
+                return;
+            }
+            draggedElement = cardElement;
+            draggedIndex = parseInt(cardElement.dataset.cardIndex);
+
+            // Use setTimeout to allow the browser to start the drag operation before applying styles
+            setTimeout(() => {
+                cardElement.classList.add('dragging');
+            }, 0);
+
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', ''); // Necessary for Firefox
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const dropTarget = e.target.closest('.draggable-card');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
+                dropTarget.classList.add('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropTarget = e.target.closest('.draggable-card');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            if (!dropTarget || dropTarget === draggedElement || dropTarget.classList.contains('locked')) {
+                return;
+            }
+            const dropIndex = parseInt(dropTarget.dataset.cardIndex);
+            if (draggedIndex !== null && dropIndex !== null && draggedIndex !== dropIndex) {
+                @this.call('reorderCards', draggedIndex, dropIndex);
+            }
+        }
+
+        function handleDragEnd(e) {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+            }
+            draggedElement = null;
+            draggedIndex = null;
+        }
+
+        function handleTouchStart(e) {
+            const cardElement = e.target.closest('.draggable-card');
+            if (!cardElement || cardElement.classList.contains('locked') || cardElement.getAttribute('draggable') !== 'true') {
+                return;
+            }
+            e.preventDefault(); // Prevent scrolling and other default touch actions
+            draggedElement = cardElement;
+            draggedIndex = parseInt(cardElement.dataset.cardIndex);
+            isDragging = true;
+
+            const rect = cardElement.getBoundingClientRect();
+            dragOffset.x = e.touches[0].clientX - rect.left;
+            dragOffset.y = e.touches[0].clientY - rect.top;
+
+            createDragGhost(e.touches[0]);
+            draggedElement.classList.add('dragging');
+        }
+
+        function handleTouchMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+
+            updateDragGhost(e.touches[0]);
+
+            const touch = e.touches[0];
+            // Hide ghost to find element underneath
+            const ghost = document.getElementById('drag-ghost');
+            if (ghost) ghost.style.display = 'none';
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (ghost) ghost.style.display = '';
+
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            const dropTarget = elementBelow ? elementBelow.closest('.draggable-card:not(.dragging)') : null;
+            if (dropTarget) {
+                dropTarget.classList.add('drag-over');
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (!isDragging) return;
+            isDragging = false;
+
+            removeDragGhost();
+
+            const touch = e.changedTouches[0];
+
+            // Hide original element to find target
+            draggedElement.style.visibility = 'hidden';
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            draggedElement.style.visibility = 'visible';
+
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            const dropTarget = elementBelow ? elementBelow.closest('.draggable-card') : null;
+
+            if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
+                const dropIndex = parseInt(dropTarget.dataset.cardIndex);
+                if (draggedIndex !== null && dropIndex !== null && draggedIndex !== dropIndex) {
+                    @this.call('reorderCards', draggedIndex, dropIndex);
+                }
+            }
+
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+            }
+            draggedElement = null;
+            draggedIndex = null;
+        }
+
+        function createDragGhost(touch) {
+            if (!draggedElement) return;
+            const ghost = draggedElement.cloneNode(true);
+            ghost.id = 'drag-ghost';
+            ghost.style.position = 'fixed';
+            ghost.style.left = (touch.clientX - dragOffset.x) + 'px';
+            ghost.style.top = (touch.clientY - dragOffset.y) + 'px';
+            ghost.style.zIndex = '9999';
+            ghost.style.pointerEvents = 'none';
+            ghost.style.transform = 'rotate(5deg) scale(1.1)';
+            ghost.style.opacity = '0.8';
+            document.body.appendChild(ghost);
+        }
+
+        function updateDragGhost(touch) {
+            const ghost = document.getElementById('drag-ghost');
+            if (ghost) {
+                ghost.style.left = (touch.clientX - dragOffset.x) + 'px';
+                ghost.style.top = (touch.clientY - dragOffset.y) + 'px';
+            }
+        }
+
+        function removeDragGhost() {
+            const ghost = document.getElementById('drag-ghost');
+            if (ghost) ghost.remove();
+        }
+        // --- END OF FIXED DRAG AND DROP LOGIC ---
+
+
         function initializeScrollIndicators() {
             const scrollContainer = document.getElementById('cards-scroll');
             const leftIndicator = document.getElementById('left-scroll');
@@ -520,279 +621,22 @@
 
             function updateScrollIndicators() {
                 const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
-                leftIndicator.style.opacity = scrollLeft > 0 ? '1' : '0.3';
-                rightIndicator.style.opacity = scrollLeft < (scrollWidth - clientWidth) ? '1' : '0.3';
+                leftIndicator.style.opacity = scrollLeft > 1 ? '1' : '0.3';
+                rightIndicator.style.opacity = scrollLeft < (scrollWidth - clientWidth - 1) ? '1' : '0.3';
             }
 
             scrollContainer.addEventListener('scroll', updateScrollIndicators);
             updateScrollIndicators();
 
-            leftIndicator.addEventListener('click', () => {
-                scrollContainer.scrollBy({ left: -100, behavior: 'smooth' });
-            });
-
-            rightIndicator.addEventListener('click', () => {
-                scrollContainer.scrollBy({ left: 100, behavior: 'smooth' });
-            });
+            leftIndicator.addEventListener('click', () => scrollContainer.scrollBy({ left: -100, behavior: 'smooth' }));
+            rightIndicator.addEventListener('click', () => scrollContainer.scrollBy({ left: 100, behavior: 'smooth' }));
         }
 
-        // FIXED: Desktop drag handlers with better drop detection
-        function handleDragStart(e) {
-            const cardElement = e.target.closest('.draggable-card');
-            if (!cardElement || cardElement.classList.contains('locked') || cardElement.getAttribute('draggable') !== 'true') {
-                e.preventDefault();
-                return;
-            }
-
-            draggedElement = cardElement;
-            draggedIndex = parseInt(cardElement.dataset.cardIndex);
-
-            // Add visual feedback
-            cardElement.classList.add('dragging');
-            cardElement.style.opacity = '0.5';
-
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', ''); // Required for Firefox to enable drag
-
-            console.log('Drag started:', draggedIndex);
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-
-            const dropTarget = e.target.closest('.draggable-card');
-
-            // Remove previous drag-over effects
-            document.querySelectorAll('.drag-over').forEach(el => {
-                el.classList.remove('drag-over');
-            });
-
-            // Add drag-over effect to valid drop target
-            if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
-                dropTarget.classList.add('drag-over');
-            }
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-
-            const dropTarget = e.target.closest('.draggable-card');
-
-            // Remove all drag-over effects
-            document.querySelectorAll('.drag-over').forEach(el => {
-                el.classList.remove('drag-over');
-            });
-
-            if (!dropTarget || dropTarget === draggedElement || dropTarget.classList.contains('locked')) {
-                console.log('Invalid drop target');
-                return;
-            }
-
-            const dropIndex = parseInt(dropTarget.dataset.cardIndex);
-
-            if (draggedIndex !== null && dropIndex !== null && draggedIndex !== dropIndex) {
-                console.log('Dropping card from', draggedIndex, 'to', dropIndex);
-
-                // Call Livewire method to reorder cards
-                @this.call('reorderCards', draggedIndex, dropIndex).then(() => {
-                    console.log('Card reordered successfully');
-                    showNotification('Card position changed');
-
-                    // Add haptic feedback if available
-                    if (navigator.vibrate) {
-                        navigator.vibrate(50);
-                    }
-                }).catch(error => {
-                    console.error('Card reorder failed:', error);
-                    showNotification('Failed to move card');
-                });
-            }
-        }
-
-        function handleDragEnd(e) {
-            // Clean up drag state
-            document.querySelectorAll('.drag-over').forEach(el => {
-                el.classList.remove('drag-over');
-            });
-
-            if (draggedElement) {
-                draggedElement.classList.remove('dragging');
-                draggedElement.style.opacity = '';
-                draggedElement = null;
-                draggedIndex = null;
-            }
-
-            console.log('Drag ended');
-        }
-
-        // FIXED: Mobile touch handlers with better drop detection
-        function handleTouchStart(e) {
-            const cardElement = e.target.closest('.draggable-card');
-            if (!cardElement || cardElement.classList.contains('locked') || cardElement.getAttribute('draggable') !== 'true') {
-                return;
-            }
-
-            const touch = e.touches[0];
-            touchStartX = touch.clientX;
-            touchStartY = touch.clientY;
-            dragStartTime = Date.now();
-
-            // Store potential drag element
-            draggedElement = cardElement;
-            draggedIndex = parseInt(cardElement.dataset.cardIndex);
-
-            const rect = cardElement.getBoundingClientRect();
-            dragOffset.x = touch.clientX - rect.left;
-            dragOffset.y = touch.clientY - rect.top;
-
-            isDragging = false; // Reset dragging state
-        }
-
-        function handleTouchMove(e) {
-            if (!draggedElement) return;
-
-            const touch = e.touches[0];
-            const deltaX = Math.abs(touch.clientX - touchStartX);
-            const deltaY = Math.abs(touch.clientY - touchStartY);
-
-            // Start dragging if moved enough distance
-            if (!isDragging && (deltaX > dragThreshold || deltaY > dragThreshold)) {
-                isDragging = true;
-
-                // Prevent default to stop scrolling
-                e.preventDefault();
-
-                // Add visual feedback
-                draggedElement.classList.add('dragging');
-                draggedElement.style.opacity = '0.5';
-
-                // Create drag ghost
-                createDragGhost(touch.clientX, touch.clientY);
-
-                // Add haptic feedback
-                if (navigator.vibrate) {
-                    navigator.vibrate(50);
-                }
-
-                console.log('Touch drag started:', draggedIndex);
-            }
-
-            if (isDragging) {
-                e.preventDefault();
-                updateDragGhost(touch.clientX, touch.clientY);
-
-                // Find drop target
-                const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-                const dropTarget = elementBelow?.closest('.draggable-card');
-
-                // Remove previous drag-over effects
-                document.querySelectorAll('.drag-over').forEach(el => {
-                    el.classList.remove('drag-over');
-                });
-
-                // Add drag-over effect to valid drop target
-                if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
-                    dropTarget.classList.add('drag-over');
-                }
-            }
-        }
-
-        function handleTouchEnd(e) {
-            if (!draggedElement) return;
-
-            if (isDragging) {
-                const touch = e.changedTouches[0];
-
-                // Small delay to ensure proper element detection
-                // This delay helps in cases where the touchup might register before the element under it is fully stable
-                setTimeout(() => {
-                    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-                    const dropTarget = elementBelow?.closest('.draggable-card');
-
-                    if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
-                        const dropIndex = parseInt(dropTarget.dataset.cardIndex);
-
-                        if (draggedIndex !== null && dropIndex !== null && draggedIndex !== dropIndex) {
-                            console.log('Touch dropping card from', draggedIndex, 'to', dropIndex);
-
-                            // Call Livewire method to reorder cards
-                            @this.call('reorderCards', draggedIndex, dropIndex).then(() => {
-                                console.log('Touch card reordered successfully');
-                                showNotification('Card position changed');
-
-                                // Add success haptic feedback
-                                if (navigator.vibrate) {
-                                    navigator.vibrate([50, 50, 50]);
-                                }
-                            }).catch(error => {
-                                console.error('Touch card reorder failed:', error);
-                                showNotification('Failed to move card');
-                            });
-                        }
-                    }
-
-                    // Clean up
-                    removeDragGhost();
-                }, 100); // 100ms delay
-            }
-
-            // Clean up drag state
-            document.querySelectorAll('.drag-over').forEach(el => {
-                el.classList.remove('drag-over');
-            });
-
-            if (draggedElement) {
-                draggedElement.classList.remove('dragging');
-                draggedElement.style.opacity = '';
-            }
-
-            // Reset state
-            draggedElement = null;
-            draggedIndex = null;
-            isDragging = false;
-            dragStartTime = 0;
-        }
-
-        // Helper functions for drag ghost
-        function createDragGhost(x, y) {
-            if (!draggedElement) return;
-
-            const ghost = draggedElement.cloneNode(true);
-            ghost.id = 'drag-ghost';
-            ghost.style.position = 'fixed';
-            ghost.style.left = (x - dragOffset.x) + 'px';
-            ghost.style.top = (y - dragOffset.y) + 'px';
-            ghost.style.zIndex = '9999';
-            ghost.style.pointerEvents = 'none'; // Ensure ghost doesn't interfere with touch events
-            ghost.style.transform = 'rotate(5deg) scale(1.1)';
-            ghost.style.opacity = '0.8';
-            ghost.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.3)';
-            document.body.appendChild(ghost);
-        }
-
-        function updateDragGhost(x, y) {
-            const ghost = document.getElementById('drag-ghost');
-            if (ghost) {
-                ghost.style.left = (x - dragOffset.x) + 'px';
-                ghost.style.top = (y - dragOffset.y) + 'px';
-            }
-        }
-
-        function removeDragGhost() {
-            const ghost = document.getElementById('drag-ghost');
-            if (ghost) ghost.remove();
-        }
-
-        // Animation and utility functions
         function animateCardsToWinner(winnerPosition) {
             const playerStacks = document.querySelectorAll('.fan-player-stack');
             const winnerElement = document.getElementById(`player-position-${winnerPosition}`);
-
             if (!winnerElement) return;
-
             const winnerRect = winnerElement.getBoundingClientRect();
-
             playerStacks.forEach((stack, index) => {
                 const cards = stack.querySelectorAll('.fan-stacked-card');
                 cards.forEach((card, cardIndex) => {
@@ -800,17 +644,11 @@
                         card.style.transition = 'all 1.8s ease-in-out';
                         card.style.transform = `translate(${winnerRect.left - card.getBoundingClientRect().left}px, ${winnerRect.top - card.getBoundingClientRect().top}px) scale(0.15) rotate(${Math.random() * 60 - 30}deg)`;
                         card.style.opacity = '0.3';
-
-                        setTimeout(() => {
-                            card.style.display = 'none';
-                        }, 1800);
+                        setTimeout(() => card.style.display = 'none', 1800);
                     }, (index * 400) + (cardIndex * 200));
                 });
             });
-
-            setTimeout(() => {
-                clearCenterCards();
-            }, 3500);
+            setTimeout(() => clearCenterCards(), 3500);
         }
 
         function clearCenterCards() {
@@ -824,7 +662,6 @@
             function adjustLayout() {
                 const isLandscape = window.innerWidth > window.innerHeight;
                 const isMobile = window.innerWidth < 768;
-
                 if (isLandscape && isMobile) {
                     document.body.classList.add('mobile-landscape');
                     setTimeout(() => {
@@ -837,33 +674,26 @@
                     document.body.classList.remove('mobile-landscape');
                 }
             }
-
             adjustLayout();
-            window.addEventListener('orientationchange', () => {
-                setTimeout(adjustLayout, 200);
-            });
+            window.addEventListener('orientationchange', () => setTimeout(adjustLayout, 200));
             window.addEventListener('resize', adjustLayout);
         }
 
         function showNotification(message) {
             const container = document.getElementById('game-notifications');
             if (!container) return;
-
             const notification = document.createElement('div');
             notification.className = 'notification';
             notification.textContent = message;
             container.appendChild(notification);
-
             setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.remove();
-                }
+                if (notification.parentNode) notification.remove();
             }, 3000);
         }
 
         // Reinitialize after Livewire updates
         document.addEventListener('livewire:updated', function() {
-            initializeEnhancedDragAndDrop();
+            initializeDragAndDrop();
             initializeScrollIndicators();
         });
     </script>
@@ -881,11 +711,10 @@
         }
 
         .draggable-card.dragging {
-            opacity: 0.5 !important;
+            opacity: 0.4 !important;
             transform: rotate(5deg) scale(1.05);
             z-index: 1000;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-            transition: none; /* Disable transition during drag for smoother movement */
         }
 
         .draggable-card.drag-over {
@@ -899,6 +728,7 @@
         #drag-ghost {
             pointer-events: none;
             user-select: none;
+            will-change: transform;
         }
 
         /* Notifications container */
