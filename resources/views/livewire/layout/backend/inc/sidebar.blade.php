@@ -96,9 +96,9 @@ new class extends Component
             </a>
         </li>
         <li>
-            <a href="{{ route('admin.prizes') }}">
+            <a href="{{ route('admin.lottery.index') }}">
                 <div class="parent-icon"><i class="bi bi-trophy"></i></div>
-                <div class="menu-title">Prize Management</div>
+                <div class="menu-title">Lottery Management</div>
             </a>
         </li>
         <li>

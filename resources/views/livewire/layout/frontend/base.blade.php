@@ -39,7 +39,8 @@
     {{$slot}}
     <!--end page main-->
 
-
+    <!-- Global Live Draw Modal -->
+    <livewire:frontend.lottery.live-draw-modal />
     <!-- Internet Connection Status-->
     <div class="internet-connection-status" id="internetStatus"></div>
 
@@ -65,6 +66,26 @@
                     });
                 }
             });
+
+            // Listen for draw started events globally
+            Echo.channel('lottery-channel')
+                .listen('DrawStarted', (e) => {
+                    // Show notification
+                    if (Notification.permission === 'granted') {
+                        new Notification('🎰 লটারি ড্র শুরু!', {
+                            body: e.lottery_name + ' এর ড্র শুরু হয়েছে!',
+                            icon: '/favicon.ico'
+                        });
+                    }
+
+                    // Start the live draw modal
+                    Livewire.dispatch('startLiveDraw', e.lottery_id);
+                });
+
+            // Request notification permission
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
         </script>
 
       @livewireScripts

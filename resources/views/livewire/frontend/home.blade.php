@@ -165,7 +165,7 @@
                         <div class="card-body">
                             <div class="product-thumbnail-side">
                                 <!-- Thumbnail -->
-                                <a class="product-thumbnail d-block" href="#">
+                                <a class="product-thumbnail d-block" href="{{route('lottery.index')}}">
                                     <img src="{{asset('assets/frontend/img/core-img/g1.png')}}" alt="">
                                 </a>
                             </div>

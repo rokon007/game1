@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -103,29 +104,50 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(User::class, 'referred_by', 'unique_id');
     }
 
-    // ইউজারের সাথে ডাইরেক্ট কনভারসেশন খুঁজে বের করা
-    // public function getConversationWith($userId)
-    // {
-    //     return $this->conversations()
-    //         ->whereHas('users', function ($query) use ($userId) {
-    //             $query->where('users.id', $userId);
-    //         })
-    //         ->where('is_group', false)
-    //         ->first();
-    // }
+    
 
-    // ইউজারের অপঠিত মেসেজ সংখ্যা
-    // public function unreadMessagesCount()
-    // {
-    //     return Message::whereHas('conversation.users', function ($query) {
-    //         $query->where('users.id', $this->id);
-    //     })
-    //     ->where('user_id', '!=', $this->id)
-    //     ->where(function ($query) {
-    //         $query->whereRaw('messages.created_at > (SELECT last_read_at FROM conversation_user WHERE conversation_id = messages.conversation_id AND user_id = ?)', [$this->id])
-    //             ->orWhereNull('last_read_at');
-    //     })
-    //     ->count();
-    // }
+    public function lotteryTickets(): HasMany
+    {
+        return $this->hasMany(LotteryTicket::class);
+    }
+
+    public function lotteryResults(): HasMany
+    {
+        return $this->hasMany(LotteryResult::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function hasEnoughCredit(float $amount): bool
+    {
+        return $this->credit >= $amount;
+    }
+
+    public function deductCredit(float $amount, string $details = null): void
+    {
+        $this->decrement('credit', $amount);
+        
+        Transaction::create([
+            'user_id' => $this->id,
+            'type' => 'debit',
+            'amount' => $amount,
+            'details' => $details
+        ]);
+    }
+
+    public function addCredit(float $amount, string $details = null): void
+    {
+        $this->increment('credit', $amount);
+        
+        Transaction::create([
+            'user_id' => $this->id,
+            'type' => 'credit',
+            'amount' => $amount,
+            'details' => $details
+        ]);
+    }
 
 }

@@ -43,6 +43,16 @@ use App\Livewire\SitemapXml;
 
 use Illuminate\Http\Request;
 
+use App\Livewire\Frontend\Lottery\LotteryList;
+use App\Livewire\Frontend\Lottery\DrawAnimation;
+use App\Livewire\Frontend\Lottery\LotteryHistory;
+use App\Livewire\Frontend\Lottery\LiveDrawModal;
+use App\Livewire\Backend\Lottery\CreateLottery;
+use App\Livewire\Backend\Lottery\LotteryIndex;
+use App\Livewire\Backend\Lottery\Show;
+use App\Livewire\Backend\Lottery\EditLottery;
+//use App\Http\Controllers\LotteryController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -85,6 +95,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::get('/referral-settings', ReferralSettings::class)->name('referral-settings');
     Route::get('/how-to-guides', HowToGuideManager::class)->name('howto');
     Route::get('/game-settings', HajariGameSettings::class)->name('hajari_game_settings');
+
+    Route::get('/lottery', LotteryIndex::class)->name('lottery.index');
+    Route::get('/lottery/create', CreateLottery::class)->name('lottery.create');
+    Route::get('/lottery/{lottery}', Show::class)->name('lottery.show');
+    Route::get('/lottery/{lottery}/edit', EditLottery::class)->name('lottery.edit');
+
 });
 
 
@@ -121,6 +137,13 @@ Route::middleware(['auth', 'verified', 'banned'])->group(function(){
 
     Route::post('/ckeditor/upload', [CkeditorController::class, 'upload'])->name('ckeditor.upload');
     Route::post('/delete-image', [CkeditorController::class, 'deleteImage'])->name('delete.image');
+
+
+    Route::get('/lottery', LotteryList::class)->name('lottery.index');
+    Route::get('/lottery/{lottery}/draw', DrawAnimation::class)->name('lottery.draw');
+    Route::get('/lottery/history', LotteryHistory::class)->name('lottery.history');
+    Route::get('/lottery/live-draw', LiveDrawModal::class)->name('lottery.live-draw');
+
 });
 
 Route::get('/chat', Main::class)->name('chat');
