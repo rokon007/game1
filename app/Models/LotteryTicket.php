@@ -31,6 +31,11 @@ class LotteryTicket extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function results(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(LotteryResult::class, 'lottery_ticket_id');
+    }
+
     public static function generateUniqueTicketNumber(): string
     {
         do {

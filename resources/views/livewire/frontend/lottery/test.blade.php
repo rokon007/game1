@@ -4,22 +4,13 @@
             <div class="modal-dialog modal-fullscreen-sm-down modal-lg modal-dialog-centered">
                 <div class="modal-content bg-dark text-white" style="min-height: 100vh;">
                     <!-- Header -->
-                    <div class="modal-header bg-primary border-0 p-2">
-                        <h5 class="modal-title text-center w-100 mb-0">
+                    <div class="modal-header bg-gradient-primary border-0 p-2">
+                        <h5 class="modal-title text-center text-white w-100 mb-0">
                             🎰 {{ $currentLottery->name ?? 'Live Draw' }} 🎰
                         </h5>
                     </div>
                     
                     <div class="modal-body p-2" style="overflow-y: auto; max-height: calc(100vh - 120px);">
-                        @if($errorMessage)
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                {{ $errorMessage }}
-                                <button type="button" class="close" wire:click="$set('errorMessage', '')" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                        @endif
-                        
                         @if($isDrawing && !$drawComplete)
                             <div class="draw-stage text-center">
                                 @if($currentPrizeIndex < count($centralDrawResults))
@@ -57,7 +48,7 @@
                                                 
                                                 <div class="winner-info p-2 bg-info rounded">
                                                     <small class="d-block text-white">Winner: {{ $currentResult['winner_name'] }}</small>
-                                                    <small class="d-block text-warning">৳{{ number_format($currentResult['prize_amount'], 0) }}</small>
+                                                    <small class="d-block text-warning">Prize: ৳{{ number_format($currentResult['prize_amount'], 0) }}</small>
                                                 </div>
                                             </div>
                                         @endif
@@ -85,7 +76,7 @@
                         @endif
 
                         @if($drawComplete)
-                            <div class="final-results text-center">
+                            <div class="final-results text-center text-white">
                                 <h4 class="text-success mb-3">🏆 Draw Complete! 🏆</h4>
                                 
                                 <!-- Mobile Results Summary -->

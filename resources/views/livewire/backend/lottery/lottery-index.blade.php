@@ -34,6 +34,37 @@
                 justify-content: center;
                 margin: 0 3px;
             }
+
+            .modal-content {
+                border-radius: 10px;
+            }
+
+            .modal-header {
+                background-color: #f8f9fa;
+                border-bottom: 1px solid #dee2e6;
+            }
+
+            .modal-title {
+                font-weight: 600;
+            }
+
+            .table-responsive {
+                max-height: 400px;
+                overflow-y: auto;
+            }
+
+            .badge {
+                font-size: 0.85rem;
+                padding: 5px 8px;
+            }
+
+            .pagination {
+                margin-bottom: 0;
+            }
+
+            .input-group-text {
+                background-color: #f8f9fa;
+            }
         </style>
     @endsection
 
@@ -102,7 +133,11 @@
                                         <small class="text-muted">{{ $lottery->draw_date->format('h:i A') }}</small>
                                     </td>
                                     <td>
-                                        <span class="badge bg-info">{{ $lottery->getTotalTicketsSold() }}</span>
+                                        <button wire:click="showTicketPurchasers({{ $lottery->id }})" 
+                                                class="badge bg-info border-0 text-decoration-underline" 
+                                                style="cursor: pointer;">
+                                            {{ $lottery->getTotalTicketsSold() }}
+                                        </button>
                                     </td>
                                     <td>
                                         <span class="badge bg-success">৳{{ number_format($lottery->getTotalRevenue(), 2) }}</span>
@@ -184,6 +219,147 @@
                 @endif
             </div>
         </div>
+
+        <!-- Ticket Purchasers Modal -->
+        <div wire:ignore.self class="modal fade" id="ticketPurchasersModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">টিকেট ক্রেতাদের তালিকা - {{ $currentLottery->name ?? '' }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if($currentLottery)
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           wire:model.live="purchaserSearch" 
+                                           placeholder="নাম বা মোবাইল নম্বর দিয়ে খুঁজুন...">
+                                    <span class="input-group-text">
+                                        <i class="bx bx-search"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>নাম</th>
+                                            <th>মোবাইল</th>
+                                            <th>টিকেট সংখ্যা</th>
+                                            <th>অ্যাকশন</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($this->ticketPurchasers as $purchaser)
+                                            @if($purchaser->user)
+                                                <tr>
+                                                    <td>{{ $purchaser->user->name }}</td>
+                                                    <td>{{ $purchaser->user->mobile }}</td>
+                                                    <td>{{ $purchaser->ticket_count }}</td>
+                                                    <td>
+                                                        <button wire:click="showUserTickets({{ $currentLottery->id }}, {{ $purchaser->user->id }})" 
+                                                                class="btn btn-sm btn-info">
+                                                            টিকেট দেখুন
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                        @empty
+                                            <tr>
+                                                <td colspan="4" class="text-center py-4">
+                                                    <div class="d-flex flex-column align-items-center">
+                                                        <i class="bx bx-user text-muted" style="font-size: 3rem;"></i>
+                                                        <h5 class="mt-3 text-muted">কোন ক্রেতা পাওয়া যায়নি</h5>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            @if($this->ticketPurchasers->hasPages())
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div class="text-muted">
+                                        Showing {{ $this->ticketPurchasers->firstItem() }} to {{ $this->ticketPurchasers->lastItem() }} of {{ $this->ticketPurchasers->total() }} entries
+                                    </div>
+                                    <div>
+                                        {{ $this->ticketPurchasers->links() }}
+                                    </div>
+                                </div>
+                            @endif
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <div class="me-auto">
+                            <select class="form-select form-select-sm" wire:model.live="perPage" style="width: 80px;">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বন্ধ করুন</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Tickets Modal -->
+        <div wire:ignore.self class="modal fade" id="userTicketsModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            @if($currentUser)
+                                {{ $currentUser->name }} - টিকেট তালিকা
+                            @endif
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if($currentLottery && $currentUser)
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>টিকেট নম্বর</th>
+                                            <th>ক্রয়ের তারিখ</th>
+                                            <th>স্ট্যাটাস</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($userTickets as $ticket)
+                                            <tr>
+                                                <td>{{ $ticket->ticket_number }}</td>
+                                                <td>{{ $ticket->purchased_at->format('d/m/Y h:i A') }}</td>
+                                                <td>
+                                                    @if($ticket->results->isNotEmpty())
+                                                        @foreach($ticket->results as $result)
+                                                            <span class="badge bg-success">
+                                                                বিজয়ী - {{ $result->prize->rank }} (৳{{ number_format($result->prize_amount, 2) }})
+                                                            </span>
+                                                        @endforeach
+                                                    @else
+                                                        <span class="badge bg-secondary">ড্র হয়নি</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বন্ধ করুন</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -204,6 +380,59 @@
                 }
             });
         }
+
+
+        //  document.addEventListener('livewire:initialized', () => {
+        //     // Handle modal show/hide events
+        //     Livewire.on('showModal', (data) => {
+        //         const modal = new bootstrap.Modal(document.getElementById(data.id));
+        //         modal.show();
+        //     });
+
+        //     Livewire.on('hideModal', (data) => {
+        //         const modal = bootstrap.Modal.getInstance(document.getElementById(data.id));
+        //         if (modal) {
+        //             modal.hide();
+        //         }
+        //     });
+
+        //     // Close modals when Livewire updates
+        //     document.addEventListener('livewire:update', () => {
+        //         const modals = document.querySelectorAll('.modal');
+        //         modals.forEach(modal => {
+        //             const instance = bootstrap.Modal.getInstance(modal);
+        //             if (instance && !modal.classList.contains('show')) {
+        //                 instance.hide();
+        //             }
+        //         });
+        //     });
+        // });
+
+
+         document.addEventListener('livewire:initialized', () => {
+            // Handle modal show/hide events
+            Livewire.on('showModal', (data) => {
+                const modal = new bootstrap.Modal(document.getElementById(data.id));
+                modal.show();
+                
+                // Refresh modal position when content changes
+                document.getElementById(data.id).addEventListener('shown.bs.modal', function () {
+                    $(this).trigger('focus');
+                });
+            });
+
+            Livewire.on('hideModal', (data) => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById(data.id));
+                if (modal) {
+                    modal.hide();
+                }
+            });
+
+            // Reset search when modal closes
+            document.getElementById('ticketPurchasersModal').addEventListener('hidden.bs.modal', function () {
+                Livewire.set('purchaserSearch', '');
+            });
+        });
     </script>
 
     @section('JS')
