@@ -55,7 +55,7 @@ class EditLottery extends Component
                     }
                 },
             ],
-            'draw_time' => 'required|date_format:H:i:s',
+            'draw_time' => 'required|date_format:H:i',
             'prizes.*.position' => 'required|string',
             'prizes.*.amount' => 'required|numeric|min:1',
             'prizes.*.rank' => 'required|integer|min:1',

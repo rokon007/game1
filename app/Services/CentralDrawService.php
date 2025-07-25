@@ -18,12 +18,20 @@ class CentralDrawService
         $cacheKey = "lottery_draw_{$lottery->id}";
         $statusKey = "lottery_draw_status_{$lottery->id}";
 
+        // If results already exist in cache, return them
         if (Cache::has($cacheKey)) {
-            return Cache::get($cacheKey);
+            $existingResults = Cache::get($cacheKey);
+            \Log::info("Returning existing cached results for lottery {$lottery->id}");
+            return $existingResults;
         }
 
         if ($lottery->status !== 'active') {
             throw new Exception('Lottery is not active.');
+        }
+
+        // Double check if results already exist in database
+        if ($lottery->results()->exists()) {
+            throw new Exception('Draw results already exist in database.');
         }
 
         $tickets = $lottery->tickets;
@@ -42,17 +50,23 @@ class CentralDrawService
 
         $totalMinutes = min($baseTime + ($prizeCount * $timePerPrize), $maxTime);
 
-        // Cache the results
-        Cache::put($cacheKey, $drawResults, now()->addMinutes($totalMinutes + 5));
+        // Cache the results with extended expiry
+        Cache::put($cacheKey, $drawResults, now()->addMinutes($totalMinutes + 10));
 
         // Set draw status with dynamic timestamp
-        Cache::put($statusKey, [
+        $statusData = [
             'status' => 'in_progress',
-            'started_at' => now(),
-            'auto_complete_at' => now()->addMinutes($totalMinutes),
+            'started_at' => now()->toISOString(),
+            'auto_complete_at' => now()->addMinutes($totalMinutes)->toISOString(),
             'prize_count' => $prizeCount,
-            'estimated_duration' => $totalMinutes
-        ], now()->addMinutes($totalMinutes + 5));
+            'estimated_duration' => $totalMinutes,
+            'lottery_id' => $lottery->id,
+            'lottery_name' => $lottery->name
+        ];
+
+        Cache::put($statusKey, $statusData, now()->addMinutes($totalMinutes + 10));
+
+        \Log::info("Started central draw for lottery {$lottery->id}", $statusData);
 
         return $drawResults;
     }
@@ -106,22 +120,34 @@ class CentralDrawService
 
     public function saveCentralDrawResults(Lottery $lottery): bool
     {
+        $cacheKey = "lottery_draw_{$lottery->id}";
+        $statusKey = "lottery_draw_status_{$lottery->id}";
+
+        \Log::info("Attempting to save central draw results for lottery {$lottery->id}");
+
         // Check if already saved to prevent duplicate saves
         if ($lottery->status === 'completed') {
+            \Log::info("Lottery {$lottery->id} already completed");
             return false; // Already completed
         }
 
         // Check if results already exist in database
         if ($lottery->results()->exists()) {
+            \Log::info("Results already exist for lottery {$lottery->id}");
+            // Mark as completed if not already
+            if ($lottery->status !== 'completed') {
+                $lottery->update(['status' => 'completed']);
+            }
+            // Clear cache
+            Cache::forget($cacheKey);
+            Cache::forget($statusKey);
             return false; // Results already saved
         }
 
-        // Define cache key here
-        $cacheKey = "lottery_draw_{$lottery->id}";
-        $statusKey = "lottery_draw_status_{$lottery->id}";
         $drawResults = Cache::get($cacheKey);
 
         if (!$drawResults) {
+            \Log::error("No cached results found for lottery {$lottery->id}");
             return false; // No cached results
         }
 
@@ -129,6 +155,8 @@ class CentralDrawService
 
         try {
             DB::transaction(function () use ($lottery, $drawResults, $admin, $cacheKey, $statusKey) {
+                \Log::info("Starting transaction to save results for lottery {$lottery->id}");
+
                 foreach ($drawResults as $resultData) {
                     // Double check if this specific result already exists
                     $existingResult = LotteryResult::where('lottery_id', $lottery->id)
@@ -136,11 +164,12 @@ class CentralDrawService
                         ->first();
 
                     if ($existingResult) {
+                        \Log::info("Result already exists for prize {$resultData['prize_position']} in lottery {$lottery->id}");
                         continue; // Skip if already exists
                     }
 
                     // Save result to database
-                    LotteryResult::create([
+                    $result = LotteryResult::create([
                         'lottery_id' => $lottery->id,
                         'lottery_prize_id' => $resultData['lottery_prize_id'],
                         'lottery_ticket_id' => $resultData['lottery_ticket_id'],
@@ -150,6 +179,8 @@ class CentralDrawService
                         'drawn_at' => now()
                     ]);
 
+                    \Log::info("Saved result for prize {$resultData['prize_position']} in lottery {$lottery->id}");
+
                     // Add credit to winner
                     $winner = User::find($resultData['user_id']);
                     if ($winner) {
@@ -157,6 +188,7 @@ class CentralDrawService
                             $resultData['prize_amount'],
                             "Lottery prize - {$resultData['prize_position']} - {$lottery->name}"
                         );
+                        \Log::info("Added credit {$resultData['prize_amount']} to user {$winner->id}");
                     }
 
                     // Deduct credit from admin
@@ -165,21 +197,28 @@ class CentralDrawService
                             $resultData['prize_amount'],
                             "Lottery prize payment - {$resultData['prize_position']} - {$lottery->name}"
                         );
+                        \Log::info("Deducted credit {$resultData['prize_amount']} from admin");
                     }
                 }
 
                 // Mark lottery as completed
                 $lottery->update(['status' => 'completed']);
+                \Log::info("Marked lottery {$lottery->id} as completed");
 
                 // Clear cache after successful save
                 Cache::forget($cacheKey);
                 Cache::forget($statusKey);
+                \Log::info("Cleared cache for lottery {$lottery->id}");
             });
 
+            \Log::info("Successfully saved all results for lottery {$lottery->id}");
             return true;
+
         } catch (\Exception $e) {
             // Log the error for debugging
-            \Log::error('Error saving central draw results: ' . $e->getMessage());
+            \Log::error("Error saving central draw results for lottery {$lottery->id}: " . $e->getMessage(), [
+                'exception' => $e->getTraceAsString()
+            ]);
             return false;
         }
     }
@@ -201,6 +240,7 @@ class CentralDrawService
         $statusKey = "lottery_draw_status_{$lottery->id}";
         Cache::forget($cacheKey);
         Cache::forget($statusKey);
+        \Log::info("Cleared draw cache for lottery {$lottery->id}");
     }
 
     public function getDrawStatus(Lottery $lottery): ?array
@@ -218,7 +258,8 @@ class CentralDrawService
         }
 
         // Check if auto complete time has passed
-        if (now()->greaterThan($status['auto_complete_at'])) {
+        $autoCompleteTime = \Carbon\Carbon::parse($status['auto_complete_at']);
+        if (now()->greaterThan($autoCompleteTime)) {
             \Log::info("Auto completing draw for lottery {$lottery->id} due to timeout");
             return $this->saveCentralDrawResults($lottery);
         }
