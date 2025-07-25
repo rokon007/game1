@@ -4,7 +4,7 @@
             <div class="modal-dialog modal-fullscreen-sm-down modal-lg modal-dialog-centered">
                 <div class="modal-content bg-dark text-white" style="min-height: 100vh;">
                     <!-- Header -->
-                    <div class="modal-header bg-gradient-primary border-0 p-2">
+                    <div class="modal-header bg-primary border-0 p-2">
                         <div class="w-100 text-center">
                             <h5 class="modal-title mb-1">
                                 🎰 {{ $currentLottery->name ?? 'Live Draw' }} 🎰
@@ -41,7 +41,7 @@
                                     @php $currentResult = $centralDrawResults[$currentPrizeIndex] @endphp
 
                                     <!-- Prize Info - Mobile Optimized -->
-                                    <div class="prize-info mb-3 p-2 bg-gradient-warning rounded">
+                                    <div class="prize-info mb-3 p-2 bg-warning rounded">
                                         <h4 class="mb-1 text-dark">{{ $currentResult['prize_position'] }}</h4>
                                         <h5 class="mb-1 text-success">৳{{ number_format($currentResult['prize_amount'], 0) }}</h5>
                                         <small class="text-dark">Prize {{ $currentPrizeIndex + 1 }} of {{ count($centralDrawResults) }}</small>
@@ -106,7 +106,7 @@
                                 <!-- Mobile Results Summary -->
                                 <div class="mobile-results-summary">
                                     @foreach(collect($centralDrawResults)->reverse() as $index => $result)
-                                        <div class="mobile-result-card mb-2 p-2 bg-gradient-info rounded">
+                                        <div class="mobile-result-card mb-2 p-2 bg-info rounded">
                                             <div class="row align-items-center text-center">
                                                 <div class="col-3">
                                                     <small class="d-block font-weight-bold">{{ $result['prize_position'] }}</small>
@@ -151,18 +151,18 @@
         </div>
     @endif
 
-    <!-- Audio Elements -->
+   <!-- Audio Elements -->
     <audio id="drawStartSound" preload="auto">
-        <source src="https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" type="audio/wav">
+         <source src="{{ asset('sounds/lottery/drawStart.mp3') }}" type="audio/mpeg">
     </audio>
     <audio id="spinningSound" preload="auto" loop>
-        <source src="https://www.soundjay.com/misc/sounds/slot-machine-01.wav" type="audio/wav">
+        <source src="{{ asset('sounds/lottery/spinning.mp3') }}" type="audio/mpeg">
     </audio>
     <audio id="winnerSound" preload="auto">
-        <source src="https://www.soundjay.com/misc/sounds/success-fanfare-trumpets-01.wav" type="audio/wav">
+        <source src="{{ asset('sounds/lottery/winner.mp3') }}" type="audio/mpeg">
     </audio>
     <audio id="completeSound" preload="auto">
-        <source src="https://www.soundjay.com/misc/sounds/victory-fanfare-01.wav" type="audio/wav">
+        <source src="{{ asset('sounds/lottery/complete.mp3') }}" type="audio/mpeg">
     </audio>
 
 
