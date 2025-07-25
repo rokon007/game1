@@ -133,8 +133,11 @@
                                         <small class="text-muted">{{ $lottery->draw_date->format('h:i A') }}</small>
                                     </td>
                                     <td>
-                                        <button wire:click="showTicketPurchasers({{ $lottery->id }})" 
-                                                class="badge bg-info border-0 text-decoration-underline" 
+                                        <button wire:click="showTicketPurchasers({{ $lottery->id }})"
+                                                class="badge bg-info border-0 text-decoration-underline"
+                                                data-bs-toggle="tooltip"
+                                               data-bs-placement="top"
+                                               title="টিকিট দেখুন"
                                                 style="cursor: pointer;">
                                             {{ $lottery->getTotalTicketsSold() }}
                                         </button>
@@ -164,17 +167,17 @@
                                                         title="লাইভ ড্র শুরু করুন">
                                                     <i class="bx bx-play"></i>
                                                 </button>
-                                                <button class="btn btn-danger btn-sm action-btn"
+                                                <button class="btn btn-danger btn-sm action-btn text-white"
                                                         wire:click="conductDraw({{ $lottery->id }})"
                                                         onclick="confirm('আপনি কি নিশ্চিত?') || event.stopImmediatePropagation()"
                                                         data-bs-toggle="tooltip"
                                                         data-bs-placement="top"
                                                         title="সরাসরি ড্র করুন">
-                                                    <i class="bx bx-bolt"></i>
+                                                     <i class="bi bi-lightning"></i>
                                                 </button>
                                             @endif
                                             <a href="{{ route('admin.lottery.show', $lottery->id) }}"
-                                               class="btn btn-info btn-sm action-btn"
+                                               class="btn btn-info btn-sm action-btn text-white"
                                                data-bs-toggle="tooltip"
                                                data-bs-placement="top"
                                                title="বিস্তারিত দেখুন">
@@ -232,16 +235,16 @@
                         @if($currentLottery)
                             <div class="mb-3">
                                 <div class="input-group">
-                                    <input type="text" 
-                                           class="form-control" 
-                                           wire:model.live="purchaserSearch" 
+                                    <input type="text"
+                                           class="form-control"
+                                           wire:model.live="purchaserSearch"
                                            placeholder="নাম বা মোবাইল নম্বর দিয়ে খুঁজুন...">
                                     <span class="input-group-text">
                                         <i class="bx bx-search"></i>
                                     </span>
                                 </div>
                             </div>
-                            
+
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
@@ -260,7 +263,7 @@
                                                     <td>{{ $purchaser->user->mobile }}</td>
                                                     <td>{{ $purchaser->ticket_count }}</td>
                                                     <td>
-                                                        <button wire:click="showUserTickets({{ $currentLottery->id }}, {{ $purchaser->user->id }})" 
+                                                        <button wire:click="showUserTickets({{ $currentLottery->id }}, {{ $purchaser->user->id }})"
                                                                 class="btn btn-sm btn-info">
                                                             টিকেট দেখুন
                                                         </button>
@@ -414,7 +417,7 @@
             Livewire.on('showModal', (data) => {
                 const modal = new bootstrap.Modal(document.getElementById(data.id));
                 modal.show();
-                
+
                 // Refresh modal position when content changes
                 document.getElementById(data.id).addEventListener('shown.bs.modal', function () {
                     $(this).trigger('focus');

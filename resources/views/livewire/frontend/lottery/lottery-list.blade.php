@@ -148,7 +148,7 @@
                                             <i class="fas fa-minus"></i>
                                         </button>
                                         <input type="number" class="form-control text-center" wire:model="ticketQuantity"
-                                            min="1" max="10" wire:change="calculateTotal">
+                                            min="1" max="10000" wire:change="calculateTotal" disabled>
                                         <button class="btn btn-outline-secondary" wire:click="incrementQuantity" type="button">
                                             <i class="fas fa-plus"></i>
                                         </button>
@@ -252,7 +252,7 @@
             }
 
             .input-group input {
-                max-width: 60px;
+                max-width: 100px;
                 text-align: center;
             }
         </style>

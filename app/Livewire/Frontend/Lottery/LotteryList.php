@@ -27,7 +27,7 @@ class LotteryList extends Component
 
     public function incrementQuantity()
     {
-        if ($this->ticketQuantity < 10) {
+        if ($this->ticketQuantity < 10000) {
             $this->ticketQuantity++;
         }
     }

@@ -2,7 +2,7 @@
     @section('title')
         <title>Admin | {{ $lottery->name }} - বিস্তারিত</title>
     @endsection
-    
+
     @section('css')
         @include('livewire.layout.backend.inc.css')
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
@@ -59,7 +59,7 @@
             </div>
         </div>
         <!--end breadcrumb-->
-        
+
         <!-- Lottery Header -->
         <div class="lottery-header">
             <div class="d-flex justify-content-between align-items-center">
@@ -89,7 +89,7 @@
                                 <h3 class="mb-0">{{ $lottery->getTotalTicketsSold() }}</h3>
                             </div>
                             <div class="bg-primary bg-opacity-10 p-3 rounded">
-                                <i class="bi bi-ticket-perforated text-primary" style="font-size: 1.5rem;"></i>
+                                <i class="bi bi-ticket-perforated text-white" style="font-size: 1.5rem;"></i>
                             </div>
                         </div>
                     </div>
@@ -104,7 +104,7 @@
                                 <h3 class="mb-0">৳{{ number_format($lottery->getTotalRevenue(), 2) }}</h3>
                             </div>
                             <div class="bg-success bg-opacity-10 p-3 rounded">
-                                <i class="bi bi-cash-coin text-success" style="font-size: 1.5rem;"></i>
+                                <i class="bi bi-cash-coin text-white" style="font-size: 1.5rem;"></i>
                             </div>
                         </div>
                     </div>
@@ -123,7 +123,7 @@
                                 </h3>
                             </div>
                             <div class="{{ $lottery->getTotalRevenue() - $lottery->prizes->sum('amount') >= 0 ? 'bg-success' : 'bg-danger' }} bg-opacity-10 p-3 rounded">
-                                <i class="bi bi-graph-up-arrow {{ $lottery->getTotalRevenue() - $lottery->prizes->sum('amount') >= 0 ? 'text-success' : 'text-danger' }}" style="font-size: 1.5rem;"></i>
+                                <i class="bi bi-graph-up-arrow {{ $lottery->getTotalRevenue() - $lottery->prizes->sum('amount') >= 0 ? 'text-white' : 'text-white' }}" style="font-size: 1.5rem;"></i>
                             </div>
                         </div>
                     </div>

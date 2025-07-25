@@ -20,10 +20,10 @@ class Show extends Component
     public function mount(Lottery $lottery)
     {
         // Authorization check
-        Gate::authorize('view', $lottery);
+       // Gate::authorize('view', $lottery);
 
         $this->lottery = $lottery;
-        $this->stats = app(LotteryService::class)->getLotteryStats($lottery);
+        //$this->stats = app(LotteryService::class)->getLotteryStats($lottery);
     }
 
     public function loadData()
