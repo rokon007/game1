@@ -4,12 +4,27 @@
             <div class="modal-dialog modal-fullscreen-sm-down modal-lg modal-dialog-centered">
                 <div class="modal-content bg-dark text-white" style="min-height: 100vh;">
                     <!-- Header -->
-                    <div class="modal-header bg-primary border-0 p-2">
-                        <h5 class="modal-title text-center w-100 mb-0">
-                            🎰 {{ $currentLottery->name ?? 'Live Draw' }} 🎰
-                        </h5>
+                    <div class="modal-header bg-gradient-primary border-0 p-2">
+                        <div class="w-100 text-center">
+                            <h5 class="modal-title mb-1">
+                                🎰 {{ $currentLottery->name ?? 'Live Draw' }} 🎰
+                            </h5>
+                            @if($isDrawing && !$drawComplete)
+                                @php $timerInfo = $this->getDynamicTimerInfo() @endphp
+                                <div class="draw-progress-info">
+                                    <small class="text-light d-block">
+                                        Prize {{ $currentPrizeIndex + 1 }} of {{ $timerInfo['prize_count'] }}
+                                        | Auto-complete in: {{ $timerInfo['remaining_time'] }}
+                                    </small>
+                                    <div class="progress mt-1" style="height: 3px;">
+                                        <div class="progress-bar bg-warning"
+                                             style="width: {{ $timerInfo['progress_percentage'] }}%"></div>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
                     </div>
-                    
+
                     <div class="modal-body p-2" style="overflow-y: auto; max-height: calc(100vh - 120px);">
                         @if($errorMessage)
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -19,14 +34,14 @@
                                 </button>
                             </div>
                         @endif
-                        
+
                         @if($isDrawing && !$drawComplete)
                             <div class="draw-stage text-center">
                                 @if($currentPrizeIndex < count($centralDrawResults))
                                     @php $currentResult = $centralDrawResults[$currentPrizeIndex] @endphp
-                                    
+
                                     <!-- Prize Info - Mobile Optimized -->
-                                    <div class="prize-info mb-3 p-2 bg-warning rounded">
+                                    <div class="prize-info mb-3 p-2 bg-gradient-warning rounded">
                                         <h4 class="mb-1 text-dark">{{ $currentResult['prize_position'] }}</h4>
                                         <h5 class="mb-1 text-success">৳{{ number_format($currentResult['prize_amount'], 0) }}</h5>
                                         <small class="text-dark">Prize {{ $currentPrizeIndex + 1 }} of {{ count($centralDrawResults) }}</small>
@@ -54,7 +69,7 @@
                                             <div class="mobile-result-display mt-3 animate__animated animate__bounceIn">
                                                 <h5 class="text-success mb-2">🎉 Winning Number 🎉</h5>
                                                 <div class="mobile-winning-number mb-2">{{ $currentWinningNumber }}</div>
-                                                
+
                                                 <div class="winner-info p-2 bg-info rounded">
                                                     <small class="d-block text-white">Winner: {{ $currentResult['winner_name'] }}</small>
                                                     <small class="d-block text-warning">৳{{ number_format($currentResult['prize_amount'], 0) }}</small>
@@ -87,7 +102,7 @@
                         @if($drawComplete)
                             <div class="final-results text-center">
                                 <h4 class="text-success mb-3">🏆 Draw Complete! 🏆</h4>
-                                
+
                                 <!-- Mobile Results Summary -->
                                 <div class="mobile-results-summary">
                                     @foreach(collect($centralDrawResults)->reverse() as $index => $result)
@@ -138,16 +153,16 @@
 
     <!-- Audio Elements -->
     <audio id="drawStartSound" preload="auto">
-         <source src="{{ asset('sounds/lottery/drawStart.mp3') }}" type="audio/mpeg">
+        <source src="https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" type="audio/wav">
     </audio>
     <audio id="spinningSound" preload="auto" loop>
-        <source src="{{ asset('sounds/lottery/spinning.mp3') }}" type="audio/mpeg">
+        <source src="https://www.soundjay.com/misc/sounds/slot-machine-01.wav" type="audio/wav">
     </audio>
     <audio id="winnerSound" preload="auto">
-        <source src="{{ asset('sounds/lottery/winner.mp3') }}" type="audio/mpeg">
+        <source src="https://www.soundjay.com/misc/sounds/success-fanfare-trumpets-01.wav" type="audio/wav">
     </audio>
     <audio id="completeSound" preload="auto">
-        <source src="{{ asset('sounds/lottery/complete.mp3') }}" type="audio/mpeg">
+        <source src="https://www.soundjay.com/misc/sounds/victory-fanfare-01.wav" type="audio/wav">
     </audio>
 
 
@@ -316,26 +331,26 @@
         max-width: 100%;
         height: 100vh;
     }
-    
+
     .modal-content {
         height: 100vh;
         border-radius: 0;
     }
-    
+
     .mobile-digit-wheel {
         width: 30px;
         height: 45px;
     }
-    
+
     .mobile-digit-number {
         height: 45px;
         font-size: 1.2rem;
     }
-    
+
     .mobile-digit-roller {
         height: 450px; /* 10 digits × 45px each */
     }
-    
+
     .mobile-winning-number {
         font-size: 1.5rem;
         letter-spacing: 2px;
@@ -347,16 +362,16 @@
         width: 28px;
         height: 40px;
     }
-    
+
     .mobile-digit-number {
         height: 40px;
         font-size: 1rem;
     }
-    
+
     .mobile-digit-roller {
         height: 400px; /* 10 digits × 40px each */
     }
-    
+
     .mobile-winning-number {
         font-size: 1.3rem;
         letter-spacing: 1px;
@@ -370,6 +385,7 @@ document.addEventListener('livewire:initialized', function () {
     let countdownInterval;
     let currentWinningNumber = '';
     let audioElements = {};
+    let autoCompleteInterval;
 
     // Initialize audio elements
     audioElements.drawStart = document.getElementById('drawStartSound');
@@ -410,7 +426,7 @@ document.addEventListener('livewire:initialized', function () {
     Livewire.on('animateDigits', function(data) {
         currentWinningNumber = data[0].winningNumber;
         startMobileDigitAnimation();
-        
+
         // Show result after 8 seconds
         setTimeout(() => {
             @this.call('showResult');
@@ -435,13 +451,13 @@ document.addEventListener('livewire:initialized', function () {
 
     function startMobileDigitAnimation() {
         clearAllIntervals();
-        
+
         const wheels = document.querySelectorAll('.mobile-digit-wheel');
-        
+
         wheels.forEach((wheel, wheelIndex) => {
             wheel.classList.add('spinning');
             const roller = wheel.querySelector('.mobile-digit-roller');
-            
+
             let currentPosition = 0;
             const interval = setInterval(() => {
                 currentPosition -= 50; // Mobile digit height
@@ -450,7 +466,7 @@ document.addEventListener('livewire:initialized', function () {
                 }
                 roller.style.transform = `translateY(${currentPosition}px)`;
             }, 100);
-            
+
             animationIntervals.push(interval);
         });
     }
@@ -460,7 +476,7 @@ document.addEventListener('livewire:initialized', function () {
         wheels.forEach(wheel => {
             wheel.classList.remove('spinning');
         });
-        
+
         clearAllIntervals();
     }
 
@@ -469,21 +485,21 @@ document.addEventListener('livewire:initialized', function () {
             console.error('Invalid ticket number:', ticketNumber);
             return;
         }
-        
+
         const wheels = document.querySelectorAll('.mobile-digit-wheel');
         const digits = ticketNumber.split('');
-        
+
         wheels.forEach((wheel, index) => {
             const roller = wheel.querySelector('.mobile-digit-roller');
             const targetDigit = parseInt(digits[index]);
-            
+
             // Calculate position for mobile
             const targetPosition = -(targetDigit * 50); // Mobile digit height
-            
+
             setTimeout(() => {
                 roller.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                 roller.style.transform = `translateY(${targetPosition}px)`;
-                
+
                 setTimeout(() => {
                     const digitNumbers = roller.querySelectorAll('.mobile-digit-number');
                     digitNumbers[targetDigit].style.color = '#ffd700';
@@ -502,10 +518,15 @@ document.addEventListener('livewire:initialized', function () {
     function clearAllIntervals() {
         animationIntervals.forEach(interval => clearInterval(interval));
         animationIntervals = [];
-        
+
         if (countdownInterval) {
             clearInterval(countdownInterval);
             countdownInterval = null;
+        }
+
+        if (autoCompleteInterval) {
+            clearInterval(autoCompleteInterval);
+            autoCompleteInterval = null;
         }
     }
 
@@ -518,6 +539,15 @@ document.addEventListener('livewire:initialized', function () {
     window.addEventListener('beforeunload', function() {
         clearAllIntervals();
         stopAllSounds();
+    });
+
+    Livewire.on('startAutoCompleteCountdown', function(data) {
+        const duration = data[0].duration || 300; // Default 5 minutes
+        console.log('Starting auto-complete countdown for', duration, 'seconds');
+
+        autoCompleteInterval = setInterval(() => {
+            @this.call('decrementAutoCompleteTimer');
+        }, 1000);
     });
 });
 </script>

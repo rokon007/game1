@@ -16,6 +16,8 @@ class CentralDrawService
     {
         // Check if draw is already in progress
         $cacheKey = "lottery_draw_{$lottery->id}";
+        $statusKey = "lottery_draw_status_{$lottery->id}";
+
         if (Cache::has($cacheKey)) {
             return Cache::get($cacheKey);
         }
@@ -31,10 +33,27 @@ class CentralDrawService
 
         // Generate all draw results at once
         $drawResults = $this->generateDrawResults($lottery);
-        
-        // Cache the results for 30 minutes
-        Cache::put($cacheKey, $drawResults, now()->addMinutes(30));
-        
+
+        // Calculate dynamic completion time based on number of prizes
+        $prizeCount = count($drawResults);
+        $baseTime = 2; // 2 minutes base time
+        $timePerPrize = 1; // 1 minute per prize
+        $maxTime = 15; // Maximum 15 minutes
+
+        $totalMinutes = min($baseTime + ($prizeCount * $timePerPrize), $maxTime);
+
+        // Cache the results
+        Cache::put($cacheKey, $drawResults, now()->addMinutes($totalMinutes + 5));
+
+        // Set draw status with dynamic timestamp
+        Cache::put($statusKey, [
+            'status' => 'in_progress',
+            'started_at' => now(),
+            'auto_complete_at' => now()->addMinutes($totalMinutes),
+            'prize_count' => $prizeCount,
+            'estimated_duration' => $totalMinutes
+        ], now()->addMinutes($totalMinutes + 5));
+
         return $drawResults;
     }
 
@@ -47,17 +66,17 @@ class CentralDrawService
 
         foreach ($prizes as $prize) {
             $winningTicket = null;
-            
+
             // Check pre-selected winners first
-            if ($lottery->pre_selected_winners && 
+            if ($lottery->pre_selected_winners &&
                 isset($lottery->pre_selected_winners[$prize->position])) {
-                
+
                 $preSelectedTicketNumber = $lottery->pre_selected_winners[$prize->position];
                 $winningTicket = $tickets->where('ticket_number', $preSelectedTicketNumber)
                                        ->whereNotIn('id', $usedTicketIds)
                                        ->first();
             }
-            
+
             // Random selection if no pre-selected winner or already used
             if (!$winningTicket) {
                 $availableTickets = $tickets->whereNotIn('id', $usedTicketIds);
@@ -68,7 +87,7 @@ class CentralDrawService
 
             if ($winningTicket) {
                 $usedTicketIds[] = $winningTicket->id;
-                
+
                 $results[] = [
                     'lottery_ticket_id' => $winningTicket->id,
                     'winning_ticket_number' => $winningTicket->ticket_number,
@@ -99,8 +118,9 @@ class CentralDrawService
 
         // Define cache key here
         $cacheKey = "lottery_draw_{$lottery->id}";
+        $statusKey = "lottery_draw_status_{$lottery->id}";
         $drawResults = Cache::get($cacheKey);
-        
+
         if (!$drawResults) {
             return false; // No cached results
         }
@@ -108,13 +128,13 @@ class CentralDrawService
         $admin = User::where('role', 'admin')->first();
 
         try {
-            DB::transaction(function () use ($lottery, $drawResults, $admin, $cacheKey) {
+            DB::transaction(function () use ($lottery, $drawResults, $admin, $cacheKey, $statusKey) {
                 foreach ($drawResults as $resultData) {
                     // Double check if this specific result already exists
                     $existingResult = LotteryResult::where('lottery_id', $lottery->id)
                         ->where('lottery_prize_id', $resultData['lottery_prize_id'])
                         ->first();
-                    
+
                     if ($existingResult) {
                         continue; // Skip if already exists
                     }
@@ -134,7 +154,7 @@ class CentralDrawService
                     $winner = User::find($resultData['user_id']);
                     if ($winner) {
                         $winner->addCredit(
-                            $resultData['prize_amount'], 
+                            $resultData['prize_amount'],
                             "Lottery prize - {$resultData['prize_position']} - {$lottery->name}"
                         );
                     }
@@ -142,7 +162,7 @@ class CentralDrawService
                     // Deduct credit from admin
                     if ($admin) {
                         $admin->deductCredit(
-                            $resultData['prize_amount'], 
+                            $resultData['prize_amount'],
                             "Lottery prize payment - {$resultData['prize_position']} - {$lottery->name}"
                         );
                     }
@@ -150,9 +170,10 @@ class CentralDrawService
 
                 // Mark lottery as completed
                 $lottery->update(['status' => 'completed']);
-                
+
                 // Clear cache after successful save
                 Cache::forget($cacheKey);
+                Cache::forget($statusKey);
             });
 
             return true;
@@ -177,6 +198,44 @@ class CentralDrawService
     public function clearDrawCache(Lottery $lottery): void
     {
         $cacheKey = "lottery_draw_{$lottery->id}";
+        $statusKey = "lottery_draw_status_{$lottery->id}";
         Cache::forget($cacheKey);
+        Cache::forget($statusKey);
+    }
+
+    public function getDrawStatus(Lottery $lottery): ?array
+    {
+        $statusKey = "lottery_draw_status_{$lottery->id}";
+        return Cache::get($statusKey);
+    }
+
+    public function checkAndAutoCompleteDraw(Lottery $lottery): bool
+    {
+        $status = $this->getDrawStatus($lottery);
+
+        if (!$status || $status['status'] !== 'in_progress') {
+            return false;
+        }
+
+        // Check if auto complete time has passed
+        if (now()->greaterThan($status['auto_complete_at'])) {
+            \Log::info("Auto completing draw for lottery {$lottery->id} due to timeout");
+            return $this->saveCentralDrawResults($lottery);
+        }
+
+        return false;
+    }
+
+    public function calculateDrawDuration(int $prizeCount): int
+    {
+        // Base time: 2 minutes
+        // Per prize: 1 minute (8 seconds animation + 10 seconds countdown + buffer)
+        // Maximum: 15 minutes to prevent extremely long draws
+
+        $baseTime = 2;
+        $timePerPrize = 1;
+        $maxTime = 15;
+
+        return min($baseTime + ($prizeCount * $timePerPrize), $maxTime);
     }
 }

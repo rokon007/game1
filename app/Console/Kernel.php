@@ -12,6 +12,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('users:update-online-status')->everyMinute();
         $schedule->command('game-locks:cleanup')->everyMinute();
         $schedule->command('lottery:run-draws')->everyMinute();
+        // Check for stuck draws every 5 minutes
+        $schedule->command('lottery:complete-stuck-draws')->everyMinute();
     }
 
     protected function commands()
