@@ -252,7 +252,7 @@
                                                     <td>
                                                         <code>{{ $result->winning_ticket_number }}</code>
                                                     </td>
-                                                    <td>{{ $result->user->name }}</td>
+                                                    <td>{{ $result->user->unique_id }}</td>
                                                     <td class="text-success fw-bold">
                                                         {{ number_format($result->prize_amount, 2) }} Credit
                                                     </td>

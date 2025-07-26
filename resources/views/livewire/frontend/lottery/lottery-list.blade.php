@@ -66,7 +66,7 @@
                                             <div>
                                                 <small class="text-muted">
                                                     <i class="fas fa-ticket-alt me-1"></i>
-                                                    ৳{{ number_format($lottery->price, 2) }} per ticket
+                                                    {{ number_format($lottery->price, 2) }} Credit per ticket
                                                 </small>
                                             </div>
                                             <div>
@@ -90,7 +90,7 @@
                                                                 {{ $prize->position }}
                                                             </div>
                                                             <div class="prize-amount fw-bold">
-                                                                ৳{{ number_format($prize->amount, 2) }}
+                                                                {{ number_format($prize->amount, 2) }} Credit
                                                             </div>
                                                         </div>
                                                     </div>
@@ -137,7 +137,7 @@
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between">
                                         <span class="text-muted">Ticket Price:</span>
-                                        <strong>৳{{ number_format($selectedLottery->price, 2) }}</strong>
+                                        <strong>{{ number_format($selectedLottery->price, 2) }} Credit</strong>
                                     </div>
                                 </div>
 
@@ -158,7 +158,7 @@
                                 <div class="mb-3 p-3 bg-light rounded">
                                     <div class="d-flex justify-content-between">
                                         <span>Total Cost:</span>
-                                        <strong class="h5">৳{{ number_format($selectedLottery->price * $ticketQuantity, 2) }}</strong>
+                                        <strong class="h5">{{ number_format($selectedLottery->price * $ticketQuantity, 2) }} Credit</strong>
                                     </div>
                                 </div>
 
@@ -167,7 +167,7 @@
                                         <div class="d-flex justify-content-between">
                                             <span>Your Credit:</span>
                                             <strong class="{{ auth()->user()->credit < ($selectedLottery->price * $ticketQuantity) ? 'text-danger' : 'text-success' }}">
-                                                ৳{{ number_format(auth()->user()->credit, 2) }}
+                                                {{ number_format(auth()->user()->credit, 2) }} Credit
                                             </strong>
                                         </div>
                                     </div>

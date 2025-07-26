@@ -114,12 +114,6 @@ class HowToGuideManager extends Component
 
     protected function processDescriptionImages($description)
     {
-        // Create post_image directory if it doesn't exist
-        $postImageDir = public_path('uploads/post_image/');
-        if (!file_exists($postImageDir)) {
-            mkdir($postImageDir, 0777, true);
-        }
-
         $dom = new \DOMDocument('1.0', 'UTF-8');
         libxml_use_internal_errors(true);
         $dom->loadHTML(mb_convert_encoding($description, 'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
@@ -130,19 +124,23 @@ class HowToGuideManager extends Component
         foreach ($images as $img) {
             $src = $img->getAttribute('src');
 
-            if (strpos($src, 'uploads/temp/') !== false) {
+            // টেম্প ফাইল থেকে স্থায়ী স্টোরেজে নেওয়া
+            if (strpos($src, 'temp') !== false) {
                 $tempFileName = basename($src);
-                $tempPath = public_path('uploads/temp/' . $tempFileName);
-                $newPath = public_path('uploads/post_image/' . $tempFileName);
+                $tempPath = str_replace(asset(''), '', $src);
+                $tempPath = public_path($tempPath);
 
                 if (file_exists($tempPath)) {
-                    // Copy file instead of rename to avoid issues
-                    copy($tempPath, $newPath);
-                    // Then delete the temp file
-                    unlink($tempPath);
-                }
+                    // স্টোরেজে ফাইল সেভ করুন
+                    $newPath = 'how-to-guides/'.date('Y/m').'/'.$tempFileName;
+                    Storage::disk('public')->put($newPath, file_get_contents($tempPath));
 
-                $img->setAttribute('src', asset('uploads/post_image/' . $tempFileName));
+                    // টেম্প ফাইল ডিলিট করুন
+                    unlink($tempPath);
+
+                    // নতুন URL সেট করুন
+                    $img->setAttribute('src', Storage::url($newPath));
+                }
             }
         }
 
@@ -161,10 +159,12 @@ class HowToGuideManager extends Component
         foreach ($images as $img) {
             $src = $img->getAttribute('src');
             $path = parse_url($src, PHP_URL_PATH);
-            $filePath = public_path($path);
 
-            if (file_exists($filePath)) {
-                unlink($filePath);
+            // স্টোরেজ পাথ বের করা
+            $storagePath = str_replace('/storage/', '', $path);
+
+            if (Storage::disk('public')->exists($storagePath)) {
+                Storage::disk('public')->delete($storagePath);
             }
         }
     }

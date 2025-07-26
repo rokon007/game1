@@ -47,6 +47,7 @@ use App\Livewire\Frontend\Lottery\LotteryList;
 use App\Livewire\Frontend\Lottery\DrawAnimation;
 use App\Livewire\Frontend\Lottery\LotteryHistory;
 use App\Livewire\Frontend\Lottery\LiveDrawModal;
+use App\Livewire\Frontend\Lottery\ActivLotteries;
 use App\Livewire\Backend\Lottery\CreateLottery;
 use App\Livewire\Backend\Lottery\LotteryIndex;
 use App\Livewire\Backend\Lottery\Show;
@@ -143,6 +144,7 @@ Route::middleware(['auth', 'verified', 'banned'])->group(function(){
     Route::get('/lottery/{lottery}/draw', DrawAnimation::class)->name('lottery.draw');
     Route::get('/lottery/history', LotteryHistory::class)->name('lottery.history');
     Route::get('/lottery/live-draw', LiveDrawModal::class)->name('lottery.live-draw');
+    Route::get('/lottery-active', ActivLotteries::class)->name('lottery_active');
 
 });
 

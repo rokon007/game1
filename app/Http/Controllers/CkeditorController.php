@@ -3,19 +3,19 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class CkeditorController extends Controller
 {
     public function upload(Request $request)
-   {
-    \Log::info('CKEditor Upload:', [
-        'headers' => $request->headers->all(),
-        'files' => $request->allFiles()
-    ]);
+    {
+        Log::info('CKEditor Upload:', [
+            'headers' => $request->headers->all(),
+            'files' => $request->allFiles()
+        ]);
+
         try {
             // Validate the uploaded file
             $request->validate([
@@ -36,16 +36,14 @@ class CkeditorController extends Controller
                 $extension = $file->getClientOriginalExtension();
                 $cleanName = Str::slug($originalName) . '-' . time() . '.' . $extension;
 
-                // Create temp directory if it doesn't exist
-                $tempDir = public_path('uploads/temp/');
-                if (!File::exists($tempDir)) {
-                    File::makeDirectory($tempDir, 0777, true);
-                }
+                // Store in storage/app/public/ckeditor directory
+                $path = $file->storeAs(
+                    'ckeditor/' . date('Y/m'),
+                    $cleanName,
+                    'public'
+                );
 
-                // Move file to temp directory
-                $file->move($tempDir, $cleanName);
-
-                $url = asset('uploads/temp/' . $cleanName);
+                $url = Storage::url($path);
 
                 // Return response in CKEditor expected format
                 return response()->json([
@@ -55,6 +53,7 @@ class CkeditorController extends Controller
                 ]);
             }
         } catch (\Exception $e) {
+            Log::error('CKEditor Upload Error: ' . $e->getMessage());
             return response()->json([
                 'uploaded' => false,
                 'error' => [
@@ -80,31 +79,19 @@ class CkeditorController extends Controller
                 return response()->json(['success' => false, 'message' => 'No image URL provided'], 400);
             }
 
-            // Extract filename from URL
-            $fileName = basename($imageUrl);
+            // Extract storage path from URL
+            $path = parse_url($imageUrl, PHP_URL_PATH);
+            $storagePath = str_replace('/storage/', '', $path);
 
-            // Check both temp and post_image directories
-            $tempPath = public_path('uploads/temp/' . $fileName);
-            $postImagePath = public_path('uploads/post_image/' . $fileName);
-
-            $deleted = false;
-
-            if (File::exists($tempPath)) {
-                File::delete($tempPath);
-                $deleted = true;
-            }
-
-            if (File::exists($postImagePath)) {
-                File::delete($postImagePath);
-                $deleted = true;
-            }
-
-            if ($deleted) {
+            // Delete from storage
+            if (Storage::disk('public')->exists($storagePath)) {
+                Storage::disk('public')->delete($storagePath);
                 return response()->json(['success' => true, 'message' => 'Image deleted successfully']);
-            } else {
-                return response()->json(['success' => false, 'message' => 'Image not found'], 404);
             }
+
+            return response()->json(['success' => false, 'message' => 'Image not found'], 404);
         } catch (\Exception $e) {
+            Log::error('CKEditor Delete Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Failed to delete image: ' . $e->getMessage()], 500);
         }
     }

@@ -63,15 +63,15 @@ new class extends Component
         <li><a href="{{ route('how.to.use') }}"><i class="ti ti-help-circle me-2"></i>User Guide</a></li>
         @if (Route::has('login'))
             @auth
-                <li><a href="{{route('transactions')}}">< <i class="lni lni-wallet"></i>Transactions</a></li>
+                <li><a href="{{route('transactions')}}"><i class="ti ti-arrows-exchange"></i>Transactions</a></li>
                 {{-- <li><a href="profile.html"><i class="ti ti-heart"></i>My Wishlist</a></li> --}}
                 <li><a href="{{route('userProfile')}}"><i class="ti ti-user"></i>My Profile</a></li>
                 {{-- <li><a href="{{ route('wallet') }}"><i class="ti ti-wallet"></i> Wallet</a></li> --}}
                 <li><a href="{{ route('buy_ticket') }}"><i class="ti ti-grid-dots"></i> Buy Ticket Sheet</a></li>
                 <li><a href="{{ route('creditTransfer') }}"><i class="ti ti-transfer"></i> Credit Transfer</a></li>
-                <li><a href="{{route('lottery.index')}}"><i class="ti ti-adjustments-horizontal"></i>Lottery</a></li>
-                 <li><a href="{{ route('lottery.history') }}"><i class="ti ti-grid-dots"></i> Lottery History</a></li>
-                {{-- <li><a href="{{ route('gameRoom') }}"><i class="ti ti-dice-3"></i> Game Room</a></li> --}}
+                <li><a href="{{route('lottery.index')}}"><i class="ti ti-bowl"></i>Lottery</a></li>
+                 <li><a href="{{ route('lottery.history') }}"> <i class="ti ti-history"></i> Lottery History</a></li>
+                <li><a href="{{ route('lottery_active') }}"><i class="ti ti-clock-play"></i>My Active Lotteries</a></li>
                 <li><a href="{{ route('ticket') }}"><i class="ti ti-ticket"></i> Sheet</a></li>
                 {{-- <li><a href="{{ route('gameHistory') }}"><i class="ti ti-history"></i> Game History</a></li> --}}
                 {{-- <li><a href="{{ route('withdrawal') }}"><i class="ti ti-cash-out"></i> Withdrawal</a></li> --}}

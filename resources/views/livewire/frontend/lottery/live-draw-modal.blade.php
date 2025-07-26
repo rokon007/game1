@@ -26,14 +26,14 @@
                     </div>
 
                     <div class="modal-body p-2" style="overflow-y: auto; max-height: calc(100vh - 120px);">
-                        @if($errorMessage)
+                        {{-- @if($errorMessage)
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 {{ $errorMessage }}
                                 <button type="button" class="close" wire:click="$set('errorMessage', '')" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
-                        @endif
+                        @endif --}}
 
                         @if($isDrawing && !$drawComplete)
                             <div class="draw-stage text-center">
@@ -43,7 +43,7 @@
                                     <!-- Prize Info - Mobile Optimized -->
                                     <div class="prize-info mb-3 p-2 bg-warning rounded">
                                         <h4 class="mb-1 text-dark">{{ $currentResult['prize_position'] }}</h4>
-                                        <h5 class="mb-1 text-success">৳{{ number_format($currentResult['prize_amount'], 0) }}</h5>
+                                        <h5 class="mb-1 text-success"><i class="ti ti-coins"></i>{{ number_format($currentResult['prize_amount'], 0) }}</h5>
                                         <small class="text-dark">Prize {{ $currentPrizeIndex + 1 }} of {{ count($centralDrawResults) }}</small>
                                     </div>
 
@@ -71,8 +71,8 @@
                                                 <div class="mobile-winning-number mb-2">{{ $currentWinningNumber }}</div>
 
                                                 <div class="winner-info p-2 bg-info rounded">
-                                                    <small class="d-block text-white">Winner: {{ $currentResult['winner_name'] }}</small>
-                                                    <small class="d-block text-warning">৳{{ number_format($currentResult['prize_amount'], 0) }}</small>
+                                                    <small class="d-block text-white">Winner: {{ $currentResult['winner_unique_id'] }}</small>
+                                                    <small class="d-block text-warning"><i class="ti ti-coins"></i>{{ number_format($currentResult['prize_amount'], 0) }}</small>
                                                 </div>
                                             </div>
                                         @endif
@@ -115,10 +115,10 @@
                                                     <small class="mobile-ticket-number">{{ $result['winning_ticket_number'] }}</small>
                                                 </div>
                                                 <div class="col-3">
-                                                    <small class="text-warning font-weight-bold">৳{{ number_format($result['prize_amount'], 0) }}</small>
+                                                    <small class="text-warning font-weight-bold"><i class="ti ti-coins"></i>{{ number_format($result['prize_amount'], 0) }}</small>
                                                 </div>
                                                 <div class="col-3">
-                                                    <small class="text-truncate">{{ $result['winner_name'] }}</small>
+                                                    <small class="text-truncate">{{ $result['winner_unique_id'] }}</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -135,7 +135,7 @@
                                         </div>
                                         <div class="col-6">
                                             <small class="d-block">Total Amount</small>
-                                            <small class="text-success">৳{{ number_format(collect($centralDrawResults)->sum('prize_amount'), 0) }}</small>
+                                            <small class="text-success"><i class="ti ti-coins"></i>{{ number_format(collect($centralDrawResults)->sum('prize_amount'), 0) }}</small>
                                         </div>
                                     </div>
                                 </div>

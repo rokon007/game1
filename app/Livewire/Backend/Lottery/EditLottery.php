@@ -23,46 +23,46 @@ class EditLottery extends Component
     public $enablePreSelection = false;
     public $preSelectedTickets = [];
 
-    // protected $rules = [
-    //     'name' => 'required|string|max:255',
-    //     'price' => 'required|numeric|min:1',
-    //     'draw_date' => 'required|date|after:today',
-    //     'draw_time' => 'required',
-    //     'prizes.*.position' => 'required|string',
-    //     'prizes.*.amount' => 'required|numeric|min:1',
-    //     'prizes.*.rank' => 'required|integer|min:1',
-    //     'preSelectedTickets.*.prize_position' => 'required_if:enablePreSelection,true|string',
-    //     'preSelectedTickets.*.ticket_number' => 'required_if:enablePreSelection,true|string|size:8',
-    // ];
+    protected $rules = [
+        'name' => 'required|string|max:255',
+        'price' => 'required|numeric|min:1',
+        'draw_date' => 'required|date',
+        'draw_time' => 'required',
+        'prizes.*.position' => 'required|string',
+        'prizes.*.amount' => 'required|numeric|min:1',
+        'prizes.*.rank' => 'required|integer|min:1',
+        'preSelectedTickets.*.prize_position' => 'required_if:enablePreSelection,true|string',
+        'preSelectedTickets.*.ticket_number' => 'required_if:enablePreSelection,true|string|size:8',
+    ];
 
-    public function rules()
-    {
-        return [
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric|min:1',
-            'draw_date' => [
-                'required',
-                'date',
-                function ($attribute, $value, $fail) {
-                    $today = Carbon::today()->toDateString();
-                    $inputDate = Carbon::parse($value)->toDateString();
+    // public function rules()
+    // {
+    //     return [
+    //         'name' => 'required|string|max:255',
+    //         'price' => 'required|numeric|min:1',
+    //         'draw_date' => [
+    //             'required',
+    //             'date',
+    //             function ($attribute, $value, $fail) {
+    //                 $today = Carbon::today()->toDateString();
+    //                 $inputDate = Carbon::parse($value)->toDateString();
 
-                    if ($inputDate < $today) {
-                        $drawDateTime = Carbon::parse($value . ' ' . $this->draw_time);
-                        if ($drawDateTime->greaterThan(now())) {
-                            $fail('গতকাল বা তার আগের তারিখের জন্য সময় বর্তমান সময়ের চেয়ে বেশি হতে পারবে না।');
-                        }
-                    }
-                },
-            ],
-            'draw_time' => 'required|date_format:H:i',
-            'prizes.*.position' => 'required|string',
-            'prizes.*.amount' => 'required|numeric|min:1',
-            'prizes.*.rank' => 'required|integer|min:1',
-            'preSelectedTickets.*.prize_position' => 'required_if:enablePreSelection,true|string',
-            'preSelectedTickets.*.ticket_number' => 'required_if:enablePreSelection,true|string|size:8',
-        ];
-    }
+    //                 if ($inputDate < $today) {
+    //                     $drawDateTime = Carbon::parse($value . ' ' . $this->draw_time);
+    //                     if ($drawDateTime->greaterThan(now())) {
+    //                         $fail('গতকাল বা তার আগের তারিখের জন্য সময় বর্তমান সময়ের চেয়ে বেশি হতে পারবে না।');
+    //                     }
+    //                 }
+    //             },
+    //         ],
+    //         'draw_time' => 'required|date_format:H:i',
+    //         'prizes.*.position' => 'required|string',
+    //         'prizes.*.amount' => 'required|numeric|min:1',
+    //         'prizes.*.rank' => 'required|integer|min:1',
+    //         'preSelectedTickets.*.prize_position' => 'required_if:enablePreSelection,true|string',
+    //         'preSelectedTickets.*.ticket_number' => 'required_if:enablePreSelection,true|string|size:8',
+    //     ];
+    // }
 
     public function mount(Lottery $lottery)
     {

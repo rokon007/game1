@@ -56,7 +56,7 @@ class LotteryList extends Component
             $this->selectedLottery = null;
             $this->dispatch('ticketPurchased');
 
-            return redirect(route('lottery.history'));
+            return redirect(route('lottery_active'));
 
         } catch (\Exception $e) {
             session()->flash('error', $e->getMessage());

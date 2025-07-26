@@ -108,6 +108,7 @@ class CentralDrawService
                     'prize_position' => $prize->position,
                     'prize_amount' => $prize->amount,
                     'winner_name' => $winningTicket->user->name,
+                    'winner_unique_id' => $winningTicket->user->unique_id,
                     'user_id' => $winningTicket->user_id,
                     'lottery_prize_id' => $prize->id,
                     'rank' => $prize->rank
