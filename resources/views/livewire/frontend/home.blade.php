@@ -153,8 +153,8 @@
                         <div class="card-body">
                             <div class="product-thumbnail-side">
                                 <!-- Thumbnail -->
-                                <a class="product-thumbnail d-block" href="{{route('games.index')}}">
-                                    <img src="{{asset('assets/frontend/img/core-img/hajari.png')}}" alt="">
+                                <a class="product-thumbnail d-block" href="{{route('buy_ticket')}}">
+                                    <img src="{{asset('assets/frontend/img/core-img/housie.png')}}" alt="">
                                 </a>
                             </div>
                         </div>
@@ -172,6 +172,19 @@
                         </div>
                     </div>
                 </div>
+                <div class="col-4">
+                    <div class="card featured-product-card">
+                        <div class="card-body">
+                            <div class="product-thumbnail-side">
+                                <!-- Thumbnail -->
+                                <a class="product-thumbnail d-block" href="#">
+                                    <img src="{{asset('assets/frontend/img/core-img/hajari.png')}}" alt="">
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-4">
                     <div class="card featured-product-card">
                         <div class="card-body">
