@@ -48,7 +48,7 @@
             <li><a href="{{ route('lottery.index') }}"><i class="ti ti-bowl"></i><span>Lottery</span></a></li>
             <li><a href="{{ route('contact.support') }}"><i class="ti ti-wallet"></i><span>Support</span></a></li>
             <li><a href="{{ route('ticket') }}"><i class="ti ti-ticket"></i><span>Sheet</span></a></li>
-            <li><a id="installAppBtn" style="display:none;cursor: pointer;"><i class="ti ti-device-mobile"></i><span>Install App</span></a></li>
+            {{-- <li><a id="installAppBtn" style="display:none;cursor: pointer;"><i class="ti ti-device-mobile"></i><span>Install App</span></a></li> --}}
             <li>
                 <input type="checkbox" id="rokon" class="d-none">
                 <label for="rokon" class="dark-mode-toggle d-flex flex-column align-items-center">

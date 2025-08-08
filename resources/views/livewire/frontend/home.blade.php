@@ -144,7 +144,11 @@
         <div class="featured-products-wrapper py-3">
             <div class="container">
               <div class="section-heading d-flex align-items-center justify-content-between dir-rtl">
-                <h6>Other Games</h6><a class="btn btn-sm btn-light" href="{{ route('how.to.use') }}">User Guide<i class="ms-1 ti ti-arrow-right"></i></a>
+                <h6>Other Games</h6>
+                <a id="installAppBtn" style="display:none;cursor: pointer;" class="btn btn-primary">
+                    <i class="ti ti-device-mobile" style="font-size: 18px; margin-right: 5px;"></i>
+                    <span>Install App</span>
+                </a>
               </div>
               <div class="row g-2">
                 <!-- Featured Product Card-->
