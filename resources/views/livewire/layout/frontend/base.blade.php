@@ -18,6 +18,7 @@
     @yield('meta_description')
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="theme-color" content="#625AFA">
+
     <!-- Title -->
     @yield('title')
     @yield('css')
@@ -62,6 +63,20 @@
     <!-- Footer Nav-->
     @yield('footer')
     {{-- <livewire:layout.frontend.footer /> --}}
+
+
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker.register("/sw.js").then(function (reg) {
+                    console.log("Service Worker Registered", reg);
+                }).catch(function (err) {
+                    console.log("Service Worker Registration Failed", err);
+                });
+            });
+        }
+    </script>
+
 
     <!-- All JavaScript Files-->
     @yield('JS')

@@ -48,6 +48,7 @@
             <li><a href="{{ route('lottery.index') }}"><i class="ti ti-bowl"></i><span>Lottery</span></a></li>
             <li><a href="{{ route('contact.support') }}"><i class="ti ti-wallet"></i><span>Support</span></a></li>
             <li><a href="{{ route('ticket') }}"><i class="ti ti-ticket"></i><span>Sheet</span></a></li>
+            <li><a id="installAppBtn" style="display:none;cursor: pointer;"><i class="ti ti-device-mobile"></i><span>Install App</span></a></li>
             <li>
                 <input type="checkbox" id="rokon" class="d-none">
                 <label for="rokon" class="dark-mode-toggle d-flex flex-column align-items-center">
@@ -57,6 +58,29 @@
             </li>
         </ul>
     </div>
+
+    <script>
+        let deferredPrompt;
+        const installBtn = document.getElementById("installAppBtn");
+
+        window.addEventListener("beforeinstallprompt", (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = "block";
+        });
+
+        installBtn.addEventListener("click", () => {
+            installBtn.style.display = "none";
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                console.log(choiceResult.outcome === "accepted"
+                    ? "User accepted the install prompt"
+                    : "User dismissed the install prompt"
+                );
+                deferredPrompt = null;
+            });
+        });
+    </script>
 
     <script>
         // থিম এবং আইকন ম্যানেজমেন্ট
