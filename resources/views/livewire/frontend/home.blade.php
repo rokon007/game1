@@ -6,7 +6,7 @@
         <meta name="author" content="Housieblitz">
     @endsection
     @section('title')
-        <title>{{ config('app.name', 'Laravel') }} | Home</title>
+        <title>{{ config('app.name', 'Laravel') }} | Home1</title>
     @endsection
 
     @section('css')
@@ -145,10 +145,10 @@
             <div class="container">
               <div class="section-heading d-flex align-items-center justify-content-between dir-rtl">
                 <h6>Other Games</h6>
-                <a id="installAppBtn" style="display:none;cursor: pointer;" class="btn btn-primary">
+                {{-- <a id="installAppBtn" style="display:none;cursor: pointer;" class="btn btn-primary">
                     <i class="ti ti-device-mobile" style="font-size: 18px; margin-right: 5px;"></i>
                     <span>Install App</span>
-                </a>
+                </a> --}}
                 {{-- <script>
                     let deferredPrompt;
                     const installBtn = document.getElementById("installAppBtn");
