@@ -149,6 +149,28 @@
                     <i class="ti ti-device-mobile" style="font-size: 18px; margin-right: 5px;"></i>
                     <span>Install App</span>
                 </a>
+                <script>
+                    let deferredPrompt;
+                    const installBtn = document.getElementById("installAppBtn");
+
+                    window.addEventListener("beforeinstallprompt", (e) => {
+                        e.preventDefault();
+                        deferredPrompt = e;
+                        installBtn.style.display = "block";
+                    });
+
+                    installBtn.addEventListener("click", () => {
+                        installBtn.style.display = "none";
+                        deferredPrompt.prompt();
+                        deferredPrompt.userChoice.then((choiceResult) => {
+                            console.log(choiceResult.outcome === "accepted"
+                                ? "User accepted the install prompt"
+                                : "User dismissed the install prompt"
+                            );
+                            deferredPrompt = null;
+                        });
+                    });
+                </script>
               </div>
               <div class="row g-2">
                 <!-- Featured Product Card-->
