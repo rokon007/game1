@@ -149,7 +149,7 @@
                     <i class="ti ti-device-mobile" style="font-size: 18px; margin-right: 5px;"></i>
                     <span>Install App</span>
                 </a>
-                <script>
+                {{-- <script>
                     let deferredPrompt;
                     const installBtn = document.getElementById("installAppBtn");
 
@@ -170,7 +170,7 @@
                             deferredPrompt = null;
                         });
                     });
-                </script>
+                </script> --}}
               </div>
               <div class="row g-2">
                 <!-- Featured Product Card-->
