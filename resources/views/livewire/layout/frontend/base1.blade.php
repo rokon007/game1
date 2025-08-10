@@ -92,7 +92,8 @@
             window.userId = {{ json_encode(auth()->id()) }};
         </script>
       @endauth
-      <script>
+      {{-- এপের জন্য --}}
+      {{-- <script>
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", function () {
                 navigator.serviceWorker.register("/sw.js").then(function (reg) {
@@ -102,7 +103,7 @@
                 });
             });
         }
-    </script>
+    </script> --}}
   </body>
 
 

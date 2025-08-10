@@ -64,8 +64,8 @@
     @yield('footer')
     {{-- <livewire:layout.frontend.footer /> --}}
 
-
-    <script>
+{{-- এপের জন্য  --}}
+    {{-- <script>
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", function () {
                 navigator.serviceWorker.register("/sw.js").then(function (reg) {
@@ -75,7 +75,7 @@
                 });
             });
         }
-    </script>
+    </script> --}}
 
 
     <!-- All JavaScript Files-->
