@@ -247,7 +247,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-4">
+                {{-- <div class="col-4">
                     <div class="card featured-product-card">
                         <div class="card-body">
                             <div class="product-thumbnail-side">
@@ -258,7 +258,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> --}}
                 {{-- @foreach ($prizes as $prize )
                     <div class="col-4">
                         <div class="card featured-product-card">
