@@ -1,4 +1,4 @@
-const CACHE_NAME = "app-cache-v4";
+const CACHE_NAME = "app-cache-v5";
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {
@@ -13,12 +13,20 @@ self.addEventListener("install", (event) => {
 self.addEventListener("fetch", (event) => {
     const requestUrl = new URL(event.request.url);
 
-    // Always network for real-time features (notifications, chat, etc.)
+    // 🚫 Admin routes should never be cached
+    if (requestUrl.pathname.startsWith("/admin")) {
+        event.respondWith(
+            fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+        );
+        return;
+    }
+
+    // 🚫 Real-time routes should never be cached
     if (
         requestUrl.pathname.startsWith("/notifications") ||
         requestUrl.pathname.startsWith("/chat") ||
         requestUrl.pathname.startsWith("/messages") ||
-        requestUrl.pathname.startsWith("/ws") || // websockets
+        requestUrl.pathname.startsWith("/ws") ||
         requestUrl.pathname.startsWith("/api/notifications") ||
         requestUrl.pathname.startsWith("/api/chat")
     ) {
@@ -28,7 +36,7 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
-    // Dynamic Laravel pages - Network First, then Cache
+    // Dynamic Laravel pages - Network First
     if (
         requestUrl.pathname === "/" ||
         requestUrl.pathname.startsWith("/login") ||
