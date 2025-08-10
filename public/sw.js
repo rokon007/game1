@@ -1,7 +1,6 @@
-const CACHE_NAME = "app-cache-v3";
+const CACHE_NAME = "app-cache-v4";
 const OFFLINE_URL = "/offline.html";
 
-// Install event
 self.addEventListener("install", (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
@@ -11,11 +10,25 @@ self.addEventListener("install", (event) => {
     self.skipWaiting();
 });
 
-// Fetch event
 self.addEventListener("fetch", (event) => {
     const requestUrl = new URL(event.request.url);
 
-    // Dynamic pages (Laravel routes, homepage, etc.) - Network First
+    // Always network for real-time features (notifications, chat, etc.)
+    if (
+        requestUrl.pathname.startsWith("/notifications") ||
+        requestUrl.pathname.startsWith("/chat") ||
+        requestUrl.pathname.startsWith("/messages") ||
+        requestUrl.pathname.startsWith("/ws") || // websockets
+        requestUrl.pathname.startsWith("/api/notifications") ||
+        requestUrl.pathname.startsWith("/api/chat")
+    ) {
+        event.respondWith(
+            fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+        );
+        return;
+    }
+
+    // Dynamic Laravel pages - Network First, then Cache
     if (
         requestUrl.pathname === "/" ||
         requestUrl.pathname.startsWith("/login") ||
@@ -37,7 +50,7 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
-    // Images (Owl Carousel, etc.) - Network First
+    // Images - Network First
     if (requestUrl.pathname.match(/\.(?:png|jpg|jpeg|gif|webp)$/)) {
         event.respondWith(
             fetch(event.request)
@@ -51,7 +64,7 @@ self.addEventListener("fetch", (event) => {
         return;
     }
 
-    // Static assets (CSS, JS, icons) - Cache First
+    // Static assets - Cache First
     event.respondWith(
         caches.match(event.request).then((response) => {
             return (
@@ -67,7 +80,6 @@ self.addEventListener("fetch", (event) => {
     );
 });
 
-// Activate event - clear old cache
 self.addEventListener("activate", (event) => {
     event.waitUntil(
         caches.keys().then((keyList) =>
