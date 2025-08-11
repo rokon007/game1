@@ -12,7 +12,6 @@ use App\Events\CardPlayed;
 use App\Events\ScoreUpdated;
 use App\Events\GameWinner;
 use App\Events\RoundWinner;
-use App\Events\VoiceChatUpdate;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -39,9 +38,6 @@ class HajariGameRoom extends Component
     public $isArrangementPhase = false;
     public $isCardsLocked = false;
     public $canStartGame = false;
-    public $isMicEnabled = false;
-    public $isPushToTalkMode = true;
-    public $speakingPlayers = [];
 
     protected $listeners = [
         'refreshGame' => '$refresh',
@@ -50,7 +46,6 @@ class HajariGameRoom extends Component
         'echo-presence:game.{game.id},ScoreUpdated' => 'handleScoreUpdate',
         'echo-presence:game.{game.id},GameWinner' => 'handleGameWinner',
         'echo-presence:game.{game.id},RoundWinner' => 'handleRoundWinner',
-        'echo-presence:game.{game.id},VoiceChatUpdate' => 'handleVoiceChatUpdate',
     ];
 
     public function mount(HajariGame $game)
@@ -1190,76 +1185,6 @@ class HajariGameRoom extends Component
     public function closeWinnerModal()
     {
         $this->showWinnerModal = false;
-    }
-
-    public function toggleMicrophone()
-    {
-        $this->isMicEnabled = !$this->isMicEnabled;
-
-        broadcast(new VoiceChatUpdate($this->game, [
-            'player_id' => Auth::id(),
-            'player_name' => Auth::user()->name,
-            'action' => $this->isMicEnabled ? 'mic_enabled' : 'mic_disabled',
-            'timestamp' => now()
-        ]));
-
-        $this->dispatch('microphoneToggled', ['enabled' => $this->isMicEnabled]);
-    }
-
-    public function togglePushToTalk()
-    {
-        $this->isPushToTalkMode = !$this->isPushToTalkMode;
-        $this->dispatch('pushToTalkModeChanged', ['enabled' => $this->isPushToTalkMode]);
-    }
-
-    public function startSpeaking()
-    {
-        if (!in_array(Auth::id(), $this->speakingPlayers)) {
-            $this->speakingPlayers[] = Auth::id();
-        }
-
-        broadcast(new VoiceChatUpdate($this->game, [
-            'player_id' => Auth::id(),
-            'player_name' => Auth::user()->name,
-            'action' => 'start_speaking',
-            'timestamp' => now()
-        ]));
-
-        $this->dispatch('playerStartedSpeaking', ['playerId' => Auth::id()]);
-    }
-
-    public function stopSpeaking()
-    {
-        $this->speakingPlayers = array_filter($this->speakingPlayers, function($id) {
-            return $id !== Auth::id();
-        });
-
-        broadcast(new VoiceChatUpdate($this->game, [
-            'player_id' => Auth::id(),
-            'player_name' => Auth::user()->name,
-            'action' => 'stop_speaking',
-            'timestamp' => now()
-        ]));
-
-        $this->dispatch('playerStoppedSpeaking', ['playerId' => Auth::id()]);
-    }
-
-    public function handleVoiceChatUpdate($event)
-    {
-        switch ($event['action']) {
-            case 'start_speaking':
-                if (!in_array($event['player_id'], $this->speakingPlayers)) {
-                    $this->speakingPlayers[] = $event['player_id'];
-                }
-                break;
-            case 'stop_speaking':
-                $this->speakingPlayers = array_filter($this->speakingPlayers, function($id) {
-                    return $id !== $event['player_id'];
-                });
-                break;
-        }
-
-        $this->dispatch('voiceChatUpdated', $event);
     }
 
     public function render()

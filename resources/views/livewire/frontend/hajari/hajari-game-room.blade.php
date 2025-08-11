@@ -50,15 +50,33 @@
                 @foreach($game->participants as $participant)
                     <div class="player-score {{ $participant->user_id === Auth::id() ? 'current-player' : '' }}
                                 {{ ($gameState['current_turn'] ?? 1) === $participant->position ? 'active-turn' : '' }}
-                                {{ ($participant->cards_locked ?? false) ? 'cards-locked' : '' }}"
+                                {{ ($participant->cards_locked ?? false) ? 'cards-locked' : '' }}
+                                {{ in_array($participant->user_id, $speakingPlayers) ? 'speaking' : '' }}"
                          id="player-score-{{ $participant->position }}">
                         <div class="player-name">{{ Str::limit($participant->user->name, 4) }}</div>
                         <div class="player-points">{{ $participant->total_points ?? 0 }}</div>
                         @if($participant->cards_locked ?? false)
                             <div class="lock-indicator">🔒</div>
                         @endif
+                        <!-- Added speaking indicator -->
+                        @if(in_array($participant->user_id, $speakingPlayers))
+                            <div class="speaking-indicator">🎤</div>
+                        @endif
                     </div>
                 @endforeach
+            </div>
+            <!-- Added voice chat controls -->
+            <div class="voice-chat-controls">
+                <button wire:click="toggleMicrophone"
+                        class="voice-btn {{ $isMicEnabled ? 'active' : '' }}"
+                        title="{{ $isMicEnabled ? 'Mute Microphone' : 'Enable Microphone' }}">
+                    <i class="fas {{ $isMicEnabled ? 'fa-microphone' : 'fa-microphone-slash' }}"></i>
+                </button>
+                <button wire:click="togglePushToTalk"
+                        class="voice-btn {{ $isPushToTalkMode ? 'active' : '' }}"
+                        title="{{ $isPushToTalkMode ? 'Push to Talk Mode' : 'Toggle Mode' }}">
+                    <i class="fas fa-hand-paper"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -197,6 +215,15 @@
                     <button onclick="enterFullscreenAndLock()" title="Fullscreen" class="play-btn" style="margin-right: 6px;">
                       <i class="fas fa-expand"></i>
                     </button>
+                    <!-- Added push-to-talk button for mobile -->
+                    @if($isPushToTalkMode && $isMicEnabled)
+                        <button id="ptt-button"
+                                class="play-btn ptt-btn"
+                                title="Hold to Talk"
+                                style="margin-right: 6px;">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                    @endif
                     @if($game->status === 'playing' && !$isArrangementPhase)
                         <button wire:click="playCards"
                                 class="play-btn {{ !$isMyTurn || empty($selectedCards) ? 'disabled' : '' }}"
@@ -542,6 +569,72 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .player-score.speaking {
+            background: rgba(34, 197, 94, 0.4);
+            animation: speakingPulse 1s infinite;
+        }
+
+        @keyframes speakingPulse {
+            0%, 100% {
+                background: rgba(34, 197, 94, 0.4);
+                box-shadow: 0 0 5px rgba(34, 197, 94, 0.6);
+            }
+            50% {
+                background: rgba(34, 197, 94, 0.6);
+                box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+            }
+        }
+
+        .speaking-indicator {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            font-size: 8px;
+            animation: bounce 1s infinite;
+        }
+
+        /* Added voice chat controls styling */
+        .voice-chat-controls {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+        }
+
+        .voice-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .voice-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
+        }
+
+        .voice-btn.active {
+            background: #10b981;
+            color: white;
+        }
+
+        .ptt-btn {
+            background: #ef4444;
+        }
+
+        .ptt-btn:active,
+        .ptt-btn.speaking {
+            background: #10b981;
+            transform: scale(1.1);
         }
 
         /* Arrangement controls */
@@ -1205,4 +1298,214 @@
             user-select: none;
         }
     </style>
+
+    <script>
+        // Detect and store the Livewire component id without using PHP properties
+        function __setHajariLivewireId() {
+          try {
+            // Prefer the current component's container
+            const container = document.getElementById('cards-container') || document.querySelector('.game-container');
+            let root = null;
+            if (container && container.closest) {
+              root = container.closest('[wire\\:id]');
+            }
+            if (!root) {
+              root = document.querySelector('[wire\\:id]');
+            }
+            if (root) {
+              window.__HAJARI_LW_ID = root.getAttribute('wire:id');
+            }
+          } catch (e) {}
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+          __setHajariLivewireId();
+          if (window.HajariRoom) window.HajariRoom.init();
+        });
+
+        document.addEventListener('livewire:updated', () => {
+          __setHajariLivewireId();
+          if (window.HajariRoom) window.HajariRoom.init();
+        });
+
+        document.addEventListener('livewire:navigated', () => {
+          __setHajariLivewireId();
+          if (window.HajariRoom) window.HajariRoom.init();
+        });
+
+        // In case Livewire stamps the wire:id after initial paint
+        document.addEventListener('livewire:load', () => {
+          __setHajariLivewireId();
+          if (window.HajariRoom) window.HajariRoom.init();
+        });
+
+        class VoiceChat {
+            constructor() {
+                this.localStream = null;
+                this.peerConnections = {};
+                this.isInitialized = false;
+                this.isMicEnabled = false;
+                this.isPushToTalkMode = true;
+                this.isSpeaking = false;
+                this.gameId = @json($game->id);
+                this.playerId = @json(Auth::id());
+
+                this.initializeVoiceChat();
+                this.setupEventListeners();
+            }
+
+            async initializeVoiceChat() {
+                try {
+                    // Request microphone permission
+                    this.localStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }
+                    });
+
+                    // Mute by default
+                    this.localStream.getAudioTracks().forEach(track => {
+                        track.enabled = false;
+                    });
+
+                    this.isInitialized = true;
+                    console.log('Voice chat initialized successfully');
+                } catch (error) {
+                    console.error('Failed to initialize voice chat:', error);
+                    this.showNotification('Microphone access denied. Voice chat disabled.', 'error');
+                }
+            }
+
+            setupEventListeners() {
+                // Push-to-talk functionality
+                const pttButton = document.getElementById('ptt-button');
+                if (pttButton) {
+                    // Desktop: Mouse events
+                    pttButton.addEventListener('mousedown', () => this.startSpeaking());
+                    pttButton.addEventListener('mouseup', () => this.stopSpeaking());
+                    pttButton.addEventListener('mouseleave', () => this.stopSpeaking());
+
+                    // Mobile: Touch events
+                    pttButton.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        this.startSpeaking();
+                    });
+                    pttButton.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        this.stopSpeaking();
+                    });
+                    pttButton.addEventListener('touchcancel', (e) => {
+                        e.preventDefault();
+                        this.stopSpeaking();
+                    });
+                }
+
+                // Keyboard shortcut for push-to-talk (Space key)
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space' && this.isPushToTalkMode && this.isMicEnabled && !this.isSpeaking) {
+                        e.preventDefault();
+                        this.startSpeaking();
+                    }
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    if (e.code === 'Space' && this.isPushToTalkMode && this.isSpeaking) {
+                        e.preventDefault();
+                        this.stopSpeaking();
+                    }
+                });
+
+                // Livewire event listeners
+                window.addEventListener('microphoneToggled', (e) => {
+                    this.toggleMicrophone(e.detail.enabled);
+                });
+
+                window.addEventListener('pushToTalkModeChanged', (e) => {
+                    this.isPushToTalkMode = e.detail.enabled;
+                });
+            }
+
+            toggleMicrophone(enabled) {
+                if (!this.isInitialized) return;
+
+                this.isMicEnabled = enabled;
+
+                if (!this.isPushToTalkMode) {
+                    // Toggle mode: enable/disable mic immediately
+                    this.localStream.getAudioTracks().forEach(track => {
+                        track.enabled = enabled;
+                    });
+                }
+            }
+
+            startSpeaking() {
+                if (!this.isInitialized || !this.isMicEnabled || this.isSpeaking) return;
+
+                this.isSpeaking = true;
+
+                // Enable microphone
+                this.localStream.getAudioTracks().forEach(track => {
+                    track.enabled = true;
+                });
+
+                // Update UI
+                const pttButton = document.getElementById('ptt-button');
+                if (pttButton) {
+                    pttButton.classList.add('speaking');
+                }
+
+                // Notify server
+                @this.call('startSpeaking');
+
+                console.log('Started speaking');
+            }
+
+            stopSpeaking() {
+                if (!this.isInitialized || !this.isSpeaking) return;
+
+                this.isSpeaking = false;
+
+                // Disable microphone (for push-to-talk mode)
+                if (this.isPushToTalkMode) {
+                    this.localStream.getAudioTracks().forEach(track => {
+                        track.enabled = false;
+                    });
+                }
+
+                // Update UI
+                const pttButton = document.getElementById('ptt-button');
+                if (pttButton) {
+                    pttButton.classList.remove('speaking');
+                }
+
+                // Notify server
+                @this.call('stopSpeaking');
+
+                console.log('Stopped speaking');
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+
+                const container = document.getElementById('game-notifications');
+                if (container) {
+                    container.appendChild(notification);
+
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                }
+            }
+        }
+
+        // Initialize voice chat when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            window.voiceChat = new VoiceChat();
+        });
+
+    </script>
 </div>
