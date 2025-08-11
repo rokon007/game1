@@ -5,28 +5,18 @@
     <!-- Audio elements for sound effects -->
     <audio id="dealSound" preload="auto">
         <source src="{{ asset('sounds/card-deal.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/card-deal.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/card-deal.ogg') }}" type="audio/ogg">
     </audio>
     <audio id="turnSound" preload="auto">
         <source src="{{ asset('sounds/turn-notification.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/turn-notification.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/turn-notification.ogg') }}" type="audio/ogg">
     </audio>
     <audio id="winRoundSound" preload="auto">
         <source src="{{ asset('sounds/round-win.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/round-win.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/round-win.ogg') }}" type="audio/ogg">
     </audio>
     <audio id="playCardSound" preload="auto">
         <source src="{{ asset('sounds/card-play.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/card-play.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/card-play.ogg') }}" type="audio/ogg">
     </audio>
     <audio id="gameOverSound" preload="auto">
         <source src="{{ asset('sounds/game-over.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/game-over.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/game-over.ogg') }}" type="audio/ogg">
     </audio>
 
     <!-- Game notifications container -->
@@ -38,7 +28,7 @@
             <div class="game-info">
                 <h1 class="game-title">{{ Str::limit($game->title, 12) }}</h1>
                 <div class="game-stats">
-                    <span>৳{{ number_format($game->bid_amount, 0) }}</span>
+                    <span>爰ｳ{{ number_format($game->bid_amount, 0) }}</span>
                     <span>R{{ $gameState['current_round'] ?? 1 }}</span>
                     <span>T{{ $gameState['current_turn'] ?? 1 }}</span>
                     @if($isArrangementPhase && $arrangementTimeLeft > 0)
@@ -55,7 +45,7 @@
                         <div class="player-name">{{ Str::limit($participant->user->name, 4) }}</div>
                         <div class="player-points">{{ $participant->total_points ?? 0 }}</div>
                         @if($participant->cards_locked ?? false)
-                            <div class="lock-indicator">🔒</div>
+                            <div class="lock-indicator">白</div>
                         @endif
                     </div>
                 @endforeach
@@ -280,7 +270,7 @@
     @if($showWinnerModal)
         <div class="modal-overlay" wire:click="closeWinnerModal">
             <div class="winner-modal">
-                <h2>🎉 Game Over! 🎉</h2>
+                <h2>脂 Game Over! 脂</h2>
                 <div class="final-winner">
                     <div class="winner-name">{{ $winnerData['winner_name'] ?? '' }}</div>
                     <div class="winner-title">WINNER!</div>
@@ -300,19 +290,414 @@
         </div>
     @endif
 
-    <script src="{{ asset('js/hajari-room.js') }}" defer></script>
+    @push('scripts')
     <script>
-        window.__HAJARI_LW_ID = '{{ $this->id }}';
-        document.addEventListener('DOMContentLoaded', () => {
-          if (window.HajariRoom) window.HajariRoom.init();
+        // Global state for dragging
+        let draggedElement = null;
+        let draggedIndex = null;
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        let arrangementTimer = null;
+        let soundEnabled = true;
+
+        // Enhanced Sound Effects controller
+        const SoundEffects = {
+            async playSound(audioId, fallbackBeep = false) {
+                try {
+                    const audio = document.getElementById(audioId);
+                    if (audio && soundEnabled) {
+                        audio.currentTime = 0;
+                        const playPromise = audio.play();
+                        if (playPromise !== undefined) {
+                            await playPromise;
+                        }
+                    } else if (fallbackBeep && soundEnabled) {
+                        this.playFallbackSound();
+                    }
+                } catch (error) {
+                    console.log(`Sound ${audioId} failed:`, error);
+                    if (fallbackBeep && soundEnabled) {
+                        this.playFallbackSound();
+                    }
+                }
+            },
+            playFallbackSound() {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                } catch (e) {
+                    console.log('Fallback sound failed:', e);
+                }
+            },
+            playDealSound: () => SoundEffects.playSound('dealSound', true),
+            playTurnSound: () => SoundEffects.playSound('turnSound', true),
+            playWinRoundSound: () => SoundEffects.playSound('winRoundSound', true),
+            playCardSound: () => SoundEffects.playSound('playCardSound', true),
+            playGameOverSound: () => SoundEffects.playSound('gameOverSound', true),
+            toggleSound() {
+                soundEnabled = !soundEnabled;
+                localStorage.setItem('hajari_sound_enabled', soundEnabled);
+                return soundEnabled;
+            },
+            isSoundEnabled() {
+                return soundEnabled;
+            }
+        };
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDragAndDrop();
+            initializeScrollIndicators();
+            optimizeForLandscape();
+            initializePusherEvents();
+            startArrangementTimer();
+            initializeAudio();
+
+            const savedSoundPref = localStorage.getItem('hajari_sound_enabled');
+            if (savedSoundPref !== null) {
+                soundEnabled = savedSoundPref === 'true';
+            }
         });
-        document.addEventListener('livewire:updated', () => {
-          if (window.HajariRoom) window.HajariRoom.init();
-        });
-        document.addEventListener('livewire:navigated', () => {
-          if (window.HajariRoom) window.HajariRoom.init();
+
+        function initializeAudio() {
+            const audioElements = ['dealSound', 'turnSound', 'winRoundSound', 'playCardSound', 'gameOverSound'];
+            audioElements.forEach(id => {
+                const audio = document.getElementById(id);
+                if (audio) {
+                    audio.volume = 0.6;
+                    audio.preload = 'auto';
+                    audio.load();
+                }
+            });
+            document.addEventListener('click', enableAudioContext, { once: true });
+            document.addEventListener('touchstart', enableAudioContext, { once: true });
+        }
+
+        function enableAudioContext() {
+            const audioElements = document.querySelectorAll('audio');
+            audioElements.forEach(audio => {
+                if (audio.paused) {
+                    audio.play().then(() => {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    }).catch(e => {
+                        console.log('Audio context enable failed:', e);
+                    });
+                }
+            });
+        }
+
+        function startArrangementTimer() {
+            const timerElement = document.getElementById('live-timer');
+            const headerTimer = document.getElementById('arrangement-timer');
+            if (timerElement || headerTimer) {
+                arrangementTimer = setInterval(() => {
+                    @this.call('loadGameState').then(() => {
+                        const timeLeft = @this.arrangementTimeLeft;
+                        if (timeLeft > 0) {
+                            const minutes = Math.floor(timeLeft / 60);
+                            const seconds = timeLeft % 60;
+                            const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                            if (timerElement) timerElement.textContent = timeString;
+                            if (headerTimer) headerTimer.textContent = timeString;
+                            if (timeLeft <= 30) {
+                                if (timerElement) timerElement.classList.add('urgent');
+                                if (headerTimer) headerTimer.classList.add('urgent');
+                            }
+                        } else {
+                            clearInterval(arrangementTimer);
+                            if (timerElement) timerElement.textContent = '00:00';
+                            if (headerTimer) headerTimer.textContent = '00:00';
+                        }
+                    });
+                }, 1000);
+            }
+        }
+
+        function initializePusherEvents() {
+            window.addEventListener('gameUpdated', event => {
+                showNotification(event.detail.data.message || 'Game updated');
+                @this.call('loadGameState');
+                if (event.detail.type === 'game_started') {
+                    SoundEffects.playDealSound();
+                    startArrangementTimer();
+                }
+            });
+            window.addEventListener('cardPlayed', event => {
+                showNotification(`${event.detail.player_name} played cards`);
+                @this.call('loadGameState');
+                SoundEffects.playCardSound();
+            });
+            window.addEventListener('roundWinner', event => {
+                const winnerPosition = event.detail.winner_position;
+                const winnerName = event.detail.winner_name;
+                SoundEffects.playWinRoundSound();
+                showNotification(`${winnerName} wins the round!`);
+                setTimeout(() => animateCardsToWinner(winnerPosition), 1000);
+            });
+            window.addEventListener('clearCenterCards', () => clearCenterCards());
+            window.addEventListener('hideScoreModal', () => setTimeout(() => @this.call('closeScoreModal'), 5000));
+            setInterval(() => @this.call('loadGameState'), 3000);
+        }
+
+        // --- FIXED DRAG AND DROP LOGIC ---
+        function initializeDragAndDrop() {
+            const container = document.getElementById('cards-container');
+            if (!container) return;
+
+            // Desktop drag and drop
+            container.addEventListener('dragstart', handleDragStart);
+            container.addEventListener('dragover', handleDragOver);
+            container.addEventListener('drop', handleDrop);
+            container.addEventListener('dragend', handleDragEnd);
+
+            // Mobile touch events
+            container.addEventListener('touchstart', handleTouchStart, { passive: false });
+            container.addEventListener('touchmove', handleTouchMove, { passive: false });
+            container.addEventListener('touchend', handleTouchEnd, { passive: false });
+        }
+
+        function handleDragStart(e) {
+            const cardElement = e.target.closest('.draggable-card');
+            if (!cardElement || cardElement.classList.contains('locked') || cardElement.getAttribute('draggable') !== 'true') {
+                e.preventDefault();
+                return;
+            }
+            draggedElement = cardElement;
+            draggedIndex = parseInt(cardElement.dataset.cardIndex);
+
+            // Use setTimeout to allow the browser to start the drag operation before applying styles
+            setTimeout(() => {
+                cardElement.classList.add('dragging');
+            }, 0);
+
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', ''); // Necessary for Firefox
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const dropTarget = e.target.closest('.draggable-card');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
+                dropTarget.classList.add('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropTarget = e.target.closest('.draggable-card');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            if (!dropTarget || dropTarget === draggedElement || dropTarget.classList.contains('locked')) {
+                return;
+            }
+            const dropIndex = parseInt(dropTarget.dataset.cardIndex);
+            if (draggedIndex !== null && dropIndex !== null && draggedIndex !== dropIndex) {
+                @this.call('reorderCards', draggedIndex, dropIndex);
+            }
+        }
+
+        function handleDragEnd(e) {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+            }
+            draggedElement = null;
+            draggedIndex = null;
+        }
+
+        function handleTouchStart(e) {
+            const cardElement = e.target.closest('.draggable-card');
+            if (!cardElement || cardElement.classList.contains('locked') || cardElement.getAttribute('draggable') !== 'true') {
+                return;
+            }
+            e.preventDefault(); // Prevent scrolling and other default touch actions
+            draggedElement = cardElement;
+            draggedIndex = parseInt(cardElement.dataset.cardIndex);
+            isDragging = true;
+
+            const rect = cardElement.getBoundingClientRect();
+            dragOffset.x = e.touches[0].clientX - rect.left;
+            dragOffset.y = e.touches[0].clientY - rect.top;
+
+            createDragGhost(e.touches[0]);
+            draggedElement.classList.add('dragging');
+        }
+
+        function handleTouchMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+
+            updateDragGhost(e.touches[0]);
+
+            const touch = e.touches[0];
+            // Hide ghost to find element underneath
+            const ghost = document.getElementById('drag-ghost');
+            if (ghost) ghost.style.display = 'none';
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (ghost) ghost.style.display = '';
+
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            const dropTarget = elementBelow ? elementBelow.closest('.draggable-card:not(.dragging)') : null;
+            if (dropTarget) {
+                dropTarget.classList.add('drag-over');
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (!isDragging) return;
+            isDragging = false;
+
+            removeDragGhost();
+
+            const touch = e.changedTouches[0];
+
+            // Hide original element to find target
+            draggedElement.style.visibility = 'hidden';
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            draggedElement.style.visibility = 'visible';
+
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            const dropTarget = elementBelow ? elementBelow.closest('.draggable-card') : null;
+
+            if (dropTarget && dropTarget !== draggedElement && !dropTarget.classList.contains('locked')) {
+                const dropIndex = parseInt(dropTarget.dataset.cardIndex);
+                if (draggedIndex !== null && dropIndex !== null && draggedIndex !== dropIndex) {
+                    @this.call('reorderCards', draggedIndex, dropIndex);
+                }
+            }
+
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+            }
+            draggedElement = null;
+            draggedIndex = null;
+        }
+
+        function createDragGhost(touch) {
+            if (!draggedElement) return;
+            const ghost = draggedElement.cloneNode(true);
+            ghost.id = 'drag-ghost';
+            ghost.style.position = 'fixed';
+            ghost.style.left = (touch.clientX - dragOffset.x) + 'px';
+            ghost.style.top = (touch.clientY - dragOffset.y) + 'px';
+            ghost.style.zIndex = '9999';
+            ghost.style.pointerEvents = 'none';
+            ghost.style.transform = 'rotate(5deg) scale(1.1)';
+            ghost.style.opacity = '0.8';
+            document.body.appendChild(ghost);
+        }
+
+        function updateDragGhost(touch) {
+            const ghost = document.getElementById('drag-ghost');
+            if (ghost) {
+                ghost.style.left = (touch.clientX - dragOffset.x) + 'px';
+                ghost.style.top = (touch.clientY - dragOffset.y) + 'px';
+            }
+        }
+
+        function removeDragGhost() {
+            const ghost = document.getElementById('drag-ghost');
+            if (ghost) ghost.remove();
+        }
+        // --- END OF FIXED DRAG AND DROP LOGIC ---
+
+
+        function initializeScrollIndicators() {
+            const scrollContainer = document.getElementById('cards-scroll');
+            const leftIndicator = document.getElementById('left-scroll');
+            const rightIndicator = document.getElementById('right-scroll');
+
+            if (!scrollContainer || !leftIndicator || !rightIndicator) return;
+
+            function updateScrollIndicators() {
+                const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
+                leftIndicator.style.opacity = scrollLeft > 1 ? '1' : '0.3';
+                rightIndicator.style.opacity = scrollLeft < (scrollWidth - clientWidth - 1) ? '1' : '0.3';
+            }
+
+            scrollContainer.addEventListener('scroll', updateScrollIndicators);
+            updateScrollIndicators();
+
+            leftIndicator.addEventListener('click', () => scrollContainer.scrollBy({ left: -100, behavior: 'smooth' }));
+            rightIndicator.addEventListener('click', () => scrollContainer.scrollBy({ left: 100, behavior: 'smooth' }));
+        }
+
+        function animateCardsToWinner(winnerPosition) {
+            const playerStacks = document.querySelectorAll('.fan-player-stack');
+            const winnerElement = document.getElementById(`player-position-${winnerPosition}`);
+            if (!winnerElement) return;
+            const winnerRect = winnerElement.getBoundingClientRect();
+            playerStacks.forEach((stack, index) => {
+                const cards = stack.querySelectorAll('.fan-stacked-card');
+                cards.forEach((card, cardIndex) => {
+                    setTimeout(() => {
+                        card.style.transition = 'all 1.8s ease-in-out';
+                        card.style.transform = `translate(${winnerRect.left - card.getBoundingClientRect().left}px, ${winnerRect.top - card.getBoundingClientRect().top}px) scale(0.15) rotate(${Math.random() * 60 - 30}deg)`;
+                        card.style.opacity = '0.3';
+                        setTimeout(() => card.style.display = 'none', 1800);
+                    }, (index * 400) + (cardIndex * 200));
+                });
+            });
+            setTimeout(() => clearCenterCards(), 3500);
+        }
+
+        function clearCenterCards() {
+            const centerCards = document.getElementById('center-cards');
+            if (centerCards) {
+                centerCards.innerHTML = '<div class="center-placeholder"><div class="placeholder-icon"><i class="fas fa-layer-group"></i></div></div>';
+            }
+        }
+
+        function optimizeForLandscape() {
+            function adjustLayout() {
+                const isLandscape = window.innerWidth > window.innerHeight;
+                const isMobile = window.innerWidth < 768;
+                if (isLandscape && isMobile) {
+                    document.body.classList.add('mobile-landscape');
+                    setTimeout(() => {
+                        window.scrollTo(0, 0);
+                        if (document.documentElement.requestFullscreen) {
+                            document.documentElement.requestFullscreen().catch(() => {});
+                        }
+                    }, 100);
+                } else {
+                    document.body.classList.remove('mobile-landscape');
+                }
+            }
+            adjustLayout();
+            window.addEventListener('orientationchange', () => setTimeout(adjustLayout, 200));
+            window.addEventListener('resize', adjustLayout);
+        }
+
+        function showNotification(message) {
+            const container = document.getElementById('game-notifications');
+            if (!container) return;
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            container.appendChild(notification);
+            setTimeout(() => {
+                if (notification.parentNode) notification.remove();
+            }, 3000);
+        }
+
+        // Reinitialize after Livewire updates
+        document.addEventListener('livewire:updated', function() {
+            initializeDragAndDrop();
+            initializeScrollIndicators();
         });
     </script>
+    @endpush
 
     <style>
         /* Enhanced drag and drop styles */
@@ -326,11 +711,10 @@
         }
 
         .draggable-card.dragging {
-            opacity: 0.5 !important;
+            opacity: 0.4 !important;
             transform: rotate(5deg) scale(1.05);
             z-index: 1000;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-            transition: none;
         }
 
         .draggable-card.drag-over {
@@ -344,6 +728,7 @@
         #drag-ghost {
             pointer-events: none;
             user-select: none;
+            will-change: transform;
         }
 
         /* Notifications container */
