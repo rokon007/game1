@@ -24,6 +24,17 @@
     _lastInitForId: null,
 
     init() {
+      // Fallback: auto-detect Livewire component id from DOM if missing
+      if (!window.__HAJARI_LW_ID) {
+        try {
+          const root = document.querySelector('.game-container');
+          const lwRoot = root ? root.closest('[wire\\:id]') : null;
+          const anyRoot = lwRoot || document.querySelector('[wire\\:id]');
+          if (anyRoot) {
+            window.__HAJARI_LW_ID = anyRoot.getAttribute('wire:id');
+          }
+        } catch {}
+      }
       // Ensure we bind per Livewire component instance id
       const lwId = window.__HAJARI_LW_ID
       if (!lwId) {
@@ -195,11 +206,32 @@
 
     _callLivewire(method, ...args) {
       try {
-        const id = window.__HAJARI_LW_ID
-        if (!id || !window.Livewire?.find) return
-        const comp = window.Livewire.find(id)
-        if (!comp) return
-        comp.call(method, ...args)
+        let id = window.__HAJARI_LW_ID;
+        if (!id) {
+          const root = document.querySelector('.game-container');
+          const lwRoot = root ? root.closest('[wire\\:id]') : null;
+          const anyRoot = lwRoot || document.querySelector('[wire\\:id]');
+          if (anyRoot) {
+            id = anyRoot.getAttribute('wire:id');
+            window.__HAJARI_LW_ID = id;
+          }
+        }
+        if (!id || !window.Livewire?.find) return;
+        const comp = window.Livewire.find(id);
+        if (!comp) {
+          // Try once more to locate a component on the page (fallback)
+          const anyRoot = document.querySelector('[wire\\:id]');
+          if (anyRoot) {
+            const altId = anyRoot.getAttribute('wire:id');
+            if (altId) {
+              window.__HAJARI_LW_ID = altId;
+              const altComp = window.Livewire.find(altId);
+              if (altComp) return altComp.call(method, ...args);
+            }
+          }
+          return;
+        }
+        comp.call(method, ...args);
       } catch (e) {
         console.debug("[HajariRoom] Livewire call failed", method, e)
       }

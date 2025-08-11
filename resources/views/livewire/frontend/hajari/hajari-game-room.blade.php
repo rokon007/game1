@@ -302,17 +302,35 @@
 
     <script src="{{ asset('js/hajari-room.js') }}" defer></script>
     <script>
-        window.__HAJARI_LW_ID = '{{ $this->id }}';
-        document.addEventListener('DOMContentLoaded', () => {
-          if (window.HajariRoom) window.HajariRoom.init();
-        });
-        document.addEventListener('livewire:updated', () => {
-          if (window.HajariRoom) window.HajariRoom.init();
-        });
-        document.addEventListener('livewire:navigated', () => {
-          if (window.HajariRoom) window.HajariRoom.init();
-        });
-    </script>
+    // Compute Livewire component ID safely from the DOM
+    function setHajariLivewireId() {
+      try {
+        const root = document.querySelector('.game-container');
+        const lwRoot = root ? root.closest('[wire\\:id]') : null;
+        const anyRoot = lwRoot || document.querySelector('[wire\\:id]');
+        if (anyRoot) {
+          window.__HAJARI_LW_ID = anyRoot.getAttribute('wire:id');
+        }
+      } catch (e) {
+        console.debug('Failed to detect Livewire ID', e);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setHajariLivewireId();
+      if (window.HajariRoom) window.HajariRoom.init();
+    });
+
+    document.addEventListener('livewire:updated', () => {
+      setHajariLivewireId();
+      if (window.HajariRoom) window.HajariRoom.init();
+    });
+
+    document.addEventListener('livewire:navigated', () => {
+      setHajariLivewireId();
+      if (window.HajariRoom) window.HajariRoom.init();
+    });
+  </script>
 
     <style>
         /* Enhanced drag and drop styles */
