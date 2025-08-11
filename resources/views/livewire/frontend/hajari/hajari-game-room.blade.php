@@ -194,6 +194,9 @@
                     @endif
                 </div>
                 <div class="header-controls">
+                    <button onclick="enterFullscreenAndLock()" title="Fullscreen" class="play-btn" style="margin-right: 6px;">
+                      <i class="fas fa-expand"></i>
+                    </button>
                     @if($game->status === 'playing' && !$isArrangementPhase)
                         <button wire:click="playCards"
                                 class="play-btn {{ !$isMyTurn || empty($selectedCards) ? 'disabled' : '' }}"
@@ -302,32 +305,42 @@
 
     <script src="{{ asset('js/hajari-room.js') }}" defer></script>
     <script>
-    // Compute Livewire component ID safely from the DOM
-    function setHajariLivewireId() {
+    // Detect and store the Livewire component id without using PHP properties
+    function __setHajariLivewireId() {
       try {
-        const root = document.querySelector('.game-container');
-        const lwRoot = root ? root.closest('[wire\\:id]') : null;
-        const anyRoot = lwRoot || document.querySelector('[wire\\:id]');
-        if (anyRoot) {
-          window.__HAJARI_LW_ID = anyRoot.getAttribute('wire:id');
+        // Prefer the current component's container
+        const container = document.getElementById('cards-container') || document.querySelector('.game-container');
+        let root = null;
+        if (container && container.closest) {
+          root = container.closest('[wire\\:id]');
         }
-      } catch (e) {
-        console.debug('Failed to detect Livewire ID', e);
-      }
+        if (!root) {
+          root = document.querySelector('[wire\\:id]');
+        }
+        if (root) {
+          window.__HAJARI_LW_ID = root.getAttribute('wire:id');
+        }
+      } catch (e) {}
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      setHajariLivewireId();
+      __setHajariLivewireId();
       if (window.HajariRoom) window.HajariRoom.init();
     });
 
     document.addEventListener('livewire:updated', () => {
-      setHajariLivewireId();
+      __setHajariLivewireId();
       if (window.HajariRoom) window.HajariRoom.init();
     });
 
     document.addEventListener('livewire:navigated', () => {
-      setHajariLivewireId();
+      __setHajariLivewireId();
+      if (window.HajariRoom) window.HajariRoom.init();
+    });
+
+    // In case Livewire stamps the wire:id after initial paint
+    document.addEventListener('livewire:load', () => {
+      __setHajariLivewireId();
       if (window.HajariRoom) window.HajariRoom.init();
     });
   </script>
@@ -397,8 +410,10 @@
             right: 0;
             bottom: 0;
             width: 100vw;
-            height: 100vh;
+            /* Fallbacks then JS-corrected height */
+            height: 100svh;
             height: 100dvh;
+            height: calc(var(--vh) * 100);
             background: linear-gradient(135deg, #1e3a8a 0%, #059669 100%);
             display: flex;
             flex-direction: column;
