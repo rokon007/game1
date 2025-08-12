@@ -56,14 +56,14 @@
                 @endforeach
             </div>
             <!-- Simplified voice chat controls -->
-            <div class="voice-chat-controls">
-                <button id="micToggle" class="voice-btn" title="Toggle Microphone">
-                    <i class="fas fa-microphone-slash"></i>
+            <div class="voice-chat-controls fixed top-4 right-4 z-50 flex gap-2">
+                <button id="micToggle" class="voice-btn bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-full transition-colors">
+                    <i class="fas fa-microphone-slash text-sm"></i>
                 </button>
-                <button id="pttButton" class="voice-btn" title="Hold to Talk">
-                    <i class="fas fa-hand-paper"></i>
+                <button id="pttButton" class="voice-btn bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full transition-colors">
+                    <i class="fas fa-walkie-talkie text-sm"></i>
                 </button>
-                <div id="voiceStatus" class="voice-status">Voice Chat Ready</div>
+                <div id="voiceStatus" class="text-xs text-gray-400 self-center hidden md:block">Voice chat ready</div>
             </div>
         </div>
     </div>
@@ -319,6 +319,126 @@
 
     <script src="{{ asset('js/hajari-room.js') }}" defer></script>
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the main game logic
+            if (window.HajariRoom) {
+                window.HajariRoom.init();
+            }
+
+            // Simple voice chat toggle (local microphone only)
+            initSimpleVoiceChat();
+
+            console.log('Hajari game room initialized');
+        });
+
+        function initSimpleVoiceChat() {
+            let localStream = null;
+            let isMicEnabled = false;
+            let isSpeaking = false;
+
+            const micToggle = document.getElementById('micToggle');
+            const pttButton = document.getElementById('pttButton');
+            const voiceStatus = document.getElementById('voiceStatus');
+
+            // Request microphone permission
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    localStream = stream;
+                    // Mute by default
+                    stream.getAudioTracks().forEach(track => {
+                        track.enabled = false;
+                    });
+                    updateStatus('Voice chat ready');
+                })
+                .catch(error => {
+                    console.log('Microphone access denied:', error);
+                    updateStatus('Microphone access denied');
+                });
+
+            // Microphone toggle
+            micToggle?.addEventListener('click', () => {
+                if (!localStream) return;
+
+                isMicEnabled = !isMicEnabled;
+                const icon = micToggle.querySelector('i');
+
+                if (isMicEnabled) {
+                    icon.classList.remove('fa-microphone-slash');
+                    icon.classList.add('fa-microphone');
+                    micToggle.classList.add('bg-green-600');
+                    micToggle.classList.remove('bg-gray-700');
+                    updateStatus('Microphone enabled');
+                } else {
+                    icon.classList.remove('fa-microphone');
+                    icon.classList.add('fa-microphone-slash');
+                    micToggle.classList.remove('bg-green-600');
+                    micToggle.classList.add('bg-gray-700');
+                    updateStatus('Microphone disabled');
+                    stopSpeaking();
+                }
+            });
+
+            // Push to talk
+            pttButton?.addEventListener('mousedown', startSpeaking);
+            pttButton?.addEventListener('mouseup', stopSpeaking);
+            pttButton?.addEventListener('mouseleave', stopSpeaking);
+            pttButton?.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startSpeaking();
+            });
+            pttButton?.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopSpeaking();
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && !e.repeat) {
+                    e.preventDefault();
+                    startSpeaking();
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    stopSpeaking();
+                }
+            });
+
+            function startSpeaking() {
+                if (!localStream || !isMicEnabled || isSpeaking) return;
+
+                isSpeaking = true;
+                localStream.getAudioTracks().forEach(track => {
+                    track.enabled = true;
+                });
+
+                pttButton?.classList.add('bg-red-600');
+                pttButton?.classList.remove('bg-blue-600');
+                updateStatus('Speaking...');
+            }
+
+            function stopSpeaking() {
+                if (!localStream || !isSpeaking) return;
+
+                isSpeaking = false;
+                localStream.getAudioTracks().forEach(track => {
+                    track.enabled = false;
+                });
+
+                pttButton?.classList.remove('bg-red-600');
+                pttButton?.classList.add('bg-blue-600');
+                updateStatus(isMicEnabled ? 'Microphone enabled' : 'Voice chat ready');
+            }
+
+            function updateStatus(message) {
+                if (voiceStatus) {
+                    voiceStatus.textContent = message;
+                }
+            }
+        }
+
         function playSound(soundId) {
             try {
                 const audio = document.getElementById(soundId);
@@ -530,6 +650,28 @@
     </script>
 
     <style>
+        /* Added voice chat button styles */
+        .voice-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .voice-btn.speaking {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
         /* Enhanced drag and drop styles */
         .draggable-card {
             cursor: grab;
