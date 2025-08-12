@@ -2,31 +2,21 @@
     <!-- Include card CSS -->
     <link rel="stylesheet" href="{{ asset('css/cards-unicode.css') }}">
 
-    <!-- Audio elements for sound effects -->
+    <!-- Fixed audio elements to use only MP3 files from public/sounds -->
     <audio id="dealSound" preload="auto">
-        <source src="{{ asset('sounds/card-deal.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/card-deal.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/card-deal.ogg') }}" type="audio/ogg">
+        <source src="{{ asset('sounds/dealSound.mp3') }}" type="audio/mpeg">
     </audio>
     <audio id="turnSound" preload="auto">
-        <source src="{{ asset('sounds/turn-notification.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/turn-notification.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/turn-notification.ogg') }}" type="audio/ogg">
+        <source src="{{ asset('sounds/turnSound.mp3') }}" type="audio/mpeg">
     </audio>
     <audio id="winRoundSound" preload="auto">
-        <source src="{{ asset('sounds/round-win.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/round-win.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/round-win.ogg') }}" type="audio/ogg">
+        <source src="{{ asset('sounds/winRoundSound.mp3') }}" type="audio/mpeg">
     </audio>
     <audio id="playCardSound" preload="auto">
-        <source src="{{ asset('sounds/card-play.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/card-play.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/card-play.ogg') }}" type="audio/ogg">
+        <source src="{{ asset('sounds/playCardSound.mp3') }}" type="audio/mpeg">
     </audio>
     <audio id="gameOverSound" preload="auto">
-        <source src="{{ asset('sounds/game-over.mp3') }}" type="audio/mpeg">
-        <source src="{{ asset('sounds/game-over.wav') }}" type="audio/wav">
-        <source src="{{ asset('sounds/game-over.ogg') }}" type="audio/ogg">
+        <source src="{{ asset('sounds/gameOverSound.mp3') }}" type="audio/mpeg">
     </audio>
 
     <!-- Game notifications container -->
@@ -65,18 +55,15 @@
                     </div>
                 @endforeach
             </div>
-            <!-- Added voice chat controls -->
+            <!-- Simplified voice chat controls -->
             <div class="voice-chat-controls">
-                <button wire:click="toggleMicrophone"
-                        class="voice-btn {{ $isMicEnabled ? 'active' : '' }}"
-                        title="{{ $isMicEnabled ? 'Mute Microphone' : 'Enable Microphone' }}">
-                    <i class="fas {{ $isMicEnabled ? 'fa-microphone' : 'fa-microphone-slash' }}"></i>
+                <button id="micToggle" class="voice-btn" title="Toggle Microphone">
+                    <i class="fas fa-microphone-slash"></i>
                 </button>
-                <button wire:click="togglePushToTalk"
-                        class="voice-btn {{ $isPushToTalkMode ? 'active' : '' }}"
-                        title="{{ $isPushToTalkMode ? 'Push to Talk Mode' : 'Toggle Mode' }}">
+                <button id="pttButton" class="voice-btn" title="Hold to Talk">
                     <i class="fas fa-hand-paper"></i>
                 </button>
+                <div id="voiceStatus" class="voice-status">Voice Chat Ready</div>
             </div>
         </div>
     </div>
@@ -332,45 +319,215 @@
 
     <script src="{{ asset('js/hajari-room.js') }}" defer></script>
     <script>
-    // Detect and store the Livewire component id without using PHP properties
-    function __setHajariLivewireId() {
-      try {
-        // Prefer the current component's container
-        const container = document.getElementById('cards-container') || document.querySelector('.game-container');
-        let root = null;
-        if (container && container.closest) {
-          root = container.closest('[wire\\:id]');
+        function playSound(soundId) {
+            try {
+                const audio = document.getElementById(soundId);
+                if (audio) {
+                    audio.currentTime = 0; // Reset to beginning
+                    const playPromise = audio.play();
+
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.log('Sound play failed:', error);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error playing sound:', error);
+            }
         }
-        if (!root) {
-          root = document.querySelector('[wire\\:id]');
+
+        class VoiceChat {
+            constructor() {
+                this.localStream = null;
+                this.peerConnection = null;
+                this.isInitialized = false;
+                this.isMicEnabled = false;
+                this.isSpeaking = false;
+                this.gameId = @json($game->id);
+                this.playerId = @json(Auth::id());
+
+                this.initializeVoiceChat();
+                this.setupEventListeners();
+            }
+
+            async initializeVoiceChat() {
+                try {
+                    // Request microphone permission
+                    this.localStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }
+                    });
+
+                    // Mute by default
+                    this.localStream.getAudioTracks().forEach(track => {
+                        track.enabled = false;
+                    });
+
+                    this.isInitialized = true;
+                    this.updateStatus('Voice chat ready');
+                    console.log('Voice chat initialized successfully');
+                } catch (error) {
+                    console.error('Failed to initialize voice chat:', error);
+                    this.updateStatus('Microphone access denied');
+                }
+            }
+
+            setupEventListeners() {
+                const micToggle = document.getElementById('micToggle');
+                const pttButton = document.getElementById('pttButton');
+
+                // Microphone toggle
+                micToggle?.addEventListener('click', () => {
+                    this.toggleMicrophone();
+                });
+
+                // Push to talk
+                pttButton?.addEventListener('mousedown', () => {
+                    this.startSpeaking();
+                });
+
+                pttButton?.addEventListener('mouseup', () => {
+                    this.stopSpeaking();
+                });
+
+                pttButton?.addEventListener('mouseleave', () => {
+                    this.stopSpeaking();
+                });
+
+                // Touch events for mobile
+                pttButton?.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.startSpeaking();
+                });
+
+                pttButton?.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.stopSpeaking();
+                });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space' && !e.repeat) {
+                        e.preventDefault();
+                        this.startSpeaking();
+                    }
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        this.stopSpeaking();
+                    }
+                });
+            }
+
+            toggleMicrophone() {
+                if (!this.isInitialized) {
+                    this.updateStatus('Voice chat not ready');
+                    return;
+                }
+
+                this.isMicEnabled = !this.isMicEnabled;
+                const micToggle = document.getElementById('micToggle');
+                const icon = micToggle?.querySelector('i');
+
+                if (this.isMicEnabled) {
+                    icon?.classList.remove('fa-microphone-slash');
+                    icon?.classList.add('fa-microphone');
+                    micToggle?.classList.add('active');
+                    this.updateStatus('Microphone enabled');
+                } else {
+                    icon?.classList.remove('fa-microphone');
+                    icon?.classList.add('fa-microphone-slash');
+                    micToggle?.classList.remove('active');
+                    this.updateStatus('Microphone disabled');
+                    this.stopSpeaking();
+                }
+            }
+
+            startSpeaking() {
+                if (!this.isInitialized || !this.isMicEnabled || this.isSpeaking) return;
+
+                this.isSpeaking = true;
+
+                // Enable microphone
+                this.localStream.getAudioTracks().forEach(track => {
+                    track.enabled = true;
+                });
+
+                // Update UI
+                const pttButton = document.getElementById('pttButton');
+                pttButton?.classList.add('speaking');
+                this.updateStatus('Speaking...');
+
+                console.log('Started speaking');
+            }
+
+            stopSpeaking() {
+                if (!this.isInitialized || !this.isSpeaking) return;
+
+                this.isSpeaking = false;
+
+                // Disable microphone
+                this.localStream.getAudioTracks().forEach(track => {
+                    track.enabled = false;
+                });
+
+                // Update UI
+                const pttButton = document.getElementById('pttButton');
+                pttButton?.classList.remove('speaking');
+                this.updateStatus('Microphone enabled');
+
+                console.log('Stopped speaking');
+            }
+
+            updateStatus(message) {
+                const status = document.getElementById('voiceStatus');
+                if (status) {
+                    status.textContent = message;
+                }
+            }
         }
-        if (root) {
-          window.__HAJARI_LW_ID = root.getAttribute('wire:id');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize voice chat
+            window.voiceChat = new VoiceChat();
+
+            // Test sound system
+            console.log('Sound system initialized');
+
+            // Add sound playing to game events
+            window.addEventListener('livewire:init', () => {
+                Livewire.on('playSound', (soundId) => {
+                    playSound(soundId);
+                });
+            });
+        });
+
+        function handleCardDeal() {
+            playSound('dealSound');
         }
-      } catch (e) {}
-    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      __setHajariLivewireId();
-      if (window.HajariRoom) window.HajariRoom.init();
-    });
+        function handlePlayerTurn() {
+            playSound('turnSound');
+        }
 
-    document.addEventListener('livewire:updated', () => {
-      __setHajariLivewireId();
-      if (window.HajariRoom) window.HajariRoom.init();
-    });
+        function handleCardPlay() {
+            playSound('playCardSound');
+        }
 
-    document.addEventListener('livewire:navigated', () => {
-      __setHajariLivewireId();
-      if (window.HajariRoom) window.HajariRoom.init();
-    });
+        function handleRoundWin() {
+            playSound('winRoundSound');
+        }
 
-    // In case Livewire stamps the wire:id after initial paint
-    document.addEventListener('livewire:load', () => {
-      __setHajariLivewireId();
-      if (window.HajariRoom) window.HajariRoom.init();
-    });
-  </script>
+        function handleGameOver() {
+            playSound('gameOverSound');
+        }
+    </script>
 
     <style>
         /* Enhanced drag and drop styles */
@@ -595,46 +752,52 @@
             animation: bounce 1s infinite;
         }
 
-        /* Added voice chat controls styling */
+        /* Added voice chat styling */
         .voice-chat-controls {
             display: flex;
-            gap: 4px;
-            margin-left: 8px;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
         }
 
         .voice-btn {
-            background: rgba(255, 255, 255, 0.15);
+            background: #4a5568;
             color: white;
             border: none;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
         }
 
         .voice-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
+            background: #2d3748;
             transform: scale(1.1);
         }
 
         .voice-btn.active {
-            background: #10b981;
-            color: white;
+            background: #48bb78;
         }
 
-        .ptt-btn {
-            background: #ef4444;
+        .voice-btn.speaking {
+            background: #f56565;
+            animation: pulse 1s infinite;
         }
 
-        .ptt-btn:active,
-        .ptt-btn.speaking {
-            background: #10b981;
-            transform: scale(1.1);
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .voice-status {
+            font-size: 12px;
+            color: #718096;
+            margin-left: 10px;
         }
 
         /* Arrangement controls */
@@ -1297,371 +1460,22 @@
             -ms-user-select: none;
             user-select: none;
         }
+
+        /* Mobile responsive voice controls */
+        @media (max-width: 768px) {
+            .voice-chat-controls {
+                justify-content: center;
+                margin: 5px 0;
+            }
+
+            .voice-btn {
+                width: 35px;
+                height: 35px;
+            }
+
+            .voice-status {
+                font-size: 10px;
+            }
+        }
     </style>
-
-    <script>
-        // Detect and store the Livewire component id without using PHP properties
-        function __setHajariLivewireId() {
-          try {
-            // Prefer the current component's container
-            const container = document.getElementById('cards-container') || document.querySelector('.game-container');
-            let root = null;
-            if (container && container.closest) {
-              root = container.closest('[wire\\:id]');
-            }
-            if (!root) {
-              root = document.querySelector('[wire\\:id]');
-            }
-            if (root) {
-              window.__HAJARI_LW_ID = root.getAttribute('wire:id');
-            }
-          } catch (e) {}
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-          __setHajariLivewireId();
-          if (window.HajariRoom) window.HajariRoom.init();
-        });
-
-        document.addEventListener('livewire:updated', () => {
-          __setHajariLivewireId();
-          if (window.HajariRoom) window.HajariRoom.init();
-        });
-
-        document.addEventListener('livewire:navigated', () => {
-          __setHajariLivewireId();
-          if (window.HajariRoom) window.HajariRoom.init();
-        });
-
-        // In case Livewire stamps the wire:id after initial paint
-        document.addEventListener('livewire:load', () => {
-          __setHajariLivewireId();
-          if (window.HajariRoom) window.HajariRoom.init();
-        });
-
-        class VoiceChat {
-            constructor() {
-                this.localStream = null;
-                this.peerConnections = {};
-                this.isInitialized = false;
-                this.isMicEnabled = false;
-                this.isPushToTalkMode = true;
-                this.isSpeaking = false;
-                this.gameId = @json($game->id);
-                this.playerId = @json(Auth::id());
-                this.remoteAudios = {};
-
-                this.initializeVoiceChat();
-                this.setupEventListeners();
-                this.setupWebRTCSignaling();
-            }
-
-            async initializeVoiceChat() {
-                try {
-                    this.localStream = await navigator.mediaDevices.getUserMedia({
-                        audio: {
-                            echoCancellation: true,
-                            noiseSuppression: true,
-                            autoGainControl: true,
-                            sampleRate: 44100
-                        }
-                    });
-
-                    // Mute by default
-                    this.localStream.getAudioTracks().forEach(track => {
-                        track.enabled = false;
-                    });
-
-                    this.isInitialized = true;
-                    console.log('Voice chat initialized successfully');
-                    this.showNotification('Voice chat ready! Use microphone button or hold Space to talk.', 'success');
-                } catch (error) {
-                    console.error('Failed to initialize voice chat:', error);
-                    this.showNotification('Microphone access denied. Voice chat disabled.', 'error');
-                }
-            }
-
-            setupWebRTCSignaling() {
-                // Listen for WebRTC signaling events
-                window.addEventListener('voiceChatUpdated', (e) => {
-                    const data = e.detail;
-
-                    switch(data.action) {
-                        case 'offer':
-                            this.handleOffer(data);
-                            break;
-                        case 'answer':
-                            this.handleAnswer(data);
-                            break;
-                        case 'ice-candidate':
-                            this.handleIceCandidate(data);
-                            break;
-                        case 'player-joined':
-                            this.createPeerConnection(data.player_id);
-                            break;
-                        case 'player-left':
-                            this.closePeerConnection(data.player_id);
-                            break;
-                    }
-                });
-            }
-
-            async createPeerConnection(remotePlayerId) {
-                if (remotePlayerId === this.playerId || this.peerConnections[remotePlayerId]) {
-                    return;
-                }
-
-                const peerConnection = new RTCPeerConnection({
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
-                    ]
-                });
-
-                this.peerConnections[remotePlayerId] = peerConnection;
-
-                // Add local stream to peer connection
-                if (this.localStream) {
-                    this.localStream.getTracks().forEach(track => {
-                        peerConnection.addTrack(track, this.localStream);
-                    });
-                }
-
-                // Handle remote stream
-                peerConnection.ontrack = (event) => {
-                    const remoteStream = event.streams[0];
-                    this.playRemoteAudio(remotePlayerId, remoteStream);
-                };
-
-                // Handle ICE candidates
-                peerConnection.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        @this.call('sendWebRTCSignal', {
-                            type: 'ice-candidate',
-                            candidate: event.candidate,
-                            target_player_id: remotePlayerId
-                        });
-                    }
-                };
-
-                // Create offer if we're the initiator (lower player ID initiates)
-                if (this.playerId < remotePlayerId) {
-                    const offer = await peerConnection.createOffer();
-                    await peerConnection.setLocalDescription(offer);
-
-                    @this.call('sendWebRTCSignal', {
-                        type: 'offer',
-                        offer: offer,
-                        target_player_id: remotePlayerId
-                    });
-                }
-            }
-
-            async handleOffer(data) {
-                const peerConnection = this.peerConnections[data.player_id];
-                if (!peerConnection) return;
-
-                await peerConnection.setRemoteDescription(data.offer);
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-
-                @this.call('sendWebRTCSignal', {
-                    type: 'answer',
-                    answer: answer,
-                    target_player_id: data.player_id
-                });
-            }
-
-            async handleAnswer(data) {
-                const peerConnection = this.peerConnections[data.player_id];
-                if (!peerConnection) return;
-
-                await peerConnection.setRemoteDescription(data.answer);
-            }
-
-            async handleIceCandidate(data) {
-                const peerConnection = this.peerConnections[data.player_id];
-                if (!peerConnection) return;
-
-                await peerConnection.addIceCandidate(data.candidate);
-            }
-
-            playRemoteAudio(playerId, stream) {
-                // Remove existing audio element if any
-                if (this.remoteAudios[playerId]) {
-                    this.remoteAudios[playerId].remove();
-                }
-
-                // Create new audio element
-                const audio = document.createElement('audio');
-                audio.srcObject = stream;
-                audio.autoplay = true;
-                audio.volume = 0.8;
-                audio.style.display = 'none';
-
-                document.body.appendChild(audio);
-                this.remoteAudios[playerId] = audio;
-            }
-
-            closePeerConnection(playerId) {
-                if (this.peerConnections[playerId]) {
-                    this.peerConnections[playerId].close();
-                    delete this.peerConnections[playerId];
-                }
-
-                if (this.remoteAudios[playerId]) {
-                    this.remoteAudios[playerId].remove();
-                    delete this.remoteAudios[playerId];
-                }
-            }
-
-            setupEventListeners() {
-
-                window.addEventListener('voiceChatUpdated', (e) => {
-                    const data = e.detail;
-                    console.log('Voice chat update:', data);
-
-                    // Handle speaking indicators
-                    if (data.action === 'start_speaking' || data.action === 'stop_speaking') {
-                        this.updateSpeakingIndicator(data.player_id, data.action === 'start_speaking');
-                    }
-                });
-            }
-
-            updateSpeakingIndicator(playerId, isSpeaking) {
-                const playerElements = document.querySelectorAll(`[data-player-id="${playerId}"]`);
-                playerElements.forEach(element => {
-                    if (isSpeaking) {
-                        element.classList.add('speaking');
-                    } else {
-                        element.classList.remove('speaking');
-                    }
-                });
-            }
-
-            toggleMicrophone(enabled) {
-                if (!this.isInitialized) {
-                    this.showNotification('Voice chat not initialized. Please refresh the page.', 'error');
-                    return;
-                }
-
-                this.isMicEnabled = enabled;
-
-                if (!this.isPushToTalkMode) {
-                    // Toggle mode: enable/disable mic immediately
-                    this.localStream.getAudioTracks().forEach(track => {
-                        track.enabled = enabled;
-                    });
-                }
-
-                if (enabled) {
-                    // Establish connections with other players
-                    const otherPlayers = @json($game->participants->where('user_id', '!=', Auth::id())->pluck('user_id'));
-                    otherPlayers.forEach(playerId => {
-                        this.createPeerConnection(playerId);
-                    });
-                }
-            }
-
-            startSpeaking() {
-                if (!this.isInitialized || !this.isMicEnabled || this.isSpeaking) return;
-
-                this.isSpeaking = true;
-
-                // Enable microphone
-                this.localStream.getAudioTracks().forEach(track => {
-                    track.enabled = true;
-                });
-
-                // Update UI
-                const pttButton = document.getElementById('ptt-button');
-                if (pttButton) {
-                    pttButton.classList.add('speaking');
-                }
-
-                // Notify server
-                @this.call('startSpeaking');
-
-                console.log('Started speaking');
-            }
-
-            stopSpeaking() {
-                if (!this.isInitialized || !this.isSpeaking) return;
-
-                this.isSpeaking = false;
-
-                // Disable microphone (for push-to-talk mode)
-                if (this.isPushToTalkMode) {
-                    this.localStream.getAudioTracks().forEach(track => {
-                        track.enabled = false;
-                    });
-                }
-
-                // Update UI
-                const pttButton = document.getElementById('ptt-button');
-                if (pttButton) {
-                    pttButton.classList.remove('speaking');
-                }
-
-                // Notify server
-                @this.call('stopSpeaking');
-
-                console.log('Stopped speaking');
-            }
-
-            showNotification(message, type = 'info') {
-                const notification = document.createElement('div');
-                notification.className = `voice-notification ${type}`;
-                notification.innerHTML = `
-                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
-                    ${message}
-                `;
-
-                // Add notification styles
-                notification.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-                    color: white;
-                    padding: 12px 16px;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    z-index: 10000;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    max-width: 300px;
-                    animation: slideIn 0.3s ease;
-                `;
-
-                document.body.appendChild(notification);
-
-                setTimeout(() => {
-                    notification.style.animation = 'slideOut 0.3s ease';
-                    setTimeout(() => notification.remove(), 300);
-                }, 3000);
-            }
-        }
-
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-
-        // Initialize voice chat when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            window.voiceChat = new VoiceChat();
-        });
-
-    </script>
 </div>
