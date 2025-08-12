@@ -341,18 +341,25 @@
                         track.enabled = false;
                     });
                     console.log('Microphone initialized');
+                    return true;
                 } catch (error) {
                     console.log('Microphone access denied:', error);
+                    return false;
                 }
             }
 
-            // Microphone toggle
-            micToggle?.addEventListener('click', async () => {
-                if (!localStream) {
-                    await initMicrophone();
-                }
+            // Microphone toggle - fixed to prevent immediate disable
+            micToggle?.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
 
-                if (!localStream) return;
+                if (!localStream) {
+                    const initialized = await initMicrophone();
+                    if (!initialized) {
+                        alert('মাইক্রোফোন অ্যাক্সেস প্রয়োজন। ব্রাউজার সেটিংস চেক করুন।');
+                        return;
+                    }
+                }
 
                 isMicEnabled = !isMicEnabled;
                 const icon = micToggle.querySelector('i');
@@ -362,16 +369,18 @@
                     icon.classList.add('fa-microphone');
                     micToggle.classList.add('bg-green-600');
                     micToggle.classList.remove('bg-gray-700');
+                    document.getElementById('voiceStatus').textContent = 'মাইক চালু - PTT দিয়ে কথা বলুন';
                 } else {
                     icon.classList.remove('fa-microphone');
                     icon.classList.add('fa-microphone-slash');
                     micToggle.classList.remove('bg-green-600');
                     micToggle.classList.add('bg-gray-700');
+                    document.getElementById('voiceStatus').textContent = 'মাইক বন্ধ';
                     stopSpeaking();
                 }
             });
 
-            // Push to talk
+            // Push to talk - improved logic
             function startSpeaking() {
                 if (!localStream || !isMicEnabled || isSpeaking) return;
 
@@ -382,6 +391,7 @@
 
                 pttButton?.classList.add('bg-red-600');
                 pttButton?.classList.remove('bg-blue-600');
+                document.getElementById('voiceStatus').textContent = 'কথা বলছেন...';
             }
 
             function stopSpeaking() {
@@ -394,21 +404,31 @@
 
                 pttButton?.classList.remove('bg-red-600');
                 pttButton?.classList.add('bg-blue-600');
+                if (isMicEnabled) {
+                    document.getElementById('voiceStatus').textContent = 'মাইক চালু - PTT দিয়ে কথা বলুন';
+                }
             }
 
-            // PTT button events
-            pttButton?.addEventListener('mousedown', startSpeaking);
-            pttButton?.addEventListener('mouseup', stopSpeaking);
-            pttButton?.addEventListener('mouseleave', stopSpeaking);
-
-            // Touch events for mobile
-            pttButton?.addEventListener('touchstart', (e) => {
+            // PTT button events - improved event handling
+            pttButton?.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 startSpeaking();
             });
+            pttButton?.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                stopSpeaking();
+            });
+            pttButton?.addEventListener('mouseleave', stopSpeaking);
 
+            // Touch events for mobile - improved
+            pttButton?.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                startSpeaking();
+            });
             pttButton?.addEventListener('touchend', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 stopSpeaking();
             });
 
@@ -419,7 +439,6 @@
                     startSpeaking();
                 }
             });
-
             document.addEventListener('keyup', (e) => {
                 if (e.code === 'Space') {
                     e.preventDefault();
