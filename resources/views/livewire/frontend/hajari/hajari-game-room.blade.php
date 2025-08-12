@@ -328,6 +328,7 @@
             let localStream = null;
             let isMicEnabled = false;
             let isSpeaking = false;
+            let micTimeout = null; // Added timeout variable to prevent auto-disable
 
             const micToggle = document.getElementById('micToggle');
             const pttButton = document.getElementById('pttButton');
@@ -335,7 +336,13 @@
             // Initialize microphone
             async function initMicrophone() {
                 try {
-                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }
+                    });
                     // Mute by default
                     localStream.getAudioTracks().forEach(track => {
                         track.enabled = false;
@@ -348,10 +355,15 @@
                 }
             }
 
-            // Microphone toggle - fixed to prevent immediate disable
             micToggle?.addEventListener('click', async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+
+                // Clear any existing timeout
+                if (micTimeout) {
+                    clearTimeout(micTimeout);
+                    micTimeout = null;
+                }
 
                 if (!localStream) {
                     const initialized = await initMicrophone();
@@ -370,6 +382,13 @@
                     micToggle.classList.add('bg-green-600');
                     micToggle.classList.remove('bg-gray-700');
                     document.getElementById('voiceStatus').textContent = 'মাইক চালু - PTT দিয়ে কথা বলুন';
+
+                    localStream.getAudioTracks().forEach(track => {
+                        track.addEventListener('ended', () => {
+                            console.log('Audio track ended, reinitializing...');
+                            initMicrophone();
+                        });
+                    });
                 } else {
                     icon.classList.remove('fa-microphone');
                     icon.classList.add('fa-microphone-slash');
@@ -380,7 +399,6 @@
                 }
             });
 
-            // Push to talk - improved logic
             function startSpeaking() {
                 if (!localStream || !isMicEnabled || isSpeaking) return;
 
@@ -392,6 +410,11 @@
                 pttButton?.classList.add('bg-red-600');
                 pttButton?.classList.remove('bg-blue-600');
                 document.getElementById('voiceStatus').textContent = 'কথা বলছেন...';
+
+                if (micTimeout) {
+                    clearTimeout(micTimeout);
+                    micTimeout = null;
+                }
             }
 
             function stopSpeaking() {
