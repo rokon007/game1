@@ -74,6 +74,9 @@ class HajariGameRoom extends Component
         $currentRound = $this->game->moves()->max('round') ?? 1;
         $movesInCurrentRound = $this->game->moves()->where('round', $currentRound)->count();
 
+        // Store previous turn for comparison
+        $previousTurn = $this->gameState['current_turn'] ?? null;
+
         // টার্ন নির্ধারণ
         if ($movesInCurrentRound >= 4) {
             // রাউন্ড সম্পন্ন, পরবর্তী রাউন্ডের জন্য টার্ন নির্ধারণ
@@ -92,6 +95,10 @@ class HajariGameRoom extends Component
             'current_turn' => $currentTurn,
             'played_cards' => $playedCards,
         ];
+
+        if ($previousTurn !== null && $previousTurn !== $currentTurn) {
+            $this->dispatch('playerTurn');
+        }
 
         // প্লেয়ার এবং গেম ডেটা রিফ্রেশ
         $this->player->refresh();
@@ -509,6 +516,8 @@ class HajariGameRoom extends Component
                 ];
                 $participant->update(['round_scores' => $roundScores]);
 
+                $this->dispatch('roundWon');
+
                 // Broadcast round winner
                 broadcast(new RoundWinner(
                     $this->game,
@@ -644,6 +653,8 @@ class HajariGameRoom extends Component
                 // Start new arrangement phase
                 $this->game->touch(); // Update timestamp for arrangement timer
             });
+
+            $this->dispatch('cardDealt');
 
             // Broadcast new card deal
             broadcast(new GameUpdated($this->game, 'new_cards_dealt', [
@@ -798,6 +809,8 @@ class HajariGameRoom extends Component
         try {
             $playedCards = $this->processMove();
 
+            $this->dispatch('cardPlayed');
+
             broadcast(new CardPlayed(
                 $this->game,
                 Auth::user(),
@@ -945,6 +958,8 @@ class HajariGameRoom extends Component
                 $this->game->update(['status' => HajariGame::STATUS_PLAYING]);
             });
 
+            $this->dispatch('cardDealt');
+
             broadcast(new GameUpdated($this->game, 'game_started', [
                 'message' => 'Game has started! Cards have been distributed. You have ' . (GameSetting::getArrangementTime() / 60) . ' minutes to arrange your cards.'
             ]));
@@ -1020,6 +1035,8 @@ class HajariGameRoom extends Component
 
         // ট্রানজাকশন প্রক্রিয়া এবং নোটিফিকেশন
         $transactions = $this->processGamePayments($winner);
+
+        $this->dispatch('gameOver');
 
         // গেম উইনার ইভেন্টে ট্রানজাকশনের তথ্য যোগ
         broadcast(new GameWinner($this->game, $winner, $finalScores, $transactions));
@@ -1141,6 +1158,11 @@ class HajariGameRoom extends Component
     public function handleGameUpdate($event)
     {
         $this->loadGameState();
+
+        if (isset($event['type']) && $event['type'] === 'turn_change') {
+            $this->dispatch('playerTurn');
+        }
+
         $this->dispatch('gameUpdated', $event);
     }
 

@@ -325,38 +325,33 @@
                 window.HajariRoom.init();
             }
 
-            // Simple voice chat toggle (local microphone only)
-            initSimpleVoiceChat();
-
-            console.log('Hajari game room initialized');
-        });
-
-        function initSimpleVoiceChat() {
             let localStream = null;
             let isMicEnabled = false;
             let isSpeaking = false;
 
             const micToggle = document.getElementById('micToggle');
             const pttButton = document.getElementById('pttButton');
-            const voiceStatus = document.getElementById('voiceStatus');
 
-            // Request microphone permission
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(stream => {
-                    localStream = stream;
+            // Initialize microphone
+            async function initMicrophone() {
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     // Mute by default
-                    stream.getAudioTracks().forEach(track => {
+                    localStream.getAudioTracks().forEach(track => {
                         track.enabled = false;
                     });
-                    updateStatus('Voice chat ready');
-                })
-                .catch(error => {
+                    console.log('Microphone initialized');
+                } catch (error) {
                     console.log('Microphone access denied:', error);
-                    updateStatus('Microphone access denied');
-                });
+                }
+            }
 
             // Microphone toggle
-            micToggle?.addEventListener('click', () => {
+            micToggle?.addEventListener('click', async () => {
+                if (!localStream) {
+                    await initMicrophone();
+                }
+
                 if (!localStream) return;
 
                 isMicEnabled = !isMicEnabled;
@@ -367,31 +362,57 @@
                     icon.classList.add('fa-microphone');
                     micToggle.classList.add('bg-green-600');
                     micToggle.classList.remove('bg-gray-700');
-                    updateStatus('Microphone enabled');
                 } else {
                     icon.classList.remove('fa-microphone');
                     icon.classList.add('fa-microphone-slash');
                     micToggle.classList.remove('bg-green-600');
                     micToggle.classList.add('bg-gray-700');
-                    updateStatus('Microphone disabled');
                     stopSpeaking();
                 }
             });
 
             // Push to talk
+            function startSpeaking() {
+                if (!localStream || !isMicEnabled || isSpeaking) return;
+
+                isSpeaking = true;
+                localStream.getAudioTracks().forEach(track => {
+                    track.enabled = true;
+                });
+
+                pttButton?.classList.add('bg-red-600');
+                pttButton?.classList.remove('bg-blue-600');
+            }
+
+            function stopSpeaking() {
+                if (!localStream || !isSpeaking) return;
+
+                isSpeaking = false;
+                localStream.getAudioTracks().forEach(track => {
+                    track.enabled = false;
+                });
+
+                pttButton?.classList.remove('bg-red-600');
+                pttButton?.classList.add('bg-blue-600');
+            }
+
+            // PTT button events
             pttButton?.addEventListener('mousedown', startSpeaking);
             pttButton?.addEventListener('mouseup', stopSpeaking);
             pttButton?.addEventListener('mouseleave', stopSpeaking);
+
+            // Touch events for mobile
             pttButton?.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 startSpeaking();
             });
+
             pttButton?.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 stopSpeaking();
             });
 
-            // Keyboard shortcuts
+            // Space key for PTT
             document.addEventListener('keydown', (e) => {
                 if (e.code === 'Space' && !e.repeat) {
                     e.preventDefault();
@@ -406,247 +427,53 @@
                 }
             });
 
-            function startSpeaking() {
-                if (!localStream || !isMicEnabled || isSpeaking) return;
-
-                isSpeaking = true;
-                localStream.getAudioTracks().forEach(track => {
-                    track.enabled = true;
-                });
-
-                pttButton?.classList.add('bg-red-600');
-                pttButton?.classList.remove('bg-blue-600');
-                updateStatus('Speaking...');
-            }
-
-            function stopSpeaking() {
-                if (!localStream || !isSpeaking) return;
-
-                isSpeaking = false;
-                localStream.getAudioTracks().forEach(track => {
-                    track.enabled = false;
-                });
-
-                pttButton?.classList.remove('bg-red-600');
-                pttButton?.classList.add('bg-blue-600');
-                updateStatus(isMicEnabled ? 'Microphone enabled' : 'Voice chat ready');
-            }
-
-            function updateStatus(message) {
-                if (voiceStatus) {
-                    voiceStatus.textContent = message;
-                }
-            }
-        }
-
-        function playSound(soundId) {
-            try {
-                const audio = document.getElementById(soundId);
-                if (audio) {
-                    audio.currentTime = 0; // Reset to beginning
-                    const playPromise = audio.play();
-
-                    if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.log('Sound play failed:', error);
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Error playing sound:', error);
-            }
-        }
-
-        class VoiceChat {
-            constructor() {
-                this.localStream = null;
-                this.peerConnection = null;
-                this.isInitialized = false;
-                this.isMicEnabled = false;
-                this.isSpeaking = false;
-                this.gameId = @json($game->id);
-                this.playerId = @json(Auth::id());
-
-                this.initializeVoiceChat();
-                this.setupEventListeners();
-            }
-
-            async initializeVoiceChat() {
+            function playSound(soundId) {
                 try {
-                    // Request microphone permission
-                    this.localStream = await navigator.mediaDevices.getUserMedia({
-                        audio: {
-                            echoCancellation: true,
-                            noiseSuppression: true,
-                            autoGainControl: true
+                    const audio = document.getElementById(soundId);
+                    if (audio) {
+                        audio.currentTime = 0;
+                        const playPromise = audio.play();
+
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => {
+                                console.log('Sound play failed (user interaction required):', error);
+                            });
                         }
-                    });
-
-                    // Mute by default
-                    this.localStream.getAudioTracks().forEach(track => {
-                        track.enabled = false;
-                    });
-
-                    this.isInitialized = true;
-                    this.updateStatus('Voice chat ready');
-                    console.log('Voice chat initialized successfully');
+                    }
                 } catch (error) {
-                    console.error('Failed to initialize voice chat:', error);
-                    this.updateStatus('Microphone access denied');
+                    console.error('Error playing sound:', error);
                 }
             }
 
-            setupEventListeners() {
-                const micToggle = document.getElementById('micToggle');
-                const pttButton = document.getElementById('pttButton');
-
-                // Microphone toggle
-                micToggle?.addEventListener('click', () => {
-                    this.toggleMicrophone();
-                });
-
-                // Push to talk
-                pttButton?.addEventListener('mousedown', () => {
-                    this.startSpeaking();
-                });
-
-                pttButton?.addEventListener('mouseup', () => {
-                    this.stopSpeaking();
-                });
-
-                pttButton?.addEventListener('mouseleave', () => {
-                    this.stopSpeaking();
-                });
-
-                // Touch events for mobile
-                pttButton?.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    this.startSpeaking();
-                });
-
-                pttButton?.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    this.stopSpeaking();
-                });
-
-                // Keyboard shortcuts
-                document.addEventListener('keydown', (e) => {
-                    if (e.code === 'Space' && !e.repeat) {
-                        e.preventDefault();
-                        this.startSpeaking();
-                    }
-                });
-
-                document.addEventListener('keyup', (e) => {
-                    if (e.code === 'Space') {
-                        e.preventDefault();
-                        this.stopSpeaking();
-                    }
-                });
-            }
-
-            toggleMicrophone() {
-                if (!this.isInitialized) {
-                    this.updateStatus('Voice chat not ready');
-                    return;
-                }
-
-                this.isMicEnabled = !this.isMicEnabled;
-                const micToggle = document.getElementById('micToggle');
-                const icon = micToggle?.querySelector('i');
-
-                if (this.isMicEnabled) {
-                    icon?.classList.remove('fa-microphone-slash');
-                    icon?.classList.add('fa-microphone');
-                    micToggle?.classList.add('active');
-                    this.updateStatus('Microphone enabled');
-                } else {
-                    icon?.classList.remove('fa-microphone');
-                    icon?.classList.add('fa-microphone-slash');
-                    micToggle?.classList.remove('active');
-                    this.updateStatus('Microphone disabled');
-                    this.stopSpeaking();
-                }
-            }
-
-            startSpeaking() {
-                if (!this.isInitialized || !this.isMicEnabled || this.isSpeaking) return;
-
-                this.isSpeaking = true;
-
-                // Enable microphone
-                this.localStream.getAudioTracks().forEach(track => {
-                    track.enabled = true;
-                });
-
-                // Update UI
-                const pttButton = document.getElementById('pttButton');
-                pttButton?.classList.add('speaking');
-                this.updateStatus('Speaking...');
-
-                console.log('Started speaking');
-            }
-
-            stopSpeaking() {
-                if (!this.isInitialized || !this.isSpeaking) return;
-
-                this.isSpeaking = false;
-
-                // Disable microphone
-                this.localStream.getAudioTracks().forEach(track => {
-                    track.enabled = false;
-                });
-
-                // Update UI
-                const pttButton = document.getElementById('pttButton');
-                pttButton?.classList.remove('speaking');
-                this.updateStatus('Microphone enabled');
-
-                console.log('Stopped speaking');
-            }
-
-            updateStatus(message) {
-                const status = document.getElementById('voiceStatus');
-                if (status) {
-                    status.textContent = message;
-                }
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize voice chat
-            window.voiceChat = new VoiceChat();
-
-            // Test sound system
-            console.log('Sound system initialized');
-
-            // Add sound playing to game events
             window.addEventListener('livewire:init', () => {
-                Livewire.on('playSound', (soundId) => {
-                    playSound(soundId);
+                Livewire.on('playSound', (event) => {
+                    playSound(event.soundId || event);
+                });
+
+                Livewire.on('cardDealt', () => {
+                    playSound('dealSound');
+                });
+
+                Livewire.on('playerTurn', () => {
+                    playSound('turnSound');
+                });
+
+                Livewire.on('cardPlayed', () => {
+                    playSound('playCardSound');
+                });
+
+                Livewire.on('roundWon', () => {
+                    playSound('winRoundSound');
+                });
+
+                Livewire.on('gameOver', () => {
+                    playSound('gameOverSound');
                 });
             });
+
+            // Initialize microphone on first user interaction
+            document.addEventListener('click', initMicrophone, { once: true });
         });
-
-        function handleCardDeal() {
-            playSound('dealSound');
-        }
-
-        function handlePlayerTurn() {
-            playSound('turnSound');
-        }
-
-        function handleCardPlay() {
-            playSound('playCardSound');
-        }
-
-        function handleRoundWin() {
-            playSound('winRoundSound');
-        }
-
-        function handleGameOver() {
-            playSound('gameOverSound');
-        }
     </script>
 
     <style>
