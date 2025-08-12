@@ -2,7 +2,7 @@
 
 namespace App\Events;
 
-use App\Models\Game;
+use App\Models\HajariGame;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -17,7 +17,7 @@ class VoiceChatUpdate implements ShouldBroadcast
     public $game;
     public $data;
 
-    public function __construct(Game $game, array $data)
+    public function __construct(HajariGame $game, array $data)
     {
         $this->game = $game;
         $this->data = $data;
