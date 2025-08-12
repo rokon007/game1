@@ -1349,19 +1349,21 @@
                 this.isSpeaking = false;
                 this.gameId = @json($game->id);
                 this.playerId = @json(Auth::id());
+                this.remoteAudios = {};
 
                 this.initializeVoiceChat();
                 this.setupEventListeners();
+                this.setupWebRTCSignaling();
             }
 
             async initializeVoiceChat() {
                 try {
-                    // Request microphone permission
                     this.localStream = await navigator.mediaDevices.getUserMedia({
                         audio: {
                             echoCancellation: true,
                             noiseSuppression: true,
-                            autoGainControl: true
+                            autoGainControl: true,
+                            sampleRate: 44100
                         }
                     });
 
@@ -1372,63 +1374,176 @@
 
                     this.isInitialized = true;
                     console.log('Voice chat initialized successfully');
+                    this.showNotification('Voice chat ready! Use microphone button or hold Space to talk.', 'success');
                 } catch (error) {
                     console.error('Failed to initialize voice chat:', error);
                     this.showNotification('Microphone access denied. Voice chat disabled.', 'error');
                 }
             }
 
-            setupEventListeners() {
-                // Push-to-talk functionality
-                const pttButton = document.getElementById('ptt-button');
-                if (pttButton) {
-                    // Desktop: Mouse events
-                    pttButton.addEventListener('mousedown', () => this.startSpeaking());
-                    pttButton.addEventListener('mouseup', () => this.stopSpeaking());
-                    pttButton.addEventListener('mouseleave', () => this.stopSpeaking());
+            setupWebRTCSignaling() {
+                // Listen for WebRTC signaling events
+                window.addEventListener('voiceChatUpdated', (e) => {
+                    const data = e.detail;
 
-                    // Mobile: Touch events
-                    pttButton.addEventListener('touchstart', (e) => {
-                        e.preventDefault();
-                        this.startSpeaking();
-                    });
-                    pttButton.addEventListener('touchend', (e) => {
-                        e.preventDefault();
-                        this.stopSpeaking();
-                    });
-                    pttButton.addEventListener('touchcancel', (e) => {
-                        e.preventDefault();
-                        this.stopSpeaking();
+                    switch(data.action) {
+                        case 'offer':
+                            this.handleOffer(data);
+                            break;
+                        case 'answer':
+                            this.handleAnswer(data);
+                            break;
+                        case 'ice-candidate':
+                            this.handleIceCandidate(data);
+                            break;
+                        case 'player-joined':
+                            this.createPeerConnection(data.player_id);
+                            break;
+                        case 'player-left':
+                            this.closePeerConnection(data.player_id);
+                            break;
+                    }
+                });
+            }
+
+            async createPeerConnection(remotePlayerId) {
+                if (remotePlayerId === this.playerId || this.peerConnections[remotePlayerId]) {
+                    return;
+                }
+
+                const peerConnection = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                });
+
+                this.peerConnections[remotePlayerId] = peerConnection;
+
+                // Add local stream to peer connection
+                if (this.localStream) {
+                    this.localStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, this.localStream);
                     });
                 }
 
-                // Keyboard shortcut for push-to-talk (Space key)
-                document.addEventListener('keydown', (e) => {
-                    if (e.code === 'Space' && this.isPushToTalkMode && this.isMicEnabled && !this.isSpeaking) {
-                        e.preventDefault();
-                        this.startSpeaking();
+                // Handle remote stream
+                peerConnection.ontrack = (event) => {
+                    const remoteStream = event.streams[0];
+                    this.playRemoteAudio(remotePlayerId, remoteStream);
+                };
+
+                // Handle ICE candidates
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        @this.call('sendWebRTCSignal', {
+                            type: 'ice-candidate',
+                            candidate: event.candidate,
+                            target_player_id: remotePlayerId
+                        });
+                    }
+                };
+
+                // Create offer if we're the initiator (lower player ID initiates)
+                if (this.playerId < remotePlayerId) {
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+
+                    @this.call('sendWebRTCSignal', {
+                        type: 'offer',
+                        offer: offer,
+                        target_player_id: remotePlayerId
+                    });
+                }
+            }
+
+            async handleOffer(data) {
+                const peerConnection = this.peerConnections[data.player_id];
+                if (!peerConnection) return;
+
+                await peerConnection.setRemoteDescription(data.offer);
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                @this.call('sendWebRTCSignal', {
+                    type: 'answer',
+                    answer: answer,
+                    target_player_id: data.player_id
+                });
+            }
+
+            async handleAnswer(data) {
+                const peerConnection = this.peerConnections[data.player_id];
+                if (!peerConnection) return;
+
+                await peerConnection.setRemoteDescription(data.answer);
+            }
+
+            async handleIceCandidate(data) {
+                const peerConnection = this.peerConnections[data.player_id];
+                if (!peerConnection) return;
+
+                await peerConnection.addIceCandidate(data.candidate);
+            }
+
+            playRemoteAudio(playerId, stream) {
+                // Remove existing audio element if any
+                if (this.remoteAudios[playerId]) {
+                    this.remoteAudios[playerId].remove();
+                }
+
+                // Create new audio element
+                const audio = document.createElement('audio');
+                audio.srcObject = stream;
+                audio.autoplay = true;
+                audio.volume = 0.8;
+                audio.style.display = 'none';
+
+                document.body.appendChild(audio);
+                this.remoteAudios[playerId] = audio;
+            }
+
+            closePeerConnection(playerId) {
+                if (this.peerConnections[playerId]) {
+                    this.peerConnections[playerId].close();
+                    delete this.peerConnections[playerId];
+                }
+
+                if (this.remoteAudios[playerId]) {
+                    this.remoteAudios[playerId].remove();
+                    delete this.remoteAudios[playerId];
+                }
+            }
+
+            setupEventListeners() {
+
+                window.addEventListener('voiceChatUpdated', (e) => {
+                    const data = e.detail;
+                    console.log('Voice chat update:', data);
+
+                    // Handle speaking indicators
+                    if (data.action === 'start_speaking' || data.action === 'stop_speaking') {
+                        this.updateSpeakingIndicator(data.player_id, data.action === 'start_speaking');
                     }
                 });
+            }
 
-                document.addEventListener('keyup', (e) => {
-                    if (e.code === 'Space' && this.isPushToTalkMode && this.isSpeaking) {
-                        e.preventDefault();
-                        this.stopSpeaking();
+            updateSpeakingIndicator(playerId, isSpeaking) {
+                const playerElements = document.querySelectorAll(`[data-player-id="${playerId}"]`);
+                playerElements.forEach(element => {
+                    if (isSpeaking) {
+                        element.classList.add('speaking');
+                    } else {
+                        element.classList.remove('speaking');
                     }
-                });
-
-                // Livewire event listeners
-                window.addEventListener('microphoneToggled', (e) => {
-                    this.toggleMicrophone(e.detail.enabled);
-                });
-
-                window.addEventListener('pushToTalkModeChanged', (e) => {
-                    this.isPushToTalkMode = e.detail.enabled;
                 });
             }
 
             toggleMicrophone(enabled) {
-                if (!this.isInitialized) return;
+                if (!this.isInitialized) {
+                    this.showNotification('Voice chat not initialized. Please refresh the page.', 'error');
+                    return;
+                }
 
                 this.isMicEnabled = enabled;
 
@@ -1436,6 +1551,14 @@
                     // Toggle mode: enable/disable mic immediately
                     this.localStream.getAudioTracks().forEach(track => {
                         track.enabled = enabled;
+                    });
+                }
+
+                if (enabled) {
+                    // Establish connections with other players
+                    const otherPlayers = @json($game->participants->where('user_id', '!=', Auth::id())->pluck('user_id'));
+                    otherPlayers.forEach(playerId => {
+                        this.createPeerConnection(playerId);
                     });
                 }
             }
@@ -1488,19 +1611,52 @@
 
             showNotification(message, type = 'info') {
                 const notification = document.createElement('div');
-                notification.className = `notification ${type}`;
-                notification.textContent = message;
+                notification.className = `voice-notification ${type}`;
+                notification.innerHTML = `
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                    ${message}
+                `;
 
-                const container = document.getElementById('game-notifications');
-                if (container) {
-                    container.appendChild(notification);
+                // Add notification styles
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                    color: white;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    max-width: 300px;
+                    animation: slideIn 0.3s ease;
+                `;
 
-                    setTimeout(() => {
-                        notification.remove();
-                    }, 3000);
-                }
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    notification.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
             }
         }
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
 
         // Initialize voice chat when page loads
         document.addEventListener('DOMContentLoaded', function() {

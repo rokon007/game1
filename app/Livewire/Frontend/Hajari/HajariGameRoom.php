@@ -1262,6 +1262,16 @@ class HajariGameRoom extends Component
         $this->dispatch('voiceChatUpdated', $event);
     }
 
+    public function sendWebRTCSignal($data)
+    {
+        broadcast(new VoiceChatUpdate($this->game, array_merge($data, [
+            'player_id' => Auth::id(),
+            'player_name' => Auth::user()->name,
+            'action' => $data['type'],
+            'timestamp' => now()
+        ])));
+    }
+
     public function render()
     {
         return view('livewire.frontend.hajari.hajari-game-room')
