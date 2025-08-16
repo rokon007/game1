@@ -1,7 +1,7 @@
 <div class="game-container">
     <!-- Include card CSS -->
     <link rel="stylesheet" href="{{ asset('css/cards-unicode.css') }}">
-
+    
     <!-- Fixed audio elements to use only MP3 files from public/sounds -->
     <audio id="dealSound" preload="auto">
         <source src="{{ asset('sounds/dealSound.mp3') }}" type="audio/mpeg">
@@ -204,8 +204,8 @@
                     </button>
                     <!-- Added push-to-talk button for mobile -->
                     @if($isPushToTalkMode && $isMicEnabled)
-                        <button id="ptt-button"
-                                class="play-btn ptt-btn"
+                        <button id="ptt-button" 
+                                class="play-btn ptt-btn" 
                                 title="Hold to Talk"
                                 style="margin-right: 6px;">
                             <i class="fas fa-microphone"></i>
@@ -226,7 +226,7 @@
                 <div class="scroll-indicator left-indicator" id="left-scroll">
                     <i class="fas fa-chevron-left"></i>
                 </div>
-
+                
                 <div class="cards-scroll" id="cards-scroll">
                     @foreach($player->cards as $index => $card)
                         @php
@@ -243,20 +243,20 @@
                              data-card-index="{{ $index }}"
                              wire:click="toggleCardSelection({{ $index }})"
                              draggable="{{ !$isCardsLocked && $isArrangementPhase ? 'true' : 'false' }}">
-
+                            
                             <x-playing-card
                                 :suit="$card['suit']"
                                 :rank="$card['rank']"
                                 :selected="$isSelected"
                                 :clickable="$canSelect"
                                 size="normal" />
-
+                                
                             @if($isSelected)
                                 <div class="enhanced-selection-indicator">
                                     <i class="fas fa-check"></i>
                                 </div>
                             @endif
-
+                            
                             @if($isCardsLocked)
                                 <div class="card-lock-overlay">
                                     <i class="fas fa-lock"></i>
@@ -265,7 +265,7 @@
                         </div>
                     @endforeach
                 </div>
-
+                
                 <div class="scroll-indicator right-indicator" id="right-scroll">
                     <i class="fas fa-chevron-right"></i>
                 </div>
@@ -324,7 +324,7 @@
             if (window.HajariRoom) {
                 window.HajariRoom.init();
             }
-
+            
             let localStream = null;
             let isMicEnabled = false;
             let isSpeaking = false;
@@ -336,7 +336,7 @@
             // Initialize microphone
             async function initMicrophone() {
                 try {
-                    localStream = await navigator.mediaDevices.getUserMedia({
+                    localStream = await navigator.mediaDevices.getUserMedia({ 
                         audio: {
                             echoCancellation: true,
                             noiseSuppression: true,
@@ -358,13 +358,13 @@
             micToggle?.addEventListener('click', async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-
+                
                 // Clear any existing timeout
                 if (micTimeout) {
                     clearTimeout(micTimeout);
                     micTimeout = null;
                 }
-
+                
                 if (!localStream) {
                     const initialized = await initMicrophone();
                     if (!initialized) {
@@ -372,17 +372,17 @@
                         return;
                     }
                 }
-
+                
                 isMicEnabled = !isMicEnabled;
                 const icon = micToggle.querySelector('i');
-
+                
                 if (isMicEnabled) {
                     icon.classList.remove('fa-microphone-slash');
                     icon.classList.add('fa-microphone');
                     micToggle.classList.add('bg-green-600');
                     micToggle.classList.remove('bg-gray-700');
                     document.getElementById('voiceStatus').textContent = 'মাইক চালু - PTT দিয়ে কথা বলুন';
-
+                    
                     localStream.getAudioTracks().forEach(track => {
                         track.addEventListener('ended', () => {
                             console.log('Audio track ended, reinitializing...');
@@ -401,16 +401,16 @@
 
             function startSpeaking() {
                 if (!localStream || !isMicEnabled || isSpeaking) return;
-
+                
                 isSpeaking = true;
                 localStream.getAudioTracks().forEach(track => {
                     track.enabled = true;
                 });
-
+                
                 pttButton?.classList.add('bg-red-600');
                 pttButton?.classList.remove('bg-blue-600');
                 document.getElementById('voiceStatus').textContent = 'কথা বলছেন...';
-
+                
                 if (micTimeout) {
                     clearTimeout(micTimeout);
                     micTimeout = null;
@@ -419,12 +419,12 @@
 
             function stopSpeaking() {
                 if (!localStream || !isSpeaking) return;
-
+                
                 isSpeaking = false;
                 localStream.getAudioTracks().forEach(track => {
                     track.enabled = false;
                 });
-
+                
                 pttButton?.classList.remove('bg-red-600');
                 pttButton?.classList.add('bg-blue-600');
                 if (isMicEnabled) {
@@ -442,7 +442,7 @@
                 stopSpeaking();
             });
             pttButton?.addEventListener('mouseleave', stopSpeaking);
-
+            
             // Touch events for mobile - improved
             pttButton?.addEventListener('touchstart', (e) => {
                 e.preventDefault();
@@ -475,7 +475,7 @@
                     if (audio) {
                         audio.currentTime = 0;
                         const playPromise = audio.play();
-
+                        
                         if (playPromise !== undefined) {
                             playPromise.catch(error => {
                                 console.log('Sound play failed (user interaction required):', error);
@@ -491,25 +491,32 @@
                 Livewire.on('playSound', (event) => {
                     playSound(event.soundId || event);
                 });
-
+                
                 Livewire.on('cardDealt', () => {
                     playSound('dealSound');
                 });
-
+                
                 Livewire.on('playerTurn', () => {
                     playSound('turnSound');
                 });
-
+                
                 Livewire.on('cardPlayed', () => {
                     playSound('playCardSound');
                 });
-
+                
                 Livewire.on('roundWon', () => {
                     playSound('winRoundSound');
                 });
-
+                
                 Livewire.on('gameOver', () => {
                     playSound('gameOverSound');
+                });
+
+                Livewire.on('refresh-after-delay', (event) => {
+                    const seconds = event.seconds || 7;
+                    setTimeout(() => {
+                        Livewire.dispatch('refreshGame');
+                    }, seconds * 1000);
                 });
             });
 
@@ -527,15 +534,15 @@
             align-items: center;
             justify-content: center;
         }
-
+        
         .voice-btn:hover {
             transform: scale(1.05);
         }
-
+        
         .voice-btn.speaking {
             animation: pulse 1s infinite;
         }
-
+        
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
@@ -546,11 +553,11 @@
             cursor: grab;
             transition: all 0.3s ease;
         }
-
+        
         .draggable-card:active {
             cursor: grabbing;
         }
-
+        
         .draggable-card.dragging {
             opacity: 0.5 !important;
             transform: rotate(5deg) scale(1.05);
@@ -558,7 +565,7 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
             transition: none;
         }
-
+        
         .draggable-card.drag-over {
             transform: translateY(-8px) scale(1.02);
             box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4);
@@ -566,7 +573,7 @@
             border-radius: 8px;
             background: rgba(59, 130, 246, 0.1);
         }
-
+        
         #drag-ghost {
             pointer-events: none;
             user-select: none;
@@ -745,11 +752,11 @@
         }
 
         @keyframes speakingPulse {
-            0%, 100% {
+            0%, 100% { 
                 background: rgba(34, 197, 94, 0.4);
                 box-shadow: 0 0 5px rgba(34, 197, 94, 0.6);
             }
-            50% {
+            50% { 
                 background: rgba(34, 197, 94, 0.6);
                 box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
             }
@@ -1389,31 +1396,31 @@
             .game-header {
                 height: 40px;
             }
-
+            
             .arrangement-controls {
                 height: 30px;
             }
-
+            
             .start-game-controls {
                 height: 35px;
             }
-
+            
             .game-table {
                 height: 120px;
             }
-
+            
             .player-cards-section {
                 height: calc(100vh - 40px - 120px - 30px);
             }
-
+            
             .ultra-slim-header {
                 height: 30px;
             }
-
+            
             .enhanced-card-wrapper {
                 margin-right: -12px; /* More stacking on mobile landscape */
             }
-
+            
             .cards-scroll {
                 gap: 2px;
                 padding: 5px 30px;
@@ -1425,30 +1432,30 @@
             .game-title {
                 font-size: 11px;
             }
-
+            
             .game-stats {
                 font-size: 8px;
                 gap: 6px;
             }
-
+            
             .player-score {
                 min-width: 28px;
                 font-size: 7px;
             }
-
+            
             .enhanced-card-wrapper {
                 margin-right: -10px;
             }
-
+            
             .cards-scroll {
                 gap: 1px;
                 padding: 8px 25px;
             }
-
+            
             .arrangement-buttons {
                 gap: 3px;
             }
-
+            
             .sort-btn, .lock-btn {
                 padding: 3px 6px;
                 font-size: 8px;
@@ -1478,12 +1485,12 @@
                 justify-content: center;
                 margin: 5px 0;
             }
-
+            
             .voice-btn {
                 width: 35px;
                 height: 35px;
             }
-
+            
             .voice-status {
                 font-size: 10px;
             }

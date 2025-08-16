@@ -309,84 +309,105 @@ class HajariGameRoom extends Component
     {
         if (empty($hands)) return null;
 
-        $evaluatedHands = [];
-
+        // Step 1: Evaluate every hand
+        $evaluated = [];
         foreach ($hands as $index => $hand) {
             $evaluation = $this->evaluateHajariHand($hand['cards']);
-            $evaluatedHands[] = [
+            $evaluated[] = [
                 'index' => $index,
-                'evaluation' => $evaluation,
+                'priority' => $evaluation['priority'],
+                'highest_card' => $evaluation['highest_card'],
                 'submitted_at' => $hand['submitted_at'],
-                'card_count' => count($hand['cards'])
             ];
         }
 
-        // Sort by combination priority, then highest card, then card count, then submission time
-        usort($evaluatedHands, function ($a, $b) {
-            // First: Compare combination type priority (lower number = higher priority)
-            if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
-                return $a['evaluation']['priority'] - $b['evaluation']['priority'];
-            }
+        // Step 2: Keep only the hands with the best (lowest) priority
+        $bestPriority = min(array_column($evaluated, 'priority'));
+        $candidates = array_values(array_filter($evaluated, function ($e) use ($bestPriority) {
+            return $e['priority'] === $bestPriority;
+        }));
 
-            // Second: Compare highest card value (higher card wins)
-            if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
-                return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
+        // Step 3 (tie-break): compare highest_card; if still tied, latest submitted_at wins
+        usort($candidates, function ($a, $b) {
+            // Descending by highest card
+            if ($a['highest_card'] !== $b['highest_card']) {
+                return $b['highest_card'] - $a['highest_card'];
             }
-
-            // Third: Compare card count (more cards win)
-            if ($a['card_count'] !== $b['card_count']) {
-                return $b['card_count'] - $a['card_count'];
-            }
-
-            // Fourth: Latest submission wins (যে পরে সাবমিট করেছে সে জিতবে)
+            // Latest submission first (ISO string compare works lexicographically)
             return strcmp($b['submitted_at'], $a['submitted_at']);
         });
 
-        return $evaluatedHands[0]['index'];
-    }
-
-    private function evaluateHajariHand($cards)
+        return $candidates[0]['index'] ?? null;
+    }private function evaluateHajariHand($cards)
     {
+        // Convert "A♠" style into arrays of values and suits
         $cardValues = $this->getCardValues($cards);
         $suits = $this->getCardSuits($cards);
-        $cardCount = count($cards);
 
-        // Check for Tie (Four of a Kind - 4 cards of same rank)
+        // Rank order (lower priority number = stronger hand):
+        // 1: Tie (three/four of same rank)
+        // 2: Running (sequential + same suit)
+        // 3: Run (sequential, suits can differ)
+        // 4: Color (same suit, not sequential)
+        // 5: Pair (exactly one pair among 3 or 4 cards)
+        // 6: Mixed (none of the above)
+        // Highest card uses: A>K>Q>J>10>...>2
+
+        // Tie: any 3-of-a-kind or 4-of-a-kind
         if ($this->isTie($cardValues)) {
             return [
                 'type' => 'tie',
                 'priority' => 1,
-                'highest_card' => max($cardValues)
+                'highest_card' => max($cardValues),
             ];
         }
 
-        // Check for Running (Straight Flush - sequential cards of same suit)
-        if ($this->isRunning($cardValues, $suits)) {
+        $isSequential = $this->isSequential($cardValues);
+        $isColor = $this->isColor($suits);
+
+        // Running: sequential and same suit
+        if ($isSequential && $isColor) {
             return [
                 'type' => 'running',
                 'priority' => 2,
-                'highest_card' => max($cardValues)
+                'highest_card' => max($cardValues),
             ];
         }
 
-        // Check for Color (Flush - same suit but not sequential)
-        if ($this->isColor($suits) && !$this->isSequential($cardValues)) {
+        // Run: sequential but not same suit
+        if ($isSequential && !$isColor) {
+            return [
+                'type' => 'run',
+                'priority' => 3,
+                'highest_card' => max($cardValues),
+            ];
+        }
+
+        // Color: same suit, not sequential
+        if ($isColor && !$isSequential) {
             return [
                 'type' => 'color',
-                'priority' => 3,
-                'highest_card' => max($cardValues)
+                'priority' => 4,
+                'highest_card' => max($cardValues),
             ];
         }
 
-        // Normal (all other combinations)
-        return [
-            'type' => 'normal',
-            'priority' => 4,
-            'highest_card' => max($cardValues)
-        ];
-    }
+        // Pair: has any pair (but we've already ruled out tie/three/four of a kind)
+        if ($this->isPair($cardValues)) {
+            return [
+                'type' => 'pair',
+                'priority' => 5,
+                'highest_card' => max($cardValues),
+            ];
+        }
 
-    private function getCardValues($cards)
+        // Mixed: none of the above
+        return [
+            'type' => 'mixed',
+            'priority' => 6,
+            'highest_card' => max($cardValues),
+        ];
+    }private function getCardValues($cards)
     {
         $values = [];
         foreach ($cards as $card) {
