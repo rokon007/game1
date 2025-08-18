@@ -79,11 +79,25 @@ class HajariGameRoom extends Component
 
         // টার্ন নির্ধারণ
         if ($movesInCurrentRound >= 4) {
-            // রাউন্ড সম্পন্ন, পরবর্তী রাউন্ডের জন্য টার্ন নির্ধারণ
-            $nextRoundStarter = $this->getRoundWinnerPosition($currentRound);
-            $currentRound++;
-            $currentTurn = $this->getPlayerTurnOrder($nextRoundStarter ?? 1);
-            $playedCards = []; // নতুন রাউন্ডের জন্য কার্ড ক্লিয়ার
+            $roundCompletedAt = $this->getRoundCompletionTime($currentRound);
+            $shouldClearCards = $roundCompletedAt && now()->diffInSeconds($roundCompletedAt) >= 7;
+
+            if ($shouldClearCards) {
+                // রাউন্ড সম্পন্ন এবং ৭ সেকেন্ড পার হয়েছে, পরবর্তী রাউন্ডের জন্য টার্ন নির্ধারণ
+                $nextRoundStarter = $this->getRoundWinnerPosition($currentRound);
+                $currentRound++;
+                $currentTurn = $this->getPlayerTurnOrder($nextRoundStarter ?? 1);
+                $playedCards = []; // নতুন রাউন্ডের জন্য কার্ড ক্লিয়ার
+            } else {
+                // রাউন্ড সম্পন্ন কিন্তু এখনো ৭ সেকেন্ড হয়নি, কার্ড দেখানো চালিয়ে যাও
+                $currentTurn = null; // কোনো টার্ন নেই কারণ রাউন্ড শেষ
+                $playedCards = $this->getPlayedCardsForCurrentRound($currentRound);
+
+                $remainingTime = 7 - now()->diffInSeconds($roundCompletedAt);
+                if ($remainingTime > 0) {
+                    $this->dispatch('refresh-after-delay', ['seconds' => $remainingTime]);
+                }
+            }
         } else {
             // বর্তমান রাউন্ডে টার্ন নির্ধারণ
             $currentTurn = $this->getCurrentTurnInRound($currentRound);
@@ -262,6 +276,7 @@ class HajariGameRoom extends Component
         return 1; // ফলব্যাক
     }
 
+    // Enhanced Hajari Game Logic with Updated Rules
     private function getRoundWinnerPosition($round)
     {
         $roundMoves = $this->game->moves()
@@ -304,166 +319,85 @@ class HajariGameRoom extends Component
         }, $cards);
     }
 
-    /**
-     * Determines the winner from a set of Hajari hands based on game rules.
-     * This is the final, robust version of the winner determination logic.
-     */
     private function determineHajariWinner($hands)
     {
         if (empty($hands)) return null;
 
-        // Step 1: Evaluate every hand to determine its type, priority, and the critical card for tie-breaking.
-        $evaluated = [];
+        $evaluatedHands = [];
+
         foreach ($hands as $index => $hand) {
             $evaluation = $this->evaluateHajariHand($hand['cards']);
-            $evaluated[] = [
+            $evaluatedHands[] = [
                 'index' => $index,
-                'priority' => $evaluation['priority'],
-                'highest_card' => $evaluation['highest_card'], // This is now the correct card for comparison
+                'evaluation' => $evaluation,
                 'submitted_at' => $hand['submitted_at'],
+                'card_count' => count($hand['cards'])
             ];
         }
 
-        // Step 2: Find the best hand type (lowest priority number) among all players.
-        $bestPriority = min(array_column($evaluated, 'priority'));
-        $candidates = array_values(array_filter($evaluated, function ($e) use ($bestPriority) {
-            return $e['priority'] === $bestPriority;
-        }));
-
-        // If only one player has the best hand type, they are the clear winner.
-        if (count($candidates) === 1) {
-            return $candidates[0]['index'];
-        }
-
-        // Step 3 (Robust Tie-Breaking): Manually find the winner among candidates.
-        // Start by assuming the first candidate is the current winner.
-        $winner = $candidates[0];
-
-        // Loop through the rest of the candidates to challenge the current winner.
-        for ($i = 1; $i < count($candidates); $i++) {
-            $challenger = $candidates[$i];
-
-            // Rule 1: Compare by the critical highest card value.
-            if ($challenger['highest_card'] > $winner['highest_card']) {
-                $winner = $challenger;
-                continue; // Challenger has a better hand, becomes the new winner.
+        // Sort by combination priority, then highest card, then card count, then submission time
+        usort($evaluatedHands, function ($a, $b) {
+            // First: Compare combination type priority (lower number = higher priority)
+            if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
+                return $a['evaluation']['priority'] - $b['evaluation']['priority'];
             }
 
-            // Rule 2: If critical cards are equal, then compare by submission time.
-            if ($challenger['highest_card'] === $winner['highest_card']) {
-                // The player who submitted their card LATER wins the tie.
-                $challengerTime = Carbon::parse($challenger['submitted_at']);
-                $winnerTime = Carbon::parse($winner['submitted_at']);
-
-                if ($challengerTime->gt($winnerTime)) {
-                    $winner = $challenger; // Challenger submitted later, becomes new winner.
-                }
+            // Second: Compare highest card value (higher card wins)
+            if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
+                return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
             }
-        }
 
-        // After checking all candidates, the one left is the final winner.
-        return $winner['index'];
+            // Third: Compare card count (more cards win)
+            if ($a['card_count'] !== $b['card_count']) {
+                return $b['card_count'] - $a['card_count'];
+            }
+
+            // Fourth: Latest submission wins (যে পরে সাবমিট করেছে সে জিতবে)
+            return strcmp($b['submitted_at'], $a['submitted_at']);
+        });
+
+        return $evaluatedHands[0]['index'];
     }
 
-    /**
-     * Evaluates a Hajari hand and returns its type, priority, and the critical card for tie-breaking.
-     * This version correctly identifies the important card for each hand type.
-     */
     private function evaluateHajariHand($cards)
     {
         $cardValues = $this->getCardValues($cards);
         $suits = $this->getCardSuits($cards);
+        $cardCount = count($cards);
 
-        // Tie (e.g., K-K-K): The critical card is the rank of the three cards.
+        // Check for Tie (Four of a Kind - 4 cards of same rank)
         if ($this->isTie($cardValues)) {
-            $valueCounts = array_count_values($cardValues);
-            $tieValue = 0;
-            foreach ($valueCounts as $value => $count) {
-                if ($count >= 3) {
-                    $tieValue = $value;
-                    break;
-                }
-            }
-            return ['type' => 'tie', 'priority' => 1, 'highest_card' => $tieValue];
+            return [
+                'type' => 'tie',
+                'priority' => 1,
+                'highest_card' => max($cardValues)
+            ];
         }
 
-        $isSequential = $this->isSequential($cardValues);
-        $isColor = $this->isColor($suits);
-
-        // Running (e.g., A-K-Q of Hearts): The critical card is the highest card of the sequence.
-        if ($isSequential && $isColor) {
-            return ['type' => 'running', 'priority' => 2, 'highest_card' => $this->getHighestCardInSequence($cardValues)];
+        // Check for Running (Straight Flush - sequential cards of same suit)
+        if ($this->isRunning($cardValues, $suits)) {
+            return [
+                'type' => 'running',
+                'priority' => 2,
+                'highest_card' => max($cardValues)
+            ];
         }
 
-        // Run (e.g., A-K-Q of mixed suits): Same as Running.
-        if ($isSequential && !$isColor) {
-            return ['type' => 'run', 'priority' => 3, 'highest_card' => $this->getHighestCardInSequence($cardValues)];
+        // Check for Color (Flush - same suit but not sequential)
+        if ($this->isColor($suits) && !$this->isSequential($cardValues)) {
+            return [
+                'type' => 'color',
+                'priority' => 3,
+                'highest_card' => max($cardValues)
+            ];
         }
 
-        // Color (e.g., K-8-2 of Spades): The critical card is the single highest-ranking card.
-        if ($isColor && !$isSequential) {
-            return ['type' => 'color', 'priority' => 4, 'highest_card' => max($cardValues)];
-        }
-
-        // Pair (e.g., 9-9-K): The critical card is the rank of the PAIR (the 9), not the Kicker (K).
-        if ($this->isPair($cardValues)) {
-            $valueCounts = array_count_values($cardValues);
-            $pairValue = 0;
-            foreach ($valueCounts as $value => $count) {
-                if ($count === 2) {
-                    $pairValue = $value;
-                    break;
-                }
-            }
-            return ['type' => 'pair', 'priority' => 5, 'highest_card' => $pairValue];
-        }
-
-        // Mixed/High Card: The critical card is the single highest-ranking card.
-        return ['type' => 'mixed', 'priority' => 6, 'highest_card' => max($cardValues)];
-    }
-
-    private function getHighestCardInSequence($cardValues)
-    {
-        sort($cardValues);
-        // Special case for A-2-3, where A is low. The highest card is 3.
-        if (in_array(14, $cardValues) && in_array(2, $cardValues)) {
-            return max(array_filter($cardValues, fn($v) => $v !== 14));
-        }
-        // For all other runs (e.g., A-K-Q), the highest card is simply the max value.
-        return max($cardValues);
-    }
-
-    private function isSequential($cardValues)
-    {
-        if (count($cardValues) < 3) return false;
-        sort($cardValues);
-
-        // Check for normal sequence (e.g., 10-J-Q)
-        $isNormal = true;
-        for ($i = 1; $i < count($cardValues); $i++) {
-            if ($cardValues[$i] - $cardValues[$i-1] !== 1) {
-                $isNormal = false;
-                break;
-            }
-        }
-        if ($isNormal) return true;
-
-        // Check for special A-2-3 sequence
-        if (in_array(14, $cardValues)) { // Has an Ace
-            $temp = $cardValues;
-            // Temporarily replace Ace (14) with 1 to check for low sequence
-            $aceIndex = array_search(14, $temp);
-            $temp[$aceIndex] = 1;
-            sort($temp);
-            for ($i = 1; $i < count($temp); $i++) {
-                if ($temp[$i] - $temp[$i-1] !== 1) {
-                    return false; // Not A-2-3...
-                }
-            }
-            return true; // It is a valid low sequence
-        }
-
-        return false;
+        // Normal (all other combinations)
+        return [
+            'type' => 'normal',
+            'priority' => 4,
+            'highest_card' => max($cardValues)
+        ];
     }
 
     private function getCardValues($cards)
@@ -492,6 +426,7 @@ class HajariGameRoom extends Component
             '9' => 9, '8' => 8, '7' => 7, '6' => 6, '5' => 5,
             '4' => 4, '3' => 3, '2' => 2
         ];
+
         return $values[$rank] ?? 0;
     }
 
@@ -501,9 +436,27 @@ class HajariGameRoom extends Component
         return in_array(4, $valueCounts) || (count($cardValues) >= 3 && in_array(3, $valueCounts));
     }
 
+    private function isRunning($cardValues, $suits)
+    {
+        return $this->isSequential($cardValues) && $this->isColor($suits);
+    }
+
     private function isColor($suits)
     {
         return count(array_unique($suits)) === 1;
+    }
+
+    private function isSequential($cardValues)
+    {
+        if (count($cardValues) < 3) return false;
+
+        sort($cardValues);
+        for ($i = 1; $i < count($cardValues); $i++) {
+            if ($cardValues[$i] - $cardValues[$i-1] !== 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private function isPair($cardValues)
@@ -1059,6 +1012,22 @@ class HajariGameRoom extends Component
         ]);
     }
 
+    private function getRoundCompletionTime($round)
+    {
+        $lastMoveInRound = $this->game->moves()
+            ->where('round', $round)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($lastMoveInRound) {
+            $movesCount = $this->game->moves()->where('round', $round)->count();
+            if ($movesCount >= 4) {
+                return $lastMoveInRound->created_at;
+            }
+        }
+
+        return null;
+    }
 
     public function render()
     {
