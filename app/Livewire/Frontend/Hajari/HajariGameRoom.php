@@ -262,6 +262,7 @@ class HajariGameRoom extends Component
         return 1; // ফলব্যাক
     }
 
+    // Enhanced Hajari Game Logic with Updated Rules
     private function getRoundWinnerPosition($round)
     {
         $roundMoves = $this->game->moves()
@@ -423,9 +424,7 @@ class HajariGameRoom extends Component
             'priority' => 6,
             'highest_card' => max($cardValues),
         ];
-    }
-
-    private function getCardValues($cards)
+    }private function getCardValues($cards)
     {
         $values = [];
         foreach ($cards as $card) {
