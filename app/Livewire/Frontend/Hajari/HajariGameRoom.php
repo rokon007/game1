@@ -262,7 +262,6 @@ class HajariGameRoom extends Component
         return 1; // ফলব্যাক
     }
 
-    // Enhanced Hajari Game Logic with Updated Rules
     private function getRoundWinnerPosition($round)
     {
         $roundMoves = $this->game->moves()
@@ -305,46 +304,15 @@ class HajariGameRoom extends Component
         }, $cards);
     }
 
-    // private function determineHajariWinner($hands)
-    // {
-    //     if (empty($hands)) return null;
-
-    //     // Step 1: Evaluate every hand
-    //     $evaluated = [];
-    //     foreach ($hands as $index => $hand) {
-    //         $evaluation = $this->evaluateHajariHand($hand['cards']);
-    //         $evaluated[] = [
-    //             'index' => $index,
-    //             'priority' => $evaluation['priority'],
-    //             'highest_card' => $evaluation['highest_card'],
-    //             'submitted_at' => $hand['submitted_at'],
-    //         ];
-    //     }
-
-    //     // Step 2: Keep only the hands with the best (lowest) priority
-    //     $bestPriority = min(array_column($evaluated, 'priority'));
-    //     $candidates = array_values(array_filter($evaluated, function ($e) use ($bestPriority) {
-    //         return $e['priority'] === $bestPriority;
-    //     }));
-
-    //     // Step 3 (tie-break): compare highest_card; if still tied, latest submitted_at wins
-    //     usort($candidates, function ($a, $b) {
-    //         // Descending by highest card
-    //         if ($a['highest_card'] !== $b['highest_card']) {
-    //             return $b['highest_card'] - $a['highest_card'];
-    //         }
-    //         // Latest submission first (ISO string compare works lexicographically)
-    //         return strcmp($b['submitted_at'], $a['submitted_at']);
-    //     });
-
-    //     return $candidates[0]['index'] ?? null;
-    // }
-
+    /**
+     * Determines the winner from a set of Hajari hands based on game rules.
+     * This function now contains the corrected sorting logic for tie-breaking.
+     */
     private function determineHajariWinner($hands)
     {
         if (empty($hands)) return null;
 
-        // Step 1: Evaluate every hand
+        // Step 1: Evaluate every hand to determine its type, priority, and highest card.
         $evaluated = [];
         foreach ($hands as $index => $hand) {
             $evaluation = $this->evaluateHajariHand($hand['cards']);
@@ -356,25 +324,35 @@ class HajariGameRoom extends Component
             ];
         }
 
-        // Step 2: Keep only the hands with the best (lowest) priority
+        // Step 2: Find the best hand type (lowest priority number) among all players.
         $bestPriority = min(array_column($evaluated, 'priority'));
         $candidates = array_values(array_filter($evaluated, function ($e) use ($bestPriority) {
             return $e['priority'] === $bestPriority;
         }));
 
-        // Step 3 (tie-break): compare highest_card; if still tied, latest submitted_at wins
+        // If only one player has the best hand, they are the winner.
+        if (count($candidates) === 1) {
+            return $candidates[0]['index'];
+        }
+
+        // Step 3 (FIXED TIE-BREAKING LOGIC): If multiple players have the same best hand type, sort them.
         usort($candidates, function ($a, $b) {
-            // আগে highest_card তুলনা
-            if ($a['highest_card'] !== $b['highest_card']) {
-                return $b['highest_card'] <=> $a['highest_card'];
+            $cardA = $a['highest_card'];
+            $cardB = $b['highest_card'];
+
+            // Rule 1: Compare by the highest card value in descending order.
+            if ($cardA !== $cardB) {
+                return $cardB <=> $cardA; // Sorts higher card first.
             }
-            // highest_card সমান হলে তখন submitted_at চেক করবে
-            return strcmp($b['submitted_at'], $a['submitted_at']);
+
+            // Rule 2: If highest cards are also equal, compare by submission time.
+            // The player who submitted last wins.
+            return strcmp($b['submitted_at'], $a['submitted_at']); // Sorts later time first.
         });
 
+        // The winner is the first player in the sorted list.
         return $candidates[0]['index'] ?? null;
     }
-
 
     private function evaluateHajariHand($cards)
     {
@@ -445,7 +423,9 @@ class HajariGameRoom extends Component
             'priority' => 6,
             'highest_card' => max($cardValues),
         ];
-    }private function getCardValues($cards)
+    }
+
+    private function getCardValues($cards)
     {
         $values = [];
         foreach ($cards as $card) {
