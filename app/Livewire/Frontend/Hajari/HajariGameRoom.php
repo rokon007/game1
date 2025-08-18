@@ -452,13 +452,22 @@ class HajariGameRoom extends Component
         };
     }
 
-    private function isTie($cardValues)
+    // Add this function after getHajariCardValue()
+    private function isSequential(array $cardValues): bool
     {
-        $valueCounts = array_count_values($cardValues);
-        $maxCount = max($valueCounts);
-        return $maxCount >= 3; // 3 or 4 cards of same rank
+        $count = count($cardValues);
+        if ($count < 3) return false;
+
+        sort($cardValues);
+        for ($i = 1; $i < $count; $i++) {
+            if ($cardValues[$i] - $cardValues[$i-1] !== 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
+    // Update hand type evaluation
     private function isRunning($cardValues, $suits)
     {
         return $this->isSequential($cardValues) && $this->isColor($suits);
@@ -468,6 +477,23 @@ class HajariGameRoom extends Component
     {
         return $this->isSequential($cardValues);
     }
+
+    private function isTie($cardValues)
+    {
+        $valueCounts = array_count_values($cardValues);
+        $maxCount = max($valueCounts);
+        return $maxCount >= 3; // 3 or 4 cards of same rank
+    }
+
+    // private function isRunning($cardValues, $suits)
+    // {
+    //     return $this->isSequential($cardValues) && $this->isColor($suits);
+    // }
+
+    // private function isRun($cardValues)
+    // {
+    //     return $this->isSequential($cardValues);
+    // }
 
     private function isColor($suits)
     {
