@@ -413,15 +413,15 @@ class HajariGameRoom extends Component
         ];
     }
 
-    private function getCardValues($cards)
-    {
-        $values = [];
-        foreach ($cards as $card) {
-            $rank = substr($card, 0, -1); // Remove suit symbol
-            $values[] = $this->getHajariCardValue($rank);
-        }
-        return $values;
-    }
+    // private function getCardValues($cards)
+    // {
+    //     $values = [];
+    //     foreach ($cards as $card) {
+    //         $rank = substr($card, 0, -1); // Remove suit symbol
+    //         $values[] = $this->getHajariCardValue($rank);
+    //     }
+    //     return $values;
+    // }
 
     private function getCardSuits($cards)
     {
@@ -432,6 +432,26 @@ class HajariGameRoom extends Component
         return $suits;
     }
 
+    // private function getHajariCardValue($rank)
+    // {
+    //     return match($rank) {
+    //         'A' => 14,
+    //         'K' => 13,
+    //         'Q' => 12,
+    //         'J' => 11,
+    //         '10' => 10,
+    //         '9' => 9,
+    //         '8' => 8,
+    //         '7' => 7,
+    //         '6' => 6,
+    //         '5' => 5,
+    //         '4' => 4,
+    //         '3' => 3,
+    //         '2' => 2,
+    //         default => 0
+    //     };
+    // }
+
     private function getHajariCardValue($rank)
     {
         return match($rank) {
@@ -439,7 +459,7 @@ class HajariGameRoom extends Component
             'K' => 13,
             'Q' => 12,
             'J' => 11,
-            '10' => 10,
+            '10' => 10,  // Fixed: Handle two-character rank
             '9' => 9,
             '8' => 8,
             '7' => 7,
@@ -450,6 +470,52 @@ class HajariGameRoom extends Component
             '2' => 2,
             default => 0
         };
+    }
+
+    // Update the getCardValues function
+    private function getCardValues($cards)
+    {
+        $values = [];
+        foreach ($cards as $card) {
+            // Extract rank properly for 2-character cards (10)
+            $rank = (strlen($card) === 3) ? substr($card, 0, 2) : substr($card, 0, 1);
+            $values[] = $this->getHajariCardValue($rank);
+        }
+        return $values;
+    }
+
+    // Update hand type detection to consider card count
+    private function isTie($cardValues)
+    {
+        $valueCounts = array_count_values($cardValues);
+        $maxCount = max($valueCounts);
+        return $maxCount >= 3; // 3 or 4 cards of same rank
+    }
+
+    private function isRunning($cardValues, $suits)
+    {
+        return $this->isSequential($cardValues) && $this->isColor($suits);
+    }
+
+    private function isRun($cardValues)
+    {
+        return $this->isSequential($cardValues);
+    }
+
+    private function isColor($suits)
+    {
+        $uniqueSuits = array_unique($suits);
+        return count($uniqueSuits) === 1; // All cards same suit
+    }
+
+    private function isPair($cardValues)
+    {
+        $valueCounts = array_count_values($cardValues);
+        $pairCount = 0;
+        foreach ($valueCounts as $count) {
+            if ($count >= 2) $pairCount++;
+        }
+        return $pairCount === 1 && max($valueCounts) === 2; // Exactly one pair
     }
 
     // Add this function after getHajariCardValue()
@@ -468,23 +534,6 @@ class HajariGameRoom extends Component
     }
 
     // Update hand type evaluation
-    private function isRunning($cardValues, $suits)
-    {
-        return $this->isSequential($cardValues) && $this->isColor($suits);
-    }
-
-    private function isRun($cardValues)
-    {
-        return $this->isSequential($cardValues);
-    }
-
-    private function isTie($cardValues)
-    {
-        $valueCounts = array_count_values($cardValues);
-        $maxCount = max($valueCounts);
-        return $maxCount >= 3; // 3 or 4 cards of same rank
-    }
-
     // private function isRunning($cardValues, $suits)
     // {
     //     return $this->isSequential($cardValues) && $this->isColor($suits);
@@ -495,17 +544,25 @@ class HajariGameRoom extends Component
     //     return $this->isSequential($cardValues);
     // }
 
-    private function isColor($suits)
-    {
-        $uniqueSuits = array_unique($suits);
-        return count($uniqueSuits) === 1; // All cards same suit
-    }
+    // private function isTie($cardValues)
+    // {
+    //     $valueCounts = array_count_values($cardValues);
+    //     $maxCount = max($valueCounts);
+    //     return $maxCount >= 3; // 3 or 4 cards of same rank
+    // }
 
-    private function isPair($cardValues)
-    {
-        $valueCounts = array_count_values($cardValues);
-        return in_array(2, $valueCounts); // Exactly 2 cards of same rank
-    }
+
+    // private function isColor($suits)
+    // {
+    //     $uniqueSuits = array_unique($suits);
+    //     return count($uniqueSuits) === 1; // All cards same suit
+    // }
+
+    // private function isPair($cardValues)
+    // {
+    //     $valueCounts = array_count_values($cardValues);
+    //     return in_array(2, $valueCounts); // Exactly 2 cards of same rank
+    // }
 
     private function calculateRoundWinner()
     {
