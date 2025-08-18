@@ -360,6 +360,132 @@ class HajariGameRoom extends Component
      * This function has been rewritten with a more explicit loop-based approach
      * to ensure tie-breaking rules are applied correctly and robustly.
      */
+    // private function determineHajariWinner($hands)
+    // {
+    //     if (empty($hands)) return null;
+
+    //     // Step 1: Evaluate every hand to determine its type, priority, and highest card.
+    //     $evaluated = [];
+    //     foreach ($hands as $index => $hand) {
+    //         $evaluation = $this->evaluateHajariHand($hand['cards']);
+    //         $evaluated[] = [
+    //             'index' => $index,
+    //             'priority' => $evaluation['priority'],
+    //             'highest_card' => $evaluation['highest_card'],
+    //             'submitted_at' => $hand['submitted_at'],
+    //         ];
+    //     }
+
+    //     // Step 2: Find the best hand type (lowest priority number) among all players.
+    //     $bestPriority = min(array_column($evaluated, 'priority'));
+    //     $candidates = array_values(array_filter($evaluated, function ($e) use ($bestPriority) {
+    //         return $e['priority'] === $bestPriority;
+    //     }));
+
+    //     // If only one player has the best hand type, they are the clear winner.
+    //     if (count($candidates) === 1) {
+    //         return $candidates[0]['index'];
+    //     }
+
+    //     // Step 3 (REWRITTEN TIE-BREAKING LOGIC): Manually find the winner among candidates.
+    //     // Start by assuming the first candidate is the current winner.
+    //     $winner = $candidates[0];
+
+    //     // Loop through the rest of the candidates to challenge the current winner.
+    //     for ($i = 1; $i < count($candidates); $i++) {
+    //         $challenger = $candidates[$i];
+
+    //         // Rule 1: Compare by the highest card value.
+    //         // If the challenger's card is higher, they become the new potential winner.
+    //         if ($challenger['highest_card'] > $winner['highest_card']) {
+    //             $winner = $challenger;
+    //             continue; // Move to the next challenger.
+    //         }
+
+    //         // Rule 2: If highest cards are equal, then compare by submission time.
+    //         if ($challenger['highest_card'] === $winner['highest_card']) {
+    //             // The player who submitted their card later wins the tie.
+    //             if ($challenger['submitted_at'] > $winner['submitted_at']) {
+    //                 $winner = $challenger;
+    //             }
+    //         }
+    //     }
+
+    //     // After checking all candidates, the one left in the $winner variable is the final winner.
+    //     return $winner['index'];
+    // }
+
+    // private function evaluateHajariHand($cards)
+    // {
+    //     // Convert "A♠" style into arrays of values and suits
+    //     $cardValues = $this->getCardValues($cards);
+    //     $suits = $this->getCardSuits($cards);
+
+    //     // Rank order (lower priority number = stronger hand):
+    //     // 1: Tie (three/four of same rank)
+    //     // 2: Running (sequential + same suit)
+    //     // 3: Run (sequential, suits can differ)
+    //     // 4: Color (same suit, not sequential)
+    //     // 5: Pair (exactly one pair among 3 or 4 cards)
+    //     // 6: Mixed (none of the above)
+    //     // Highest card uses: A>K>Q>J>10>...>2
+
+    //     // Tie: any 3-of-a-kind or 4-of-a-kind
+    //     if ($this->isTie($cardValues)) {
+    //         return [
+    //             'type' => 'tie',
+    //             'priority' => 1,
+    //             'highest_card' => max($cardValues),
+    //         ];
+    //     }
+
+    //     $isSequential = $this->isSequential($cardValues);
+    //     $isColor = $this->isColor($suits);
+
+    //     // Running: sequential and same suit
+    //     if ($isSequential && $isColor) {
+    //         return [
+    //             'type' => 'running',
+    //             'priority' => 2,
+    //             'highest_card' => max($cardValues),
+    //         ];
+    //     }
+
+    //     // Run: sequential but not same suit
+    //     if ($isSequential && !$isColor) {
+    //         return [
+    //             'type' => 'run',
+    //             'priority' => 3,
+    //             'highest_card' => max($cardValues),
+    //         ];
+    //     }
+
+    //     // Color: same suit, not sequential
+    //     if ($isColor && !$isSequential) {
+    //         return [
+    //             'type' => 'color',
+    //             'priority' => 4,
+    //             'highest_card' => max($cardValues),
+    //         ];
+    //     }
+
+    //     // Pair: has any pair (but we've already ruled out tie/three/four of a kind)
+    //     if ($this->isPair($cardValues)) {
+    //         return [
+    //             'type' => 'pair',
+    //             'priority' => 5,
+    //             'highest_card' => max($cardValues),
+    //         ];
+    //     }
+
+    //     // Mixed: none of the above
+    //     return [
+    //         'type' => 'mixed',
+    //         'priority' => 6,
+    //         'highest_card' => max($cardValues),
+    //     ];
+    // }
+
     private function determineHajariWinner($hands)
     {
         if (empty($hands)) return null;
@@ -387,7 +513,7 @@ class HajariGameRoom extends Component
             return $candidates[0]['index'];
         }
 
-        // Step 3 (REWRITTEN TIE-BREAKING LOGIC): Manually find the winner among candidates.
+        // Step 3: FIXED TIE-BREAKING LOGIC
         // Start by assuming the first candidate is the current winner.
         $winner = $candidates[0];
 
@@ -404,39 +530,39 @@ class HajariGameRoom extends Component
 
             // Rule 2: If highest cards are equal, then compare by submission time.
             if ($challenger['highest_card'] === $winner['highest_card']) {
-                // The player who submitted their card later wins the tie.
-                if ($challenger['submitted_at'] > $winner['submitted_at']) {
+                // FIXED: The player who submitted their card LATER wins the tie.
+                // Convert ISO strings to Carbon for proper comparison
+                $challengerTime = \Carbon\Carbon::parse($challenger['submitted_at']);
+                $winnerTime = \Carbon\Carbon::parse($winner['submitted_at']);
+
+                if ($challengerTime->gt($winnerTime)) {
                     $winner = $challenger;
                 }
             }
         }
 
-        // After checking all candidates, the one left in the $winner variable is the final winner.
+        // After checking all candidates, return the final winner.
         return $winner['index'];
     }
 
     private function evaluateHajariHand($cards)
     {
-        // Convert "A♠" style into arrays of values and suits
         $cardValues = $this->getCardValues($cards);
         $suits = $this->getCardSuits($cards);
 
-        // Rank order (lower priority number = stronger hand):
-        // 1: Tie (three/four of same rank)
-        // 2: Running (sequential + same suit)
-        // 3: Run (sequential, suits can differ)
-        // 4: Color (same suit, not sequential)
-        // 5: Pair (exactly one pair among 3 or 4 cards)
-        // 6: Mixed (none of the above)
-        // Highest card uses: A>K>Q>J>10>...>2
-
         // Tie: any 3-of-a-kind or 4-of-a-kind
         if ($this->isTie($cardValues)) {
-            return [
-                'type' => 'tie',
-                'priority' => 1,
-                'highest_card' => max($cardValues),
-            ];
+            // For tie, highest card should be the repeated card
+            $valueCounts = array_count_values($cardValues);
+            foreach ($valueCounts as $value => $count) {
+                if ($count >= 3) {
+                    return [
+                        'type' => 'tie',
+                        'priority' => 1,
+                        'highest_card' => $value,
+                    ];
+                }
+            }
         }
 
         $isSequential = $this->isSequential($cardValues);
@@ -447,7 +573,7 @@ class HajariGameRoom extends Component
             return [
                 'type' => 'running',
                 'priority' => 2,
-                'highest_card' => max($cardValues),
+                'highest_card' => $this->getHighestCardInSequence($cardValues),
             ];
         }
 
@@ -456,7 +582,7 @@ class HajariGameRoom extends Component
             return [
                 'type' => 'run',
                 'priority' => 3,
-                'highest_card' => max($cardValues),
+                'highest_card' => $this->getHighestCardInSequence($cardValues),
             ];
         }
 
@@ -469,12 +595,20 @@ class HajariGameRoom extends Component
             ];
         }
 
-        // Pair: has any pair (but we've already ruled out tie/three/four of a kind)
+        // Pair: has any pair
         if ($this->isPair($cardValues)) {
+            // For pair, highest card should be the paired card
+            $valueCounts = array_count_values($cardValues);
+            $pairValue = 0;
+            foreach ($valueCounts as $value => $count) {
+                if ($count === 2) {
+                    $pairValue = max($pairValue, $value);
+                }
+            }
             return [
                 'type' => 'pair',
                 'priority' => 5,
-                'highest_card' => max($cardValues),
+                'highest_card' => $pairValue > 0 ? $pairValue : max($cardValues),
             ];
         }
 
@@ -484,7 +618,68 @@ class HajariGameRoom extends Component
             'priority' => 6,
             'highest_card' => max($cardValues),
         ];
-    }private function getCardValues($cards)
+    }
+
+    private function getHighestCardInSequence($cardValues)
+    {
+        sort($cardValues);
+
+        // Check if it's an Ace-low straight (A-2-3, A-2-3-4)
+        if (in_array(14, $cardValues) && in_array(2, $cardValues)) {
+            // For Ace-low straight, the highest effective card is not the Ace
+            // but the actual highest in the sequence
+            $withoutAce = array_filter($cardValues, fn($v) => $v !== 14);
+            if (count($withoutAce) > 0) {
+                $maxWithoutAce = max($withoutAce);
+                // If sequence is like A-2-3, return 3. If A-2-3-4, return 4.
+                return $maxWithoutAce;
+            }
+        }
+
+        // For normal sequences, return the highest card
+        return max($cardValues);
+    }
+
+    private function isSequential($cardValues)
+    {
+        if (count($cardValues) < 3) return false;
+
+        sort($cardValues);
+
+        // Check normal sequential (A-K-Q, K-Q-J, etc.)
+        $isNormalSequential = true;
+        for ($i = 1; $i < count($cardValues); $i++) {
+            if ($cardValues[$i] - $cardValues[$i-1] !== 1) {
+                $isNormalSequential = false;
+                break;
+            }
+        }
+
+        if ($isNormalSequential) {
+            return true;
+        }
+
+        // Check Ace-low straight (A-2-3, A-2-3-4)
+        if (in_array(14, $cardValues) && in_array(2, $cardValues)) { // Has Ace and 2
+            $modifiedValues = $cardValues;
+            // Replace Ace (14) with 1 for low straight check
+            $aceIndex = array_search(14, $modifiedValues);
+            $modifiedValues[$aceIndex] = 1;
+            sort($modifiedValues);
+
+            for ($i = 1; $i < count($modifiedValues); $i++) {
+                if ($modifiedValues[$i] - $modifiedValues[$i-1] !== 1) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+
+    private function getCardValues($cards)
     {
         $values = [];
         foreach ($cards as $card) {
@@ -530,18 +725,18 @@ class HajariGameRoom extends Component
         return count(array_unique($suits)) === 1;
     }
 
-    private function isSequential($cardValues)
-    {
-        if (count($cardValues) < 3) return false;
+    // private function isSequential($cardValues)
+    // {
+    //     if (count($cardValues) < 3) return false;
 
-        sort($cardValues);
-        for ($i = 1; $i < count($cardValues); $i++) {
-            if ($cardValues[$i] - $cardValues[$i-1] !== 1) {
-                return false;
-            }
-        }
-        return true;
-    }
+    //     sort($cardValues);
+    //     for ($i = 1; $i < count($cardValues); $i++) {
+    //         if ($cardValues[$i] - $cardValues[$i-1] !== 1) {
+    //             return false;
+    //         }
+    //     }
+    //     return true;
+    // }
 
     private function isPair($cardValues)
     {
