@@ -309,6 +309,57 @@ class HajariGameRoom extends Component
      * Determines the winner from a set of Hajari hands based on game rules.
      * This function now contains the corrected sorting logic for tie-breaking.
      */
+    // private function determineHajariWinner($hands)
+    // {
+    //     if (empty($hands)) return null;
+
+    //     // Step 1: Evaluate every hand to determine its type, priority, and highest card.
+    //     $evaluated = [];
+    //     foreach ($hands as $index => $hand) {
+    //         $evaluation = $this->evaluateHajariHand($hand['cards']);
+    //         $evaluated[] = [
+    //             'index' => $index,
+    //             'priority' => $evaluation['priority'],
+    //             'highest_card' => $evaluation['highest_card'],
+    //             'submitted_at' => $hand['submitted_at'],
+    //         ];
+    //     }
+
+    //     // Step 2: Find the best hand type (lowest priority number) among all players.
+    //     $bestPriority = min(array_column($evaluated, 'priority'));
+    //     $candidates = array_values(array_filter($evaluated, function ($e) use ($bestPriority) {
+    //         return $e['priority'] === $bestPriority;
+    //     }));
+
+    //     // If only one player has the best hand, they are the winner.
+    //     if (count($candidates) === 1) {
+    //         return $candidates[0]['index'];
+    //     }
+
+    //     // Step 3 (FIXED TIE-BREAKING LOGIC): If multiple players have the same best hand type, sort them.
+    //     usort($candidates, function ($a, $b) {
+    //         $cardA = $a['highest_card'];
+    //         $cardB = $b['highest_card'];
+
+    //         // Rule 1: Compare by the highest card value in descending order.
+    //         if ($cardA !== $cardB) {
+    //             return $cardB <=> $cardA; // Sorts higher card first.
+    //         }
+
+    //         // Rule 2: If highest cards are also equal, compare by submission time.
+    //         // The player who submitted last wins.
+    //         return strcmp($b['submitted_at'], $a['submitted_at']); // Sorts later time first.
+    //     });
+
+    //     // The winner is the first player in the sorted list.
+    //     return $candidates[0]['index'] ?? null;
+    // }
+
+    /**
+     * Determines the winner from a set of Hajari hands based on game rules.
+     * This function has been rewritten with a more explicit loop-based approach
+     * to ensure tie-breaking rules are applied correctly and robustly.
+     */
     private function determineHajariWinner($hands)
     {
         if (empty($hands)) return null;
@@ -331,28 +382,37 @@ class HajariGameRoom extends Component
             return $e['priority'] === $bestPriority;
         }));
 
-        // If only one player has the best hand, they are the winner.
+        // If only one player has the best hand type, they are the clear winner.
         if (count($candidates) === 1) {
             return $candidates[0]['index'];
         }
 
-        // Step 3 (FIXED TIE-BREAKING LOGIC): If multiple players have the same best hand type, sort them.
-        usort($candidates, function ($a, $b) {
-            $cardA = $a['highest_card'];
-            $cardB = $b['highest_card'];
+        // Step 3 (REWRITTEN TIE-BREAKING LOGIC): Manually find the winner among candidates.
+        // Start by assuming the first candidate is the current winner.
+        $winner = $candidates[0];
 
-            // Rule 1: Compare by the highest card value in descending order.
-            if ($cardA !== $cardB) {
-                return $cardB <=> $cardA; // Sorts higher card first.
+        // Loop through the rest of the candidates to challenge the current winner.
+        for ($i = 1; $i < count($candidates); $i++) {
+            $challenger = $candidates[$i];
+
+            // Rule 1: Compare by the highest card value.
+            // If the challenger's card is higher, they become the new potential winner.
+            if ($challenger['highest_card'] > $winner['highest_card']) {
+                $winner = $challenger;
+                continue; // Move to the next challenger.
             }
 
-            // Rule 2: If highest cards are also equal, compare by submission time.
-            // The player who submitted last wins.
-            return strcmp($b['submitted_at'], $a['submitted_at']); // Sorts later time first.
-        });
+            // Rule 2: If highest cards are equal, then compare by submission time.
+            if ($challenger['highest_card'] === $winner['highest_card']) {
+                // The player who submitted their card later wins the tie.
+                if ($challenger['submitted_at'] > $winner['submitted_at']) {
+                    $winner = $challenger;
+                }
+            }
+        }
 
-        // The winner is the first player in the sorted list.
-        return $candidates[0]['index'] ?? null;
+        // After checking all candidates, the one left in the $winner variable is the final winner.
+        return $winner['index'];
     }
 
     private function evaluateHajariHand($cards)
