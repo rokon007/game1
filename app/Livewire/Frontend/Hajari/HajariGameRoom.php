@@ -1063,6 +1063,56 @@ class HajariGameRoom extends Component
         }
     }
 
+    // private function checkGameProgress()
+    // {
+    //     $playersWithCards = $this->game->participants()
+    //         ->where('status', HajariGameParticipant::STATUS_PLAYING)
+    //         ->get()
+    //         ->filter(function ($participant) {
+    //             return is_array($participant->cards) && count($participant->cards) > 0;
+    //         })
+    //         ->count();
+
+    //     // If no players have cards, check if we should end game or deal new cards
+    //     if ($playersWithCards === 0) {
+    //         // Check if we've played enough rounds to end the game
+    //         $totalRounds = $this->game->moves()->max('round') ?? 0;
+
+    //         // End game after 13 rounds (all cards played) or based on your game rules
+    //         if ($totalRounds >= 13) {
+    //             $this->endGame();
+    //         } else {
+    //             // Deal new cards for next set of rounds
+    //             $this->dealNewCards();
+    //         }
+    //     }
+    // }
+
+    private function checkGameProgress()
+    {
+        $playersWithCards = $this->game->participants()
+            ->where('status', HajariGameParticipant::STATUS_PLAYING)
+            ->get()
+            ->filter(function ($participant) {
+                return is_array($participant->cards) && count($participant->cards) > 0;
+            })
+            ->count();
+
+        // কার্ড শেষ হলে নতুন শর্ত চেক
+        if ($playersWithCards === 0) {
+            // ১০০০+ পয়েন্ট আছে এমন প্লেয়ার খুঁজুন
+            $hasWinner = $this->game->participants()
+                ->where('status', HajariGameParticipant::STATUS_PLAYING)
+                ->where('total_points', '>=', 1000)
+                ->exists();
+
+            if ($hasWinner) {
+                $this->endGame(); // গেম শেষ করুন
+            } else {
+                $this->dealNewCards(); // নতুন কার্ড বিতরণ করুন
+            }
+        }
+    }
 
     private function endGame()
     {
@@ -1109,6 +1159,47 @@ class HajariGameRoom extends Component
             'final_scores' => $finalScores,
             'transactions' => $transactions
         ]);
+    }
+
+    private function calculateWinner()
+    {
+        return $this->game->participants()
+            ->orderByDesc('total_points')
+            ->orderByDesc('rounds_won')
+            ->orderByDesc('hazari_count')
+            ->first();
+    }
+
+    private function processGamePayments($winner)
+    {
+        $bidAmount = $this->game->bid_amount;
+        $participants = $this->game->participants()->get();
+
+        DB::transaction(function () use ($winner, $bidAmount, $participants) {
+            $winnerAmount = $bidAmount * 4;
+
+            Transaction::create([
+                'user_id' => $winner->user_id,
+                'type' => 'credit',
+                'amount' => $winnerAmount,
+                'details' => 'Game win: ' . $this->game->title,
+            ]);
+
+            $winner->user->increment('credit', $winnerAmount);
+
+            foreach ($participants as $participant) {
+                if ($participant->user_id !== $winner->user_id) {
+                    Transaction::create([
+                        'user_id' => $participant->user_id,
+                        'type' => 'debit',
+                        'amount' => $bidAmount,
+                        'details' => 'Game loss: ' . $this->game->title,
+                    ]);
+
+                    $participant->user->decrement('credit', $bidAmount);
+                }
+            }
+        });
     }
 
     private function getRoundCompletionTime($round)
