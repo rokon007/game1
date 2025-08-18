@@ -305,6 +305,41 @@ class HajariGameRoom extends Component
         }, $cards);
     }
 
+    // private function determineHajariWinner($hands)
+    // {
+    //     if (empty($hands)) return null;
+
+    //     // Step 1: Evaluate every hand
+    //     $evaluated = [];
+    //     foreach ($hands as $index => $hand) {
+    //         $evaluation = $this->evaluateHajariHand($hand['cards']);
+    //         $evaluated[] = [
+    //             'index' => $index,
+    //             'priority' => $evaluation['priority'],
+    //             'highest_card' => $evaluation['highest_card'],
+    //             'submitted_at' => $hand['submitted_at'],
+    //         ];
+    //     }
+
+    //     // Step 2: Keep only the hands with the best (lowest) priority
+    //     $bestPriority = min(array_column($evaluated, 'priority'));
+    //     $candidates = array_values(array_filter($evaluated, function ($e) use ($bestPriority) {
+    //         return $e['priority'] === $bestPriority;
+    //     }));
+
+    //     // Step 3 (tie-break): compare highest_card; if still tied, latest submitted_at wins
+    //     usort($candidates, function ($a, $b) {
+    //         // Descending by highest card
+    //         if ($a['highest_card'] !== $b['highest_card']) {
+    //             return $b['highest_card'] - $a['highest_card'];
+    //         }
+    //         // Latest submission first (ISO string compare works lexicographically)
+    //         return strcmp($b['submitted_at'], $a['submitted_at']);
+    //     });
+
+    //     return $candidates[0]['index'] ?? null;
+    // }
+
     private function determineHajariWinner($hands)
     {
         if (empty($hands)) return null;
@@ -329,16 +364,19 @@ class HajariGameRoom extends Component
 
         // Step 3 (tie-break): compare highest_card; if still tied, latest submitted_at wins
         usort($candidates, function ($a, $b) {
-            // Descending by highest card
+            // আগে highest_card তুলনা
             if ($a['highest_card'] !== $b['highest_card']) {
-                return $b['highest_card'] - $a['highest_card'];
+                return $b['highest_card'] <=> $a['highest_card'];
             }
-            // Latest submission first (ISO string compare works lexicographically)
+            // highest_card সমান হলে তখন submitted_at চেক করবে
             return strcmp($b['submitted_at'], $a['submitted_at']);
         });
 
         return $candidates[0]['index'] ?? null;
-    }private function evaluateHajariHand($cards)
+    }
+
+
+    private function evaluateHajariHand($cards)
     {
         // Convert "A♠" style into arrays of values and suits
         $cardValues = $this->getCardValues($cards);
