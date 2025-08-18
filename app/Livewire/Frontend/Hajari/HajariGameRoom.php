@@ -331,13 +331,13 @@ class HajariGameRoom extends Component
                 'index' => $index,
                 'evaluation' => $evaluation,
                 'submitted_at' => $hand['submitted_at'],
-                'card_count' => count($hand['cards'])
+                'player_id' => $hand['player_id']
             ];
         }
 
-        // Sort by combination priority, then highest card, then card count, then submission time
+        // Sort by combination priority (lower = better), then highest card, then submission time
         usort($evaluatedHands, function ($a, $b) {
-            // First: Compare combination type priority (lower number = higher priority)
+            // First: Compare hand type priority (lower number = higher priority)
             if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
                 return $a['evaluation']['priority'] - $b['evaluation']['priority'];
             }
@@ -347,12 +347,7 @@ class HajariGameRoom extends Component
                 return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
             }
 
-            // Third: Compare card count (more cards win)
-            if ($a['card_count'] !== $b['card_count']) {
-                return $b['card_count'] - $a['card_count'];
-            }
-
-            // Fourth: Latest submission wins (যে পরে সাবমিট করেছে সে জিতবে)
+            // Third: Latest submission wins (tie-breaker rule)
             return strcmp($b['submitted_at'], $a['submitted_at']);
         });
 
@@ -365,7 +360,7 @@ class HajariGameRoom extends Component
         $suits = $this->getCardSuits($cards);
         $cardCount = count($cards);
 
-        // Check for Tie (Four of a Kind - 4 cards of same rank)
+        // Check for Tie (same rank cards - 3 or 4 of same rank)
         if ($this->isTie($cardValues)) {
             return [
                 'type' => 'tie',
@@ -383,19 +378,37 @@ class HajariGameRoom extends Component
             ];
         }
 
-        // Check for Color (Flush - same suit but not sequential)
-        if ($this->isColor($suits) && !$this->isSequential($cardValues)) {
+        // Check for Run (Straight - sequential cards of different suits)
+        if ($this->isRun($cardValues)) {
             return [
-                'type' => 'color',
+                'type' => 'run',
                 'priority' => 3,
                 'highest_card' => max($cardValues)
             ];
         }
 
-        // Normal (all other combinations)
+        // Check for Color (Flush - same suit but not sequential)
+        if ($this->isColor($suits)) {
+            return [
+                'type' => 'color',
+                'priority' => 4,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Pair (two cards of same rank)
+        if ($this->isPair($cardValues)) {
+            return [
+                'type' => 'pair',
+                'priority' => 5,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Mixed (no special combination)
         return [
-            'type' => 'normal',
-            'priority' => 4,
+            'type' => 'mixed',
+            'priority' => 6,
             'highest_card' => max($cardValues)
         ];
     }
@@ -421,19 +434,29 @@ class HajariGameRoom extends Component
 
     private function getHajariCardValue($rank)
     {
-        $values = [
-            'A' => 14, 'K' => 13, 'Q' => 12, 'J' => 11, '10' => 10,
-            '9' => 9, '8' => 8, '7' => 7, '6' => 6, '5' => 5,
-            '4' => 4, '3' => 3, '2' => 2
-        ];
-
-        return $values[$rank] ?? 0;
+        return match($rank) {
+            'A' => 14,
+            'K' => 13,
+            'Q' => 12,
+            'J' => 11,
+            '10' => 10,
+            '9' => 9,
+            '8' => 8,
+            '7' => 7,
+            '6' => 6,
+            '5' => 5,
+            '4' => 4,
+            '3' => 3,
+            '2' => 2,
+            default => 0
+        };
     }
 
     private function isTie($cardValues)
     {
         $valueCounts = array_count_values($cardValues);
-        return in_array(4, $valueCounts) || (count($cardValues) >= 3 && in_array(3, $valueCounts));
+        $maxCount = max($valueCounts);
+        return $maxCount >= 3; // 3 or 4 cards of same rank
     }
 
     private function isRunning($cardValues, $suits)
@@ -441,28 +464,21 @@ class HajariGameRoom extends Component
         return $this->isSequential($cardValues) && $this->isColor($suits);
     }
 
-    private function isColor($suits)
+    private function isRun($cardValues)
     {
-        return count(array_unique($suits)) === 1;
+        return $this->isSequential($cardValues);
     }
 
-    private function isSequential($cardValues)
+    private function isColor($suits)
     {
-        if (count($cardValues) < 3) return false;
-
-        sort($cardValues);
-        for ($i = 1; $i < count($cardValues); $i++) {
-            if ($cardValues[$i] - $cardValues[$i-1] !== 1) {
-                return false;
-            }
-        }
-        return true;
+        $uniqueSuits = array_unique($suits);
+        return count($uniqueSuits) === 1; // All cards same suit
     }
 
     private function isPair($cardValues)
     {
         $valueCounts = array_count_values($cardValues);
-        return in_array(2, $valueCounts);
+        return in_array(2, $valueCounts); // Exactly 2 cards of same rank
     }
 
     private function calculateRoundWinner()
