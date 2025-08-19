@@ -354,64 +354,64 @@ class HajariGameRoom extends Component
         return $evaluatedHands[0]['index'];
     }
 
-    private function evaluateHajariHand($cards)
-    {
-        $cardValues = $this->getCardValues($cards);
-        $suits = $this->getCardSuits($cards);
-        $cardCount = count($cards);
+    // private function evaluateHajariHand($cards)
+    // {
+    //     $cardValues = $this->getCardValues($cards);
+    //     $suits = $this->getCardSuits($cards);
+    //     $cardCount = count($cards);
 
-        // Check for Tie (same rank cards - 3 or 4 of same rank)
-        if ($this->isTie($cardValues)) {
-            return [
-                'type' => 'tie',
-                'priority' => 1,
-                'highest_card' => max($cardValues)
-            ];
-        }
+    //     // Check for Tie (same rank cards - 3 or 4 of same rank)
+    //     if ($this->isTie($cardValues)) {
+    //         return [
+    //             'type' => 'tie',
+    //             'priority' => 1,
+    //             'highest_card' => max($cardValues)
+    //         ];
+    //     }
 
-        // Check for Running (Straight Flush - sequential cards of same suit)
-        if ($this->isRunning($cardValues, $suits)) {
-            return [
-                'type' => 'running',
-                'priority' => 2,
-                'highest_card' => max($cardValues)
-            ];
-        }
+    //     // Check for Running (Straight Flush - sequential cards of same suit)
+    //     if ($this->isRunning($cardValues, $suits)) {
+    //         return [
+    //             'type' => 'running',
+    //             'priority' => 2,
+    //             'highest_card' => max($cardValues)
+    //         ];
+    //     }
 
-        // Check for Run (Straight - sequential cards of different suits)
-        if ($this->isRun($cardValues)) {
-            return [
-                'type' => 'run',
-                'priority' => 3,
-                'highest_card' => max($cardValues)
-            ];
-        }
+    //     // Check for Run (Straight - sequential cards of different suits)
+    //     if ($this->isRun($cardValues)) {
+    //         return [
+    //             'type' => 'run',
+    //             'priority' => 3,
+    //             'highest_card' => max($cardValues)
+    //         ];
+    //     }
 
-        // Check for Color (Flush - same suit but not sequential)
-        if ($this->isColor($suits)) {
-            return [
-                'type' => 'color',
-                'priority' => 4,
-                'highest_card' => max($cardValues)
-            ];
-        }
+    //     // Check for Color (Flush - same suit but not sequential)
+    //     if ($this->isColor($suits)) {
+    //         return [
+    //             'type' => 'color',
+    //             'priority' => 4,
+    //             'highest_card' => max($cardValues)
+    //         ];
+    //     }
 
-        // Check for Pair (two cards of same rank)
-        if ($this->isPair($cardValues)) {
-            return [
-                'type' => 'pair',
-                'priority' => 5,
-                'highest_card' => max($cardValues)
-            ];
-        }
+    //     // Check for Pair (two cards of same rank)
+    //     if ($this->isPair($cardValues)) {
+    //         return [
+    //             'type' => 'pair',
+    //             'priority' => 5,
+    //             'highest_card' => max($cardValues)
+    //         ];
+    //     }
 
-        // Mixed (no special combination)
-        return [
-            'type' => 'mixed',
-            'priority' => 6,
-            'highest_card' => max($cardValues)
-        ];
-    }
+    //     // Mixed (no special combination)
+    //     return [
+    //         'type' => 'mixed',
+    //         'priority' => 6,
+    //         'highest_card' => max($cardValues)
+    //     ];
+    // }
 
     // private function getCardValues($cards)
     // {
@@ -486,12 +486,18 @@ class HajariGameRoom extends Component
 
     // New apdeted code start
 
+
+
     private function getCardValues($cards)
     {
         $values = [];
         foreach ($cards as $card) {
+            // Check if card is in array format (from database)
+            if (is_array($card)) {
+                $rank = $card['rank'];
+            }
             // Check if card is in string format (from convertCardsToHajariFormat)
-            if (is_string($card)) {
+            else if (is_string($card)) {
                 // Handle string format (e.g., "10♥", "K♠")
                 if (strlen($card) > 2) {
                     // Card has two-character rank (like "10")
@@ -501,8 +507,8 @@ class HajariGameRoom extends Component
                     $rank = substr($card, 0, 1);
                 }
             } else {
-                // Handle array format (from database)
-                $rank = $card['rank'];
+                // Unknown format, skip
+                continue;
             }
             $values[] = $this->getHajariCardValue($rank);
         }
@@ -514,11 +520,14 @@ class HajariGameRoom extends Component
         $suits = [];
         foreach ($cards as $card) {
             // Handle both array and string formats
-            if (is_string($card)) {
+            if (is_array($card)) {
+                $suits[] = $card['suit'];
+            } else if (is_string($card)) {
                 // Extract suit from string representation
                 $suits[] = substr($card, -1);
             } else {
-                $suits[] = $card['suit'];
+                // Unknown format, skip
+                continue;
             }
         }
         return $suits;
@@ -542,6 +551,80 @@ class HajariGameRoom extends Component
             '2' => 2,
             default => 0
         };
+    }
+
+    private function evaluateHajariHand($cards)
+    {
+        // Debugging: Log the cards being evaluated
+        Log::debug('Evaluating hand:', ['cards' => $cards]);
+
+        $cardValues = $this->getCardValues($cards);
+        $suits = $this->getCardSuits($cards);
+        $cardCount = count($cards);
+
+        // Debugging: Log the extracted values and suits
+        Log::debug('Extracted values and suits:', [
+            'values' => $cardValues,
+            'suits' => $suits
+        ]);
+
+        // Check for Tie (same rank cards - 3 or 4 of same rank)
+        if ($this->isTie($cardValues)) {
+            Log::debug('Hand evaluated as Tie');
+            return [
+                'type' => 'tie',
+                'priority' => 1,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Running (Straight Flush - sequential cards of same suit)
+        if ($this->isRunning($cardValues, $suits)) {
+            Log::debug('Hand evaluated as Running');
+            return [
+                'type' => 'running',
+                'priority' => 2,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Run (Straight - sequential cards of different suits)
+        if ($this->isRun($cardValues)) {
+            Log::debug('Hand evaluated as Run');
+            return [
+                'type' => 'run',
+                'priority' => 3,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Color (Flush - same suit but not sequential)
+        if ($this->isColor($suits)) {
+            Log::debug('Hand evaluated as Color');
+            return [
+                'type' => 'color',
+                'priority' => 4,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Pair (two cards of same rank)
+        if ($this->isPair($cardValues)) {
+            Log::debug('Hand evaluated as Pair');
+            return [
+                'type' => 'pair',
+                'priority' => 5,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Mixed (no special combination)
+        Log::debug('Hand evaluated as Mixed');
+        return [
+            'type' => 'mixed',
+            'priority' => 6,
+            'highest_card' => max($cardValues)
+        ];
     }
 
     // New apdeted code end
