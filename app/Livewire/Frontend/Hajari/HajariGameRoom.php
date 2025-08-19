@@ -423,14 +423,14 @@ class HajariGameRoom extends Component
     //     return $values;
     // }
 
-    private function getCardSuits($cards)
-    {
-        $suits = [];
-        foreach ($cards as $card) {
-            $suits[] = substr($card, -1); // Get suit symbol
-        }
-        return $suits;
-    }
+    // private function getCardSuits($cards)
+    // {
+    //     $suits = [];
+    //     foreach ($cards as $card) {
+    //         $suits[] = substr($card, -1); // Get suit symbol
+    //     }
+    //     return $suits;
+    // }
 
     // private function getHajariCardValue($rank)
     // {
@@ -452,6 +452,68 @@ class HajariGameRoom extends Component
     //     };
     // }
 
+    // private function getHajariCardValue($rank)
+    // {
+    //     return match($rank) {
+    //         'A' => 14,
+    //         'K' => 13,
+    //         'Q' => 12,
+    //         'J' => 11,
+    //         '10' => 10,  // Fixed: Handle two-character rank
+    //         '9' => 9,
+    //         '8' => 8,
+    //         '7' => 7,
+    //         '6' => 6,
+    //         '5' => 5,
+    //         '4' => 4,
+    //         '3' => 3,
+    //         '2' => 2,
+    //         default => 0
+    //     };
+    // }
+
+    // Update the getCardValues function
+    // private function getCardValues($cards)
+    // {
+    //     $values = [];
+    //     foreach ($cards as $card) {
+    //         // Extract rank properly for 2-character cards (10)
+    //         $rank = (strlen($card) === 3) ? substr($card, 0, 2) : substr($card, 0, 1);
+    //         $values[] = $this->getHajariCardValue($rank);
+    //     }
+    //     return $values;
+    // }
+
+    // New apdeted code start
+
+    private function getCardValues($cards)
+    {
+        $values = [];
+        foreach ($cards as $card) {
+            // Properly handle both single and double character ranks
+            $rank = $this->extractRankFromCard($card);
+            $values[] = $this->getHajariCardValue($rank);
+        }
+        return $values;
+    }
+
+    private function extractRankFromCard($card)
+    {
+        // Handle both array format (from database) and string format (from conversion)
+        if (is_array($card)) {
+            return $card['rank'];
+        }
+
+        // Handle string format (e.g., "10♥", "K♠")
+        if (strlen($card) > 2) {
+            // Card has two-character rank (like "10")
+            return substr($card, 0, 2);
+        }
+
+        // Card has single-character rank (like "K", "Q", "A")
+        return substr($card, 0, 1);
+    }
+
     private function getHajariCardValue($rank)
     {
         return match($rank) {
@@ -459,7 +521,7 @@ class HajariGameRoom extends Component
             'K' => 13,
             'Q' => 12,
             'J' => 11,
-            '10' => 10,  // Fixed: Handle two-character rank
+            '10' => 10,
             '9' => 9,
             '8' => 8,
             '7' => 7,
@@ -472,17 +534,22 @@ class HajariGameRoom extends Component
         };
     }
 
-    // Update the getCardValues function
-    private function getCardValues($cards)
+    private function getCardSuits($cards)
     {
-        $values = [];
+        $suits = [];
         foreach ($cards as $card) {
-            // Extract rank properly for 2-character cards (10)
-            $rank = (strlen($card) === 3) ? substr($card, 0, 2) : substr($card, 0, 1);
-            $values[] = $this->getHajariCardValue($rank);
+            // Handle both array and string formats
+            if (is_array($card)) {
+                $suits[] = $card['suit'];
+            } else {
+                // Extract suit from string representation
+                $suits[] = substr($card, -1);
+            }
         }
-        return $values;
+        return $suits;
     }
+
+    // New apdeted code end
 
     // Update hand type detection to consider card count
     private function isTie($cardValues)
