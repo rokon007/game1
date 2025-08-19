@@ -490,28 +490,38 @@ class HajariGameRoom extends Component
     {
         $values = [];
         foreach ($cards as $card) {
-            // Properly handle both single and double character ranks
-            $rank = $this->extractRankFromCard($card);
+            // Check if card is in string format (from convertCardsToHajariFormat)
+            if (is_string($card)) {
+                // Handle string format (e.g., "10♥", "K♠")
+                if (strlen($card) > 2) {
+                    // Card has two-character rank (like "10")
+                    $rank = substr($card, 0, 2);
+                } else {
+                    // Card has single-character rank (like "K", "Q", "A")
+                    $rank = substr($card, 0, 1);
+                }
+            } else {
+                // Handle array format (from database)
+                $rank = $card['rank'];
+            }
             $values[] = $this->getHajariCardValue($rank);
         }
         return $values;
     }
 
-    private function extractRankFromCard($card)
+    private function getCardSuits($cards)
     {
-        // Handle both array format (from database) and string format (from conversion)
-        if (is_array($card)) {
-            return $card['rank'];
+        $suits = [];
+        foreach ($cards as $card) {
+            // Handle both array and string formats
+            if (is_string($card)) {
+                // Extract suit from string representation
+                $suits[] = substr($card, -1);
+            } else {
+                $suits[] = $card['suit'];
+            }
         }
-
-        // Handle string format (e.g., "10♥", "K♠")
-        if (strlen($card) > 2) {
-            // Card has two-character rank (like "10")
-            return substr($card, 0, 2);
-        }
-
-        // Card has single-character rank (like "K", "Q", "A")
-        return substr($card, 0, 1);
+        return $suits;
     }
 
     private function getHajariCardValue($rank)
@@ -532,21 +542,6 @@ class HajariGameRoom extends Component
             '2' => 2,
             default => 0
         };
-    }
-
-    private function getCardSuits($cards)
-    {
-        $suits = [];
-        foreach ($cards as $card) {
-            // Handle both array and string formats
-            if (is_array($card)) {
-                $suits[] = $card['suit'];
-            } else {
-                // Extract suit from string representation
-                $suits[] = substr($card, -1);
-            }
-        }
-        return $suits;
     }
 
     // New apdeted code end
