@@ -319,40 +319,40 @@ class HajariGameRoom extends Component
         }, $cards);
     }
 
-    private function determineHajariWinner($hands)
-    {
-        if (empty($hands)) return null;
+    // private function determineHajariWinner($hands)
+    // {
+    //     if (empty($hands)) return null;
 
-        $evaluatedHands = [];
+    //     $evaluatedHands = [];
 
-        foreach ($hands as $index => $hand) {
-            $evaluation = $this->evaluateHajariHand($hand['cards']);
-            $evaluatedHands[] = [
-                'index' => $index,
-                'evaluation' => $evaluation,
-                'submitted_at' => $hand['submitted_at'],
-                'player_id' => $hand['player_id']
-            ];
-        }
+    //     foreach ($hands as $index => $hand) {
+    //         $evaluation = $this->evaluateHajariHand($hand['cards']);
+    //         $evaluatedHands[] = [
+    //             'index' => $index,
+    //             'evaluation' => $evaluation,
+    //             'submitted_at' => $hand['submitted_at'],
+    //             'player_id' => $hand['player_id']
+    //         ];
+    //     }
 
-        // Sort by combination priority (lower = better), then highest card, then submission time
-        usort($evaluatedHands, function ($a, $b) {
-            // First: Compare hand type priority (lower number = higher priority)
-            if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
-                return $a['evaluation']['priority'] - $b['evaluation']['priority'];
-            }
+    //     // Sort by combination priority (lower = better), then highest card, then submission time
+    //     usort($evaluatedHands, function ($a, $b) {
+    //         // First: Compare hand type priority (lower number = higher priority)
+    //         if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
+    //             return $a['evaluation']['priority'] - $b['evaluation']['priority'];
+    //         }
 
-            // Second: Compare highest card value (higher card wins)
-            if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
-                return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
-            }
+    //         // Second: Compare highest card value (higher card wins)
+    //         if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
+    //             return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
+    //         }
 
-            // Third: Latest submission wins (tie-breaker rule)
-            return strcmp($b['submitted_at'], $a['submitted_at']);
-        });
+    //         // Third: Latest submission wins (tie-breaker rule)
+    //         return strcmp($b['submitted_at'], $a['submitted_at']);
+    //     });
 
-        return $evaluatedHands[0]['index'];
-    }
+    //     return $evaluatedHands[0]['index'];
+    // }
 
     // private function evaluateHajariHand($cards)
     // {
@@ -423,14 +423,14 @@ class HajariGameRoom extends Component
     //     return $values;
     // }
 
-    // private function getCardSuits($cards)
-    // {
-    //     $suits = [];
-    //     foreach ($cards as $card) {
-    //         $suits[] = substr($card, -1); // Get suit symbol
-    //     }
-    //     return $suits;
-    // }
+    private function getCardSuits($cards)
+    {
+        $suits = [];
+        foreach ($cards as $card) {
+            $suits[] = substr($card, -1); // Get suit symbol
+        }
+        return $suits;
+    }
 
     // private function getHajariCardValue($rank)
     // {
@@ -452,87 +452,6 @@ class HajariGameRoom extends Component
     //     };
     // }
 
-    // private function getHajariCardValue($rank)
-    // {
-    //     return match($rank) {
-    //         'A' => 14,
-    //         'K' => 13,
-    //         'Q' => 12,
-    //         'J' => 11,
-    //         '10' => 10,  // Fixed: Handle two-character rank
-    //         '9' => 9,
-    //         '8' => 8,
-    //         '7' => 7,
-    //         '6' => 6,
-    //         '5' => 5,
-    //         '4' => 4,
-    //         '3' => 3,
-    //         '2' => 2,
-    //         default => 0
-    //     };
-    // }
-
-    // Update the getCardValues function
-    // private function getCardValues($cards)
-    // {
-    //     $values = [];
-    //     foreach ($cards as $card) {
-    //         // Extract rank properly for 2-character cards (10)
-    //         $rank = (strlen($card) === 3) ? substr($card, 0, 2) : substr($card, 0, 1);
-    //         $values[] = $this->getHajariCardValue($rank);
-    //     }
-    //     return $values;
-    // }
-
-    // New apdeted code start
-
-
-
-    private function getCardValues($cards)
-    {
-        $values = [];
-        foreach ($cards as $card) {
-            // Check if card is in array format (from database)
-            if (is_array($card)) {
-                $rank = $card['rank'];
-            }
-            // Check if card is in string format (from convertCardsToHajariFormat)
-            else if (is_string($card)) {
-                // Handle string format (e.g., "10♥", "K♠")
-                if (strlen($card) > 2) {
-                    // Card has two-character rank (like "10")
-                    $rank = substr($card, 0, 2);
-                } else {
-                    // Card has single-character rank (like "K", "Q", "A")
-                    $rank = substr($card, 0, 1);
-                }
-            } else {
-                // Unknown format, skip
-                continue;
-            }
-            $values[] = $this->getHajariCardValue($rank);
-        }
-        return $values;
-    }
-
-    private function getCardSuits($cards)
-    {
-        $suits = [];
-        foreach ($cards as $card) {
-            // Handle both array and string formats
-            if (is_array($card)) {
-                $suits[] = $card['suit'];
-            } else if (is_string($card)) {
-                // Extract suit from string representation
-                $suits[] = substr($card, -1);
-            } else {
-                // Unknown format, skip
-                continue;
-            }
-        }
-        return $suits;
-    }
-
     private function getHajariCardValue($rank)
     {
         return match($rank) {
@@ -540,7 +459,7 @@ class HajariGameRoom extends Component
             'K' => 13,
             'Q' => 12,
             'J' => 11,
-            '10' => 10,
+            '10' => 10,  // Fixed: Handle two-character rank
             '9' => 9,
             '8' => 8,
             '7' => 7,
@@ -553,81 +472,17 @@ class HajariGameRoom extends Component
         };
     }
 
-    private function evaluateHajariHand($cards)
-    {
-        // Debugging: Log the cards being evaluated
-        Log::debug('Evaluating hand:', ['cards' => $cards]);
-
-        $cardValues = $this->getCardValues($cards);
-        $suits = $this->getCardSuits($cards);
-        $cardCount = count($cards);
-
-        // Debugging: Log the extracted values and suits
-        Log::debug('Extracted values and suits:', [
-            'values' => $cardValues,
-            'suits' => $suits
-        ]);
-
-        // Check for Tie (same rank cards - 3 or 4 of same rank)
-        if ($this->isTie($cardValues)) {
-            Log::debug('Hand evaluated as Tie');
-            return [
-                'type' => 'tie',
-                'priority' => 1,
-                'highest_card' => max($cardValues)
-            ];
-        }
-
-        // Check for Running (Straight Flush - sequential cards of same suit)
-        if ($this->isRunning($cardValues, $suits)) {
-            Log::debug('Hand evaluated as Running');
-            return [
-                'type' => 'running',
-                'priority' => 2,
-                'highest_card' => max($cardValues)
-            ];
-        }
-
-        // Check for Run (Straight - sequential cards of different suits)
-        if ($this->isRun($cardValues)) {
-            Log::debug('Hand evaluated as Run');
-            return [
-                'type' => 'run',
-                'priority' => 3,
-                'highest_card' => max($cardValues)
-            ];
-        }
-
-        // Check for Color (Flush - same suit but not sequential)
-        if ($this->isColor($suits)) {
-            Log::debug('Hand evaluated as Color');
-            return [
-                'type' => 'color',
-                'priority' => 4,
-                'highest_card' => max($cardValues)
-            ];
-        }
-
-        // Check for Pair (two cards of same rank)
-        if ($this->isPair($cardValues)) {
-            Log::debug('Hand evaluated as Pair');
-            return [
-                'type' => 'pair',
-                'priority' => 5,
-                'highest_card' => max($cardValues)
-            ];
-        }
-
-        // Mixed (no special combination)
-        Log::debug('Hand evaluated as Mixed');
-        return [
-            'type' => 'mixed',
-            'priority' => 6,
-            'highest_card' => max($cardValues)
-        ];
-    }
-
-    // New apdeted code end
+    // Update the getCardValues function
+    // private function getCardValues($cards)
+    // {
+    //     $values = [];
+    //     foreach ($cards as $card) {
+    //         // Extract rank properly for 2-character cards (10)
+    //         $rank = (strlen($card) === 3) ? substr($card, 0, 2) : substr($card, 0, 1);
+    //         $values[] = $this->getHajariCardValue($rank);
+    //     }
+    //     return $values;
+    // }
 
     // Update hand type detection to consider card count
     private function isTie($cardValues)
@@ -664,19 +519,19 @@ class HajariGameRoom extends Component
     }
 
     // Add this function after getHajariCardValue()
-    private function isSequential(array $cardValues): bool
-    {
-        $count = count($cardValues);
-        if ($count < 3) return false;
+    // private function isSequential(array $cardValues): bool
+    // {
+    //     $count = count($cardValues);
+    //     if ($count < 3) return false;
 
-        sort($cardValues);
-        for ($i = 1; $i < $count; $i++) {
-            if ($cardValues[$i] - $cardValues[$i-1] !== 1) {
-                return false;
-            }
-        }
-        return true;
-    }
+    //     sort($cardValues);
+    //     for ($i = 1; $i < $count; $i++) {
+    //         if ($cardValues[$i] - $cardValues[$i-1] !== 1) {
+    //             return false;
+    //         }
+    //     }
+    //     return true;
+    // }
 
     // Update hand type evaluation
     // private function isRunning($cardValues, $suits)
@@ -1208,30 +1063,226 @@ class HajariGameRoom extends Component
         }
     }
 
-    // private function checkGameProgress()
-    // {
-    //     $playersWithCards = $this->game->participants()
-    //         ->where('status', HajariGameParticipant::STATUS_PLAYING)
-    //         ->get()
-    //         ->filter(function ($participant) {
-    //             return is_array($participant->cards) && count($participant->cards) > 0;
-    //         })
-    //         ->count();
+    //+++++++++++++++++++++++++++++++++++++++++++
+    // Updated getCardValues function with better rank extraction
+    private function getCardValues($cards)
+    {
+        $values = [];
+        foreach ($cards as $card) {
+            // Extract rank properly for both single and double character ranks
+            if (strlen($card) === 3 && substr($card, 0, 2) === '10') {
+                $rank = '10';
+            } else {
+                $rank = substr($card, 0, 1);
+            }
+            $values[] = $this->getHajariCardValue($rank);
+        }
+        return $values;
+    }
 
-    //     // If no players have cards, check if we should end game or deal new cards
-    //     if ($playersWithCards === 0) {
-    //         // Check if we've played enough rounds to end the game
-    //         $totalRounds = $this->game->moves()->max('round') ?? 0;
+    // Fixed isSequential function to handle wraparound sequences properly
+    private function isSequential(array $cardValues): bool
+    {
+        $count = count($cardValues);
+        if ($count < 3) return false;
 
-    //         // End game after 13 rounds (all cards played) or based on your game rules
-    //         if ($totalRounds >= 13) {
-    //             $this->endGame();
-    //         } else {
-    //             // Deal new cards for next set of rounds
-    //             $this->dealNewCards();
-    //         }
-    //     }
-    // }
+        sort($cardValues);
+
+        // Check for normal sequence (e.g., 7,8,9 or 10,J,Q)
+        $isNormalSequence = true;
+        for ($i = 1; $i < $count; $i++) {
+            if ($cardValues[$i] - $cardValues[$i-1] !== 1) {
+                $isNormalSequence = false;
+                break;
+            }
+        }
+
+        if ($isNormalSequence) {
+            return true;
+        }
+
+        // Check for wraparound sequences (A,2,3 or Q,K,A)
+        // For A,2,3: A(14) should be treated as 1
+        // For Q,K,A: normal sequence 12,13,14
+
+        // Check if we have Ace and it could be part of low sequence (A,2,3)
+        if (in_array(14, $cardValues)) { // 14 is Ace
+            $lowValues = [];
+            foreach ($cardValues as $value) {
+                if ($value == 14) {
+                    $lowValues[] = 1; // Treat Ace as 1
+                } else {
+                    $lowValues[] = $value;
+                }
+            }
+
+            sort($lowValues);
+
+            // Check if low sequence works
+            $isLowSequence = true;
+            for ($i = 1; $i < count($lowValues); $i++) {
+                if ($lowValues[$i] - $lowValues[$i-1] !== 1) {
+                    $isLowSequence = false;
+                    break;
+                }
+            }
+
+            if ($isLowSequence) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Updated evaluateHajariHand function with debug logging
+    private function evaluateHajariHand($cards)
+    {
+        $cardValues = $this->getCardValues($cards);
+        $suits = $this->getCardSuits($cards);
+        $cardCount = count($cards);
+
+        // Debug logging
+        Log::info('Evaluating hand', [
+            'cards' => $cards,
+            'cardValues' => $cardValues,
+            'suits' => $suits
+        ]);
+
+        // Check for Tie (same rank cards - 3 or 4 of same rank)
+        if ($this->isTie($cardValues)) {
+            $result = [
+                'type' => 'tie',
+                'priority' => 1,
+                'highest_card' => max($cardValues)
+            ];
+            Log::info('Hand evaluated as TIE', $result);
+            return $result;
+        }
+
+        // Check for Running (Straight Flush - sequential cards of same suit)
+        if ($this->isRunning($cardValues, $suits)) {
+            $result = [
+                'type' => 'running',
+                'priority' => 2,
+                'highest_card' => max($cardValues)
+            ];
+            Log::info('Hand evaluated as RUNNING', $result);
+            return $result;
+        }
+
+        // Check for Run (Straight - sequential cards of different suits)
+        if ($this->isRun($cardValues)) {
+            $result = [
+                'type' => 'run',
+                'priority' => 3,
+                'highest_card' => max($cardValues)
+            ];
+            Log::info('Hand evaluated as RUN', $result);
+            return $result;
+        }
+
+        // Check for Color (Flush - same suit but not sequential)
+        if ($this->isColor($suits)) {
+            $result = [
+                'type' => 'color',
+                'priority' => 4,
+                'highest_card' => max($cardValues)
+            ];
+            Log::info('Hand evaluated as COLOR', $result);
+            return $result;
+        }
+
+        // Check for Pair (two cards of same rank)
+        if ($this->isPair($cardValues)) {
+            $result = [
+                'type' => 'pair',
+                'priority' => 5,
+                'highest_card' => max($cardValues)
+            ];
+            Log::info('Hand evaluated as PAIR', $result);
+            return $result;
+        }
+
+        // Mixed (no special combination)
+        $result = [
+            'type' => 'mixed',
+            'priority' => 6,
+            'highest_card' => max($cardValues)
+        ];
+        Log::info('Hand evaluated as MIXED', $result);
+        return $result;
+    }
+
+    // Updated determineHajariWinner with better debugging
+    private function determineHajariWinner($hands)
+    {
+        if (empty($hands)) return null;
+
+        $evaluatedHands = [];
+
+        foreach ($hands as $index => $hand) {
+            $evaluation = $this->evaluateHajariHand($hand['cards']);
+            $evaluatedHands[] = [
+                'index' => $index,
+                'evaluation' => $evaluation,
+                'submitted_at' => $hand['submitted_at'],
+                'player_id' => $hand['player_id'],
+                'cards' => $hand['cards'] // Add cards for debugging
+            ];
+        }
+
+        Log::info('All hands evaluated', ['hands' => $evaluatedHands]);
+
+        // Sort by combination priority (lower = better), then highest card, then submission time
+        usort($evaluatedHands, function ($a, $b) {
+            // First: Compare hand type priority (lower number = higher priority)
+            if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
+                return $a['evaluation']['priority'] - $b['evaluation']['priority'];
+            }
+
+            // Second: Compare highest card value (higher card wins)
+            if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
+                return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
+            }
+
+            // Third: Latest submission wins (tie-breaker rule)
+            return strcmp($b['submitted_at'], $a['submitted_at']);
+        });
+
+        Log::info('Winner determined', [
+            'winner_index' => $evaluatedHands[0]['index'],
+            'winner_cards' => $evaluatedHands[0]['cards'],
+            'winner_evaluation' => $evaluatedHands[0]['evaluation'],
+            'all_sorted_hands' => $evaluatedHands
+        ]);
+
+        return $evaluatedHands[0]['index'];
+    }
+
+    // Test function to verify the fix (you can remove this after testing)
+    public function testHandEvaluation()
+    {
+        // Test case 1: Q, J, 10 (should be RUN with priority 3, highest card 12)
+        $hand1 = ['Q♠', 'J♠', '10♠'];
+        $eval1 = $this->evaluateHajariHand($hand1);
+
+        // Test case 2: 7, 8, 9 (should be RUN with priority 3, highest card 9)
+        $hand2 = ['7♥', '8♥', '9♥'];
+        $eval2 = $this->evaluateHajariHand($hand2);
+
+        Log::info('Test Results', [
+            'Q,J,10' => $eval1,
+            '7,8,9' => $eval2,
+            'Q,J,10 should win' => $eval1['highest_card'] > $eval2['highest_card']
+        ]);
+
+        return [
+            'hand1' => ['cards' => $hand1, 'evaluation' => $eval1],
+            'hand2' => ['cards' => $hand2, 'evaluation' => $eval2]
+        ];
+    }
+    //+++++++++++++++++++++++++++++++++++++++++++
 
     private function checkGameProgress()
     {
