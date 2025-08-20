@@ -351,6 +351,8 @@ class HajariGameRoom extends Component
     //     return $evaluatedHands[0]['index'];
     // }
 
+
+
     private function determineHajariWinner($hands)
     {
         if (empty($hands)) return null;
@@ -363,22 +365,30 @@ class HajariGameRoom extends Component
             $bestEvaluation = null;
 
             if ($cardCount === 3) {
-                // ৩ কার্ড সরাসরি মূল্যায়ন
+                // সরাসরি ৩ কার্ড ইভ্যালুয়েটেশন
                 $bestEvaluation = $this->evaluateHajariHand($cards);
             } elseif ($cardCount === 4) {
-                // ৪ কার্ড থেকে সর্বোত্তম ৩ কার্ডের কম্বিনেশন নির্ধারণ
+                // ৪ কার্ড থেকে সর্বোৎকৃষ্ট ৩ কার্ড কম্বিনেশন খুঁজে বের করা
                 $combinations = $this->getThreeCardCombinations($cards);
 
                 foreach ($combinations as $combo) {
                     $evaluation = $this->evaluateHajariHand($combo);
 
-                    if ($bestEvaluation === null ||
-                        $evaluation['priority'] < $bestEvaluation['priority'] ||
-                        ($evaluation['priority'] === $bestEvaluation['priority'] && $evaluation['highest_card'] > $bestEvaluation['highest_card'])) {
+                    if ($bestEvaluation === null) {
                         $bestEvaluation = $evaluation;
+                    } else {
+                        // প্রাধান্য কম হলে সবসময় চয়েস
+                        if ($evaluation['priority'] < $bestEvaluation['priority']) {
+                            $bestEvaluation = $evaluation;
+                        }
+                        // প্রাধান্য সমান গেলে সর্বোচ্চ কার্ড চেক
+                        elseif ($evaluation['priority'] === $bestEvaluation['priority'] && $evaluation['highest_card'] > $bestEvaluation['highest_card']) {
+                            $bestEvaluation = $evaluation;
+                        }
                     }
                 }
             } else {
+                // অন্যান্য কার্ড সংখ্যা হলে সরাসরি ইভ্যালুয়েটেশন
                 $bestEvaluation = $this->evaluateHajariHand($cards);
             }
 
@@ -390,24 +400,21 @@ class HajariGameRoom extends Component
             ];
         }
 
-        // বিজয়ী নির্ধারণ টাই ব্রেকিংসহ
+        // বিজয়ী নির্ধারণ টাই-ব্রেকিং সহ
         usort($evaluatedHands, function ($a, $b) {
-            // Priority কম হলে বিজয়ী
             if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
                 return $a['evaluation']['priority'] - $b['evaluation']['priority'];
             }
-            // Highest card বেশি হলে বিজয়ী
             if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
                 return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
             }
-            // টাই ব্রেকার: যারা পরে জমা দিয়েছে সেই জিতবে
+            // টাই ব্রেকার: যাঁরা শেষ জমা দিয়েছেন তারা জিতবে
             return strcmp($b['submitted_at'], $a['submitted_at']);
         });
 
         return $evaluatedHands[0]['index'];
     }
 
-    // ৪টি কার্ড থেকে ৩টি নির্বাচন করার কম্বিনেশন জেনারেটর
     private function getThreeCardCombinations(array $cards)
     {
         $results = [];
@@ -423,6 +430,7 @@ class HajariGameRoom extends Component
 
         return $results;
     }
+
 
 
     private function calculateRoundWinner()
