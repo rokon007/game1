@@ -319,6 +319,38 @@ class HajariGameRoom extends Component
         }, $cards);
     }
 
+    // private function determineHajariWinner($hands)
+    // {
+    //     if (empty($hands)) return null;
+
+    //     $evaluatedHands = [];
+
+    //     foreach ($hands as $index => $hand) {
+    //         $evaluation = $this->evaluateHajariHand($hand['cards']);
+    //         $evaluatedHands[] = [
+    //             'index' => $index,
+    //             'evaluation' => $evaluation,
+    //             'submitted_at' => $hand['submitted_at'],
+    //             'player_id' => $hand['player_id']
+    //         ];
+    //     }
+
+    //     usort($evaluatedHands, function ($a, $b) {
+    //         // Compare priority: lower priority value wins
+    //         if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
+    //             return $a['evaluation']['priority'] - $b['evaluation']['priority'];
+    //         }
+    //         // Compare highest card: higher card wins
+    //         if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
+    //             return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
+    //         }
+    //         // Tie-breaker: latest submitted wins
+    //         return strcmp($b['submitted_at'], $a['submitted_at']);
+    //     });
+
+    //     return $evaluatedHands[0]['index'];
+    // }
+
     private function determineHajariWinner($hands)
     {
         if (empty($hands)) return null;
@@ -326,30 +358,72 @@ class HajariGameRoom extends Component
         $evaluatedHands = [];
 
         foreach ($hands as $index => $hand) {
-            $evaluation = $this->evaluateHajariHand($hand['cards']);
+            $cards = $hand['cards'];
+            $cardCount = count($cards);
+            $bestEvaluation = null;
+
+            if ($cardCount === 3) {
+                // ৩ কার্ড সরাসরি মূল্যায়ন
+                $bestEvaluation = $this->evaluateHajariHand($cards);
+            } elseif ($cardCount === 4) {
+                // ৪ কার্ড থেকে সর্বোত্তম ৩ কার্ডের কম্বিনেশন নির্ধারণ
+                $combinations = $this->getThreeCardCombinations($cards);
+
+                foreach ($combinations as $combo) {
+                    $evaluation = $this->evaluateHajariHand($combo);
+
+                    if ($bestEvaluation === null ||
+                        $evaluation['priority'] < $bestEvaluation['priority'] ||
+                        ($evaluation['priority'] === $bestEvaluation['priority'] && $evaluation['highest_card'] > $bestEvaluation['highest_card'])) {
+                        $bestEvaluation = $evaluation;
+                    }
+                }
+            } else {
+                $bestEvaluation = $this->evaluateHajariHand($cards);
+            }
+
             $evaluatedHands[] = [
                 'index' => $index,
-                'evaluation' => $evaluation,
+                'evaluation' => $bestEvaluation,
                 'submitted_at' => $hand['submitted_at'],
                 'player_id' => $hand['player_id']
             ];
         }
 
+        // বিজয়ী নির্ধারণ টাই ব্রেকিংসহ
         usort($evaluatedHands, function ($a, $b) {
-            // Compare priority: lower priority value wins
+            // Priority কম হলে বিজয়ী
             if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
                 return $a['evaluation']['priority'] - $b['evaluation']['priority'];
             }
-            // Compare highest card: higher card wins
+            // Highest card বেশি হলে বিজয়ী
             if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
                 return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
             }
-            // Tie-breaker: latest submitted wins
+            // টাই ব্রেকার: যারা পরে জমা দিয়েছে সেই জিতবে
             return strcmp($b['submitted_at'], $a['submitted_at']);
         });
 
         return $evaluatedHands[0]['index'];
     }
+
+    // ৪টি কার্ড থেকে ৩টি নির্বাচন করার কম্বিনেশন জেনারেটর
+    private function getThreeCardCombinations(array $cards)
+    {
+        $results = [];
+        $count = count($cards);
+
+        for ($i = 0; $i < $count - 2; $i++) {
+            for ($j = $i + 1; $j < $count - 1; $j++) {
+                for ($k = $j + 1; $k < $count; $k++) {
+                    $results[] = [$cards[$i], $cards[$j], $cards[$k]];
+                }
+            }
+        }
+
+        return $results;
+    }
+
 
     private function calculateRoundWinner()
     {
@@ -379,7 +453,9 @@ class HajariGameRoom extends Component
 
             if ($participant) {
                 // Calculate points earned only by winner's moves in this round
-                $totalPoints = $roundMoves->where('player_id', $winnerMove->player_id)->sum('points_earned');
+                //$totalPoints = $roundMoves->where('player_id', $winnerMove->player_id)->sum('points_earned');
+
+                $totalPoints = $roundMoves->sum('points_earned');
 
                 $participant->increment('rounds_won');
                 $participant->increment('total_points', $totalPoints);
