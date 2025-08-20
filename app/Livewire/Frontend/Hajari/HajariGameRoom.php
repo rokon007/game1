@@ -352,7 +352,71 @@ class HajariGameRoom extends Component
     // }
 
 
+    //S8 commit
+    // private function determineHajariWinner($hands)
+    // {
+    //     if (empty($hands)) return null;
 
+    //     $evaluatedHands = [];
+
+    //     foreach ($hands as $index => $hand) {
+    //         $cards = $hand['cards'];
+    //         $cardCount = count($cards);
+    //         $bestEvaluation = null;
+
+    //         if ($cardCount === 3) {
+    //             // সরাসরি ৩ কার্ড ইভ্যালুয়েটেশন
+    //             $bestEvaluation = $this->evaluateHajariHand($cards);
+    //         } elseif ($cardCount === 4) {
+    //             // ৪ কার্ড থেকে সর্বোৎকৃষ্ট ৩ কার্ড কম্বিনেশন খুঁজে বের করা
+    //             $combinations = $this->getThreeCardCombinations($cards);
+
+    //             foreach ($combinations as $combo) {
+    //                 $evaluation = $this->evaluateHajariHand($combo);
+
+    //                 if ($bestEvaluation === null) {
+    //                     $bestEvaluation = $evaluation;
+    //                 } else {
+    //                     // প্রাধান্য কম হলে সবসময় চয়েস
+    //                     if ($evaluation['priority'] < $bestEvaluation['priority']) {
+    //                         $bestEvaluation = $evaluation;
+    //                     }
+    //                     // প্রাধান্য সমান গেলে সর্বোচ্চ কার্ড চেক
+    //                     elseif ($evaluation['priority'] === $bestEvaluation['priority'] && $evaluation['highest_card'] > $bestEvaluation['highest_card']) {
+    //                         $bestEvaluation = $evaluation;
+    //                     }
+    //                 }
+    //             }
+    //         } else {
+    //             // অন্যান্য কার্ড সংখ্যা হলে সরাসরি ইভ্যালুয়েটেশন
+    //             $bestEvaluation = $this->evaluateHajariHand($cards);
+    //         }
+
+    //         $evaluatedHands[] = [
+    //             'index' => $index,
+    //             'evaluation' => $bestEvaluation,
+    //             'submitted_at' => $hand['submitted_at'],
+    //             'player_id' => $hand['player_id']
+    //         ];
+    //     }
+
+    //     // বিজয়ী নির্ধারণ টাই-ব্রেকিং সহ
+    //     usort($evaluatedHands, function ($a, $b) {
+    //         if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
+    //             return $a['evaluation']['priority'] - $b['evaluation']['priority'];
+    //         }
+    //         if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
+    //             return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
+    //         }
+    //         // টাই ব্রেকার: যাঁরা শেষ জমা দিয়েছেন তারা জিতবে
+    //         return strcmp($b['submitted_at'], $a['submitted_at']);
+    //     });
+
+    //     return $evaluatedHands[0]['index'];
+    // }
+
+
+    // New on S8 commit
     private function determineHajariWinner($hands)
     {
         if (empty($hands)) return null;
@@ -365,30 +429,20 @@ class HajariGameRoom extends Component
             $bestEvaluation = null;
 
             if ($cardCount === 3) {
-                // সরাসরি ৩ কার্ড ইভ্যালুয়েটেশন
                 $bestEvaluation = $this->evaluateHajariHand($cards);
             } elseif ($cardCount === 4) {
-                // ৪ কার্ড থেকে সর্বোৎকৃষ্ট ৩ কার্ড কম্বিনেশন খুঁজে বের করা
                 $combinations = $this->getThreeCardCombinations($cards);
 
                 foreach ($combinations as $combo) {
                     $evaluation = $this->evaluateHajariHand($combo);
-
-                    if ($bestEvaluation === null) {
+                    if ($bestEvaluation === null ||
+                        $evaluation['priority'] < $bestEvaluation['priority'] ||
+                        ($evaluation['priority'] === $bestEvaluation['priority'] && $evaluation['highest_card'] > $bestEvaluation['highest_card'])
+                    ) {
                         $bestEvaluation = $evaluation;
-                    } else {
-                        // প্রাধান্য কম হলে সবসময় চয়েস
-                        if ($evaluation['priority'] < $bestEvaluation['priority']) {
-                            $bestEvaluation = $evaluation;
-                        }
-                        // প্রাধান্য সমান গেলে সর্বোচ্চ কার্ড চেক
-                        elseif ($evaluation['priority'] === $bestEvaluation['priority'] && $evaluation['highest_card'] > $bestEvaluation['highest_card']) {
-                            $bestEvaluation = $evaluation;
-                        }
                     }
                 }
             } else {
-                // অন্যান্য কার্ড সংখ্যা হলে সরাসরি ইভ্যালুয়েটেশন
                 $bestEvaluation = $this->evaluateHajariHand($cards);
             }
 
@@ -396,11 +450,10 @@ class HajariGameRoom extends Component
                 'index' => $index,
                 'evaluation' => $bestEvaluation,
                 'submitted_at' => $hand['submitted_at'],
-                'player_id' => $hand['player_id']
+                'player_id' => $hand['player_id'],
             ];
         }
 
-        // বিজয়ী নির্ধারণ টাই-ব্রেকিং সহ
         usort($evaluatedHands, function ($a, $b) {
             if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
                 return $a['evaluation']['priority'] - $b['evaluation']['priority'];
@@ -408,7 +461,7 @@ class HajariGameRoom extends Component
             if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
                 return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
             }
-            // টাই ব্রেকার: যাঁরা শেষ জমা দিয়েছেন তারা জিতবে
+            // টাই ব্রেকার: যারা পরে জমা দিয়েছেন তারা জিতবে
             return strcmp($b['submitted_at'], $a['submitted_at']);
         });
 
@@ -430,6 +483,24 @@ class HajariGameRoom extends Component
 
         return $results;
     }
+
+
+
+    // private function getThreeCardCombinations(array $cards)
+    // {
+    //     $results = [];
+    //     $count = count($cards);
+
+    //     for ($i = 0; $i < $count - 2; $i++) {
+    //         for ($j = $i + 1; $j < $count - 1; $j++) {
+    //             for ($k = $j + 1; $k < $count; $k++) {
+    //                 $results[] = [$cards[$i], $cards[$j], $cards[$k]];
+    //             }
+    //         }
+    //     }
+
+    //     return $results;
+    // }
 
 
 
