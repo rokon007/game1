@@ -417,7 +417,7 @@ class HajariGameRoom extends Component
 
 
     // New on S8 commit
-    private function determineHajariWinner($hands)
+    private function determineHajariWinner(array $hands)
     {
         if (empty($hands)) return null;
 
@@ -432,17 +432,18 @@ class HajariGameRoom extends Component
                 $bestEvaluation = $this->evaluateHajariHand($cards);
             } elseif ($cardCount === 4) {
                 $combinations = $this->getThreeCardCombinations($cards);
-
                 foreach ($combinations as $combo) {
                     $evaluation = $this->evaluateHajariHand($combo);
                     if ($bestEvaluation === null ||
                         $evaluation['priority'] < $bestEvaluation['priority'] ||
-                        ($evaluation['priority'] === $bestEvaluation['priority'] && $evaluation['highest_card'] > $bestEvaluation['highest_card'])
+                        ($evaluation['priority'] === $bestEvaluation['priority'] &&
+                        $evaluation['highest_card'] > $bestEvaluation['highest_card'])
                     ) {
                         $bestEvaluation = $evaluation;
                     }
                 }
             } else {
+                // অন্য সংখ্যক কার্ড হলে সরাসরি ইভ্যালুয়েটেশন
                 $bestEvaluation = $this->evaluateHajariHand($cards);
             }
 
@@ -461,12 +462,13 @@ class HajariGameRoom extends Component
             if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
                 return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
             }
-            // টাই ব্রেকার: যারা পরে জমা দিয়েছেন তারা জিতবে
+            // যারা পরে জমা দিয়েছে তারা জিতবে (টাই-ব্রেকার)
             return strcmp($b['submitted_at'], $a['submitted_at']);
         });
 
-        return $evaluatedHands[0]['index'];
+        return $evaluatedHands[0]['index'] ?? null;
     }
+
 
     private function getThreeCardCombinations(array $cards)
     {
@@ -703,16 +705,21 @@ class HajariGameRoom extends Component
     // }
 
     // Update the getCardValues function
-    private function getCardValues($cards)
+    private function getCardValues(array $cards): array
     {
         $values = [];
         foreach ($cards as $card) {
-            // Extract rank properly for 2-character cards (10)
-            $rank = (strlen($card) === 3) ? substr($card, 0, 2) : substr($card, 0, 1);
+            // কার্ডের রাঙ্ক ঠিকভাবে বের করা
+            if (strlen($card) === 3) {
+                $rank = substr($card, 0, 2); // উদাহরণ: '10♠'
+            } else {
+                $rank = substr($card, 0, 1); // উদাহরণ: 'A♠', 'K♠'
+            }
             $values[] = $this->getHajariCardValue($rank);
         }
         return $values;
     }
+
 
     // Update hand type detection to consider card count
     private function isTie($cardValues)
@@ -755,13 +762,15 @@ class HajariGameRoom extends Component
         if ($count < 3) return false;
 
         sort($cardValues);
+
         for ($i = 1; $i < $count; $i++) {
-            if ($cardValues[$i] - $cardValues[$i-1] !== 1) {
+            if ($cardValues[$i] - $cardValues[$i - 1] !== 1) {
                 return false;
             }
         }
         return true;
     }
+
 
     // Update hand type evaluation
     // private function isRunning($cardValues, $suits)
