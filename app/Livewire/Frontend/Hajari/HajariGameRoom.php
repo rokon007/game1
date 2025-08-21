@@ -709,16 +709,46 @@ class HajariGameRoom extends Component
     // }
 
     // Update the getCardValues function
+    // private function getCardValues(array $cards): array
+    // {
+    //     $values = [];
+    //     foreach ($cards as $card) {
+    //         // '10' এর জন্য 2 অক্ষর, অন্যদের জন্য 1 অক্ষর নেওয়া হয়
+    //         $rank = (strlen($card) === 3) ? substr($card, 0, 2) : substr($card, 0, 1);
+
+    //         // Debug log যোগ
+    //         Log::debug('Card rank extraction', [
+    //             'card' => $card,
+    //             'rank' => $rank,
+    //         ]);
+
+    //         $values[] = $this->getHajariCardValue($rank);
+    //     }
+    //     return $values;
+    // }
+
     private function getCardValues(array $cards): array
     {
         $values = [];
         foreach ($cards as $card) {
-            // '10' এর জন্য 2 অক্ষর, অন্যদের জন্য 1 অক্ষর নেওয়া হয়
-            $rank = (strlen($card) === 3) ? substr($card, 0, 2) : substr($card, 0, 1);
+            // ইউনিকোড লেন্থ হিসেবে পরীক্ষা করুন '10♠' এর জন্য
+            if (mb_strlen($card) === 3) {
+                $rank = mb_substr($card, 0, 2);
+            } else {
+                $rank = mb_substr($card, 0, 1);
+            }
+
+            // লগ করুন
+            Log::debug('Card rank extraction', [
+                'card' => $card,
+                'rank' => $rank,
+            ]);
+
             $values[] = $this->getHajariCardValue($rank);
         }
         return $values;
     }
+
 
 
 
