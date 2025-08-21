@@ -586,64 +586,68 @@ class HajariGameRoom extends Component
     }
 
 
-    private function evaluateHajariHand($cards)
+    private function evaluateHajariHand(array $cards)
     {
         $cardValues = $this->getCardValues($cards);
         $suits = $this->getCardSuits($cards);
         $cardCount = count($cards);
 
-        // Check for Tie (same rank cards - 3 or 4 of same rank)
+        // সর্বোচ্চ কার্ড নির্ধারণ, সঠিক রেংক সহ
+        $highestCard = max($cardValues);
+
+        // Check for Tie (3 বা 4 সমান রাঙ্ক)
         if ($this->isTie($cardValues)) {
             return [
                 'type' => 'tie',
                 'priority' => 1,
-                'highest_card' => max($cardValues)
+                'highest_card' => $highestCard,
             ];
         }
 
-        // Check for Running (Straight Flush - sequential cards of same suit)
+        // Check for Running (Straight Flush)
         if ($this->isRunning($cardValues, $suits)) {
             return [
                 'type' => 'running',
                 'priority' => 2,
-                'highest_card' => max($cardValues)
+                'highest_card' => $highestCard,
             ];
         }
 
-        // Check for Run (Straight - sequential cards of different suits)
+        // Check for Run (Straight)
         if ($this->isRun($cardValues)) {
             return [
                 'type' => 'run',
                 'priority' => 3,
-                'highest_card' => max($cardValues)
+                'highest_card' => $highestCard,
             ];
         }
 
-        // Check for Color (Flush - same suit but not sequential)
+        // Check for Color (Flush)
         if ($this->isColor($suits)) {
             return [
                 'type' => 'color',
                 'priority' => 4,
-                'highest_card' => max($cardValues)
+                'highest_card' => $highestCard,
             ];
         }
 
-        // Check for Pair (two cards of same rank)
+        // Check for Pair
         if ($this->isPair($cardValues)) {
             return [
                 'type' => 'pair',
                 'priority' => 5,
-                'highest_card' => max($cardValues)
+                'highest_card' => $highestCard,
             ];
         }
 
-        // Mixed (no special combination)
+        // Mixed (কোনো বিশেষ কম্বিনেশন নেই)
         return [
             'type' => 'mixed',
             'priority' => 6,
-            'highest_card' => max($cardValues)
+            'highest_card' => $highestCard,
         ];
     }
+
 
     // private function getCardValues($cards)
     // {
@@ -709,16 +713,13 @@ class HajariGameRoom extends Component
     {
         $values = [];
         foreach ($cards as $card) {
-            // কার্ডের রাঙ্ক ঠিকভাবে বের করা
-            if (strlen($card) === 3) {
-                $rank = substr($card, 0, 2); // উদাহরণ: '10♠'
-            } else {
-                $rank = substr($card, 0, 1); // উদাহরণ: 'A♠', 'K♠'
-            }
+            // '10' এর জন্য 2 অক্ষর, অন্যদের জন্য 1 অক্ষর নেওয়া হয়
+            $rank = (strlen($card) === 3) ? substr($card, 0, 2) : substr($card, 0, 1);
             $values[] = $this->getHajariCardValue($rank);
         }
         return $values;
     }
+
 
 
     // Update hand type detection to consider card count
