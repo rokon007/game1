@@ -629,74 +629,29 @@ class HajariGameRoom extends Component
     }
 
 
-    // private function getCardValues($cards)
+
+    // private function getCardSuits($cards)
     // {
-    //     $values = [];
+    //     $suits = [];
     //     foreach ($cards as $card) {
-    //         $rank = substr($card, 0, -1); // Remove suit symbol
-    //         $values[] = $this->getHajariCardValue($rank);
+    //         $suits[] = substr($card, -1); // Get suit symbol
     //     }
-    //     return $values;
+    //     return $suits;
     // }
 
-    private function getCardSuits($cards)
-    {
-        $suits = [];
-        foreach ($cards as $card) {
-            $suits[] = substr($card, -1); // Get suit symbol
-        }
-        return $suits;
-    }
 
-    // private function getHajariCardValue($rank)
-    // {
-    //     return match($rank) {
-    //         'A' => 14,
-    //         'K' => 13,
-    //         'Q' => 12,
-    //         'J' => 11,
-    //         '10' => 10,
-    //         '9' => 9,
-    //         '8' => 8,
-    //         '7' => 7,
-    //         '6' => 6,
-    //         '5' => 5,
-    //         '4' => 4,
-    //         '3' => 3,
-    //         '2' => 2,
-    //         default => 0
-    //     };
-    // }
-
-    // private function getHajariCardValue($rank)
-    // {
-    //     return match($rank) {
-    //         'A' => 14,
-    //         'K' => 13,
-    //         'Q' => 12,
-    //         'J' => 11,
-    //         '10' => 10,  // Fixed: Handle two-character rank
-    //         '9' => 9,
-    //         '8' => 8,
-    //         '7' => 7,
-    //         '6' => 6,
-    //         '5' => 5,
-    //         '4' => 4,
-    //         '3' => 3,
-    //         '2' => 2,
-    //         default => 0
-    //     };
-    // }
-
-    // Update the getCardValues function
     // private function getCardValues(array $cards): array
     // {
     //     $values = [];
     //     foreach ($cards as $card) {
-    //         // '10' এর জন্য 2 অক্ষর, অন্যদের জন্য 1 অক্ষর নেওয়া হয়
-    //         $rank = (strlen($card) === 3) ? substr($card, 0, 2) : substr($card, 0, 1);
+    //         // ইউনিকোড লেন্থ হিসেবে পরীক্ষা করুন '10♠' এর জন্য
+    //         if (mb_strlen($card) === 3) {
+    //             $rank = mb_substr($card, 0, 2);
+    //         } else {
+    //             $rank = mb_substr($card, 0, 1);
+    //         }
 
-    //         // Debug log যোগ
+    //         // লগ করুন
     //         Log::debug('Card rank extraction', [
     //             'card' => $card,
     //             'rank' => $rank,
@@ -707,26 +662,49 @@ class HajariGameRoom extends Component
     //     return $values;
     // }
 
+
     private function getCardValues(array $cards): array
     {
         $values = [];
         foreach ($cards as $card) {
-            // ইউনিকোড লেন্থ হিসেবে পরীক্ষা করুন '10♠' এর জন্য
-            if (mb_strlen($card) === 3) {
-                $rank = mb_substr($card, 0, 2);
+            // যদি card টি array format এ থাকে
+            if (is_array($card) && isset($card['rank'])) {
+                $rank = $card['rank'];
             } else {
-                $rank = mb_substr($card, 0, 1);
+                // যদি string format এ থাকে
+                if (mb_strlen($card) === 3) {
+                    $rank = mb_substr($card, 0, 2);
+                } else {
+                    $rank = mb_substr($card, 0, 1);
+                }
             }
-
-            // লগ করুন
-            Log::debug('Card rank extraction', [
-                'card' => $card,
-                'rank' => $rank,
-            ]);
 
             $values[] = $this->getHajariCardValue($rank);
         }
         return $values;
+    }
+
+    private function getCardSuits($cards)
+    {
+        $suitMap = [
+            'spades' => '♠',
+            'hearts' => '♥',
+            'diamonds' => '♦',
+            'clubs' => '♣'
+        ];
+
+        $suits = [];
+        foreach ($cards as $card) {
+            // যদি card টি array format এ থাকে
+            if (is_array($card) && isset($card['suit'])) {
+                $suit = $card['suit'];
+                $suits[] = $suitMap[$suit] ?? '♠';
+            } else {
+                // যদি string format এ থাকে
+                $suits[] = substr($card, -1);
+            }
+        }
+        return $suits;
     }
 
 
@@ -1540,6 +1518,65 @@ class HajariGameRoom extends Component
         }
 
         return null;
+    }
+
+    private function evaluateBestCombination($cards)
+    {
+        $cardValues = $this->getCardValues($cards);
+        $suits = $this->getCardSuits($cards);
+        $cardCount = count($cards);
+
+        // Check for Tie (same rank cards - 3 or 4 of same rank)
+        if ($this->isTie($cardValues)) {
+            return [
+                'type' => 'tie',
+                'priority' => 1,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Running (Straight Flush - sequential cards of same suit)
+        if ($this->isRunning($cardValues, $suits)) {
+            return [
+                'type' => 'running',
+                'priority' => 2,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Run (Straight - sequential cards of different suits)
+        if ($this->isRun($cardValues)) {
+            return [
+                'type' => 'run',
+                'priority' => 3,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Color (Flush - same suit but not sequential)
+        if ($this->isColor($suits)) {
+            return [
+                'type' => 'color',
+                'priority' => 4,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Check for Pair (two cards of same rank)
+        if ($this->isPair($cardValues)) {
+            return [
+                'type' => 'pair',
+                'priority' => 5,
+                'highest_card' => max($cardValues)
+            ];
+        }
+
+        // Mixed (no special combination)
+        return [
+            'type' => 'mixed',
+            'priority' => 6,
+            'highest_card' => max($cardValues)
+        ];
     }
 
     public function render()
