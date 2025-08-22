@@ -169,6 +169,13 @@
                                 <i class="fas fa-play"></i>
                             </div>
                         @endif
+
+                        {{-- Rong মার্কার ডিভ --}}
+                        @if(isset($playerRongStatus[$participant->user_id]) && $playerRongStatus[$participant->user_id])
+                            <div class="rong-indicator" title="Rong">
+                                <i class="fas fa-exclamation-triangle" style="color: red;"></i>Rong
+                            </div>
+                        @endif
                     </div>
                 </div>
             @endforeach
@@ -1024,7 +1031,8 @@
         }
 
         .top-player {
-            top: -20px;
+            top: 30px;
+            /* top:-20px; */
             left: 50%;
             transform: translateX(-50%);
         }
