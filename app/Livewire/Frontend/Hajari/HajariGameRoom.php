@@ -989,11 +989,6 @@ class HajariGameRoom extends Component
         return $playedCards;
     }
 
-    public function dealNewCardsAfterAllWrong()
-    {
-        $this->showAllWrongModal = false;
-        $this->dealNewCards();
-    }
 
 
 
@@ -1223,6 +1218,15 @@ class HajariGameRoom extends Component
 
             $this->selectedCards = [];
 
+            // ৪ জন প্লেয়ার Wrong হলে নতুন কার্ড বিতরণ করুন
+            if (count($this->wrongPlayers) >= 4) {
+                $this->showAllWrongModal = true;
+                $this->dispatch('allPlayersWrong');
+
+                // ৩ সেকেন্ড পর স্বয়ংক্রিয়ভাবে নতুন কার্ড বিতরণ করুন
+                $this->dispatch('refresh-after-delay', ['seconds' => 3]);
+            }
+
             if ($this->isRoundComplete()) {
                 $this->calculateRoundWinner();
                 $this->checkGameProgress(); // গেম প্রোগ্রেস চেক রাউন্ড শেষে
@@ -1232,8 +1236,15 @@ class HajariGameRoom extends Component
 
         } catch (\Exception $e) {
             Log::error('Error playing cards: ' . $e->getMessage());
-            session()->flash('error', 'Failed to play cards: ' . $e->getMessage());
+            session()->flash('error', 'An error occurred while playing cards.');
         }
+    }
+
+    // নতুন কার্ড বিতরণের মেথড (৪ জন Wrong হলে কল হবে)
+    public function dealNewCardsAfterAllWrong()
+    {
+        $this->showAllWrongModal = false;
+        $this->dealNewCards();
     }
 
     private function isPlayerTurn(): bool
