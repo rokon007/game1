@@ -313,21 +313,56 @@
                     <div class="winner-title">WINNER!</div>
                 </div>
                 <div class="final-scores">
-                    @if(isset($winnerData['final_scores']))
-                        @foreach($winnerData['final_scores'] as $score)
+
                             <div class="score-row">
-                                <span>{{ $score['name'] }}</span>
-                                <span>{{ $score['total_points'] }} pts</span>
+                                <span>Final Scores</span>
+                                <span>{{ $winnerData['final_scores'] ?? '' }} pts</span>
                             </div>
-                        @endforeach
-                    @endif
+
                 </div>
                 <button wire:click="closeWinnerModal" class="close-btn">Close</button>
             </div>
         </div>
     @endif
 
+    @if($showAllWrongModal)
+        <div class="modal show" style="display: block;">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">সব প্লেয়ার Wrong!</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>সব ৪ জন প্লেয়ার Wrong কম্বিনেশন খেলেছেন। নতুন করে কার্ড বিতরণ করা হবে।</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" wire:click="dealNewCardsAfterAllWrong">ঠিক আছে</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <script src="{{ asset('js/hajari-room.js') }}" defer></script>
+    <script>
+        window.Echo.channel('game.{{ $game->id }}')
+            .listen('WrongMove', (e) => {
+                // Wrong move notification দেখান
+                alert(e.user.name + ' has played a wrong combination!');
+                playSound('rongSoundPlay');
+                // UI আপডেট করুন
+                Livewire.dispatch('refreshGame');
+            });
+
+            document.addEventListener('livewire:init', () => {
+                Livewire.on('refresh-after-delay', (data) => {
+                    setTimeout(() => {
+                        Livewire.dispatch('dealNewCardsAfterAllWrong');
+                    }, data.seconds * 1000);
+                });
+            });
+    </script>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize the main game logic
