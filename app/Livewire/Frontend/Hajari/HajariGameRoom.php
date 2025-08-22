@@ -544,7 +544,9 @@ class HajariGameRoom extends Component
             broadcast(new ScoreUpdated($this->game, $participant, $totalPoints, $this->gameState['current_round'], 'hajari_winner'));
 
             // Rong স্ট্যাটাস ব্রাউজারে পাস করুন UI হালনাগাদের জন্য
-            $this->dispatch('rong-status-updated', ['rongStatus' => $this->playerRongStatus]);
+            $this->dispatch('rongSound');
+            //$this->dispatch('rong-status-updated', ['rongStatus' => $this->playerRongStatus]);
+            $this->dispatchBrowserEvent('rong-status-updated', ['rongStatus' => $this->playerRongStatus]);
 
             Log::info('Hajari Round Winner', [
                 'round' => $this->gameState['current_round'],

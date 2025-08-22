@@ -12,6 +12,9 @@
     <audio id="winRoundSound" preload="auto">
         <source src="{{ asset('sounds/winRoundSound.mp3') }}" type="audio/mpeg">
     </audio>
+    <audio id="rongSoundPlay" preload="auto">
+        <source src="{{ asset('sounds/rongSoundPlay.mp3') }}" type="audio/mpeg">
+    </audio>
     <audio id="playCardSound" preload="auto">
         <source src="{{ asset('sounds/playCardSound.mp3') }}" type="audio/mpeg">
     </audio>
@@ -513,6 +516,10 @@
 
                 Livewire.on('roundWon', () => {
                     playSound('winRoundSound');
+                });
+
+                Livewire.on('rongSound', () => {
+                    playSound('rongSoundPlay');
                 });
 
                 Livewire.on('gameOver', () => {
