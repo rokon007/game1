@@ -174,7 +174,7 @@
                         @endif
 
                         {{-- Rong মার্কার ডিভ --}}
-                        @if(isset($playerRongStatus[$participant->user_id]) && $playerRongStatus[$participant->user_id])
+                        @if(in_array($participant->user_id, $wrongPlayers))
                             <div class="rong-indicator" title="Rong">
                                 <i class="fas fa-exclamation-triangle" style="color: red;"></i>Rong
                             </div>

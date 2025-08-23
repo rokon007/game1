@@ -92,6 +92,8 @@ class HajariGameRoom extends Component
         if (!in_array($user_id, $this->wrongPlayers)) {
              $this->wrongPlayers[] = $user_id;
          }
+
+         $this->dispatch('rongSound');
     }
 
     //Update for Wrong Rule
@@ -453,6 +455,9 @@ class HajariGameRoom extends Component
         $validMoves = $roundMoves->whereNotIn('player_id', $wrongPlayerIds);
 
         if ($validMoves->isEmpty()) {
+            $this->showAllWrongModal=true;
+            // ৩ সেকেন্ড পর স্বয়ংক্রিয়ভাবে নতুন কার্ড বিতরণ করুন
+            $this->dispatch('refresh-after-delay', ['seconds' => 3]);
             Log::info('এই রাউন্ডে কোনো বিজয়ী নেই কারণ সকল খেলোয়াড় ভুল চাল দিয়েছেন।');
             return;
         }
@@ -507,6 +512,12 @@ class HajariGameRoom extends Component
                 ]);
             }
         }
+    }
+
+    public function dealNewCardsAfterAllWrong()
+    {
+        $this->showAllWrongModal = false;
+        $this->dealNewCards();
     }
 
     private function getHajariCardValue($rank)
