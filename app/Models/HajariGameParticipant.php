@@ -23,7 +23,10 @@ class HajariGameParticipant extends Model
         'rounds_won',
         'round_scores',
         'hazari_count',
-        'is_ready'
+        'is_ready',
+        'cards_locked',
+        'is_wrong',
+        'last_combination',
     ];
 
     protected $casts = [
@@ -32,7 +35,10 @@ class HajariGameParticipant extends Model
         'is_ready' => 'boolean',
         'total_points' => 'integer',
         'rounds_won' => 'integer',
-        'hazari_count' => 'integer'
+        'hazari_count' => 'integer',
+        'cards_locked' => 'boolean',
+        'is_wrong' => 'boolean',
+        'last_combination' => 'array',
     ];
 
     // Define valid status values

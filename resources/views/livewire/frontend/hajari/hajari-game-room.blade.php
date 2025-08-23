@@ -313,12 +313,10 @@
                     <div class="winner-title">WINNER!</div>
                 </div>
                 <div class="final-scores">
-
-                            <div class="score-row">
-                                <span>Final Scores</span>
-                                <span>{{ $winnerData['final_scores'] ?? '' }} pts</span>
-                            </div>
-
+                    <div class="score-row">
+                        <span>Final Score:</span>
+                        <span>{{ $winnerData['final_scores'] ?? 0 }} pts</span>
+                    </div>
                 </div>
                 <button wire:click="closeWinnerModal" class="close-btn">Close</button>
             </div>
@@ -351,7 +349,7 @@
                 alert(e.user.name + ' has played a wrong combination!');
                 playSound('rongSoundPlay');
                 // UI আপডেট করুন
-                Livewire.dispatch('refreshGame');
+                Livewire.dispatch('refreshGameWrong',e.user.id);
             });
 
             document.addEventListener('livewire:init', () => {
@@ -575,6 +573,59 @@
     </script>
 
     <style>
+        /* style for winner modal */
+        .winner-modal {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            max-width: 300px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .winner-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #059669;
+            margin-bottom: 5px;
+        }
+
+        .winner-title {
+            font-size: 14px;
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .final-scores {
+            margin: 15px 0;
+        }
+
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .close-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+
+        .close-btn:hover {
+            background: #2563eb;
+        }
+
+        /* winner modal style end */
+
+
         /* Added voice chat button styles */
         .voice-btn {
             width: 40px;
