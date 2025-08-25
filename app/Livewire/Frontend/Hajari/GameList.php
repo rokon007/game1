@@ -4,9 +4,12 @@ namespace App\Livewire\Frontend\Hajari;
 
 use App\Models\HajariGame;
 use App\Models\HajariGameInvitation;
+use App\Models\Transaction;
+use App\Models\User;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 
 class GameList extends Component
@@ -14,9 +17,12 @@ class GameList extends Component
     use WithPagination;
 
     public $filter = 'all'; // all, my_games, invitations, available
+    public $showConfirmationModal = false;
+    public $gameId,$bid_amount;
 
-    public function joinGame(HajariGame $game)
+    public function confirmjoinGame(HajariGame $game) // Add this method
     {
+
         if (!$game->canJoin(Auth::user())) {
             // session()->flash('error', 'Cannot join this game.');
             $this->dispatch('showToast', 'Cannot join this game.', 'error');
@@ -28,14 +34,62 @@ class GameList extends Component
             $this->dispatch('showToast', 'Insufficient balance to join this game', 'error');
             return;
         }
-//$this->dispatch('showToast', 'User created successfully!', 'success');
+
+        $this->gameId=$game;
+        $this->bid_amount=$game->bid_amount;
+
+        $this->showConfirmationModal = true;
+    }
+
+    public function joinGame(HajariGame $game)
+    {
+        //dd('ok');
+        // if (!$game->canJoin(Auth::user())) {
+        //     // session()->flash('error', 'Cannot join this game.');
+        //     $this->dispatch('showToast', 'Cannot join this game.', 'error');
+        //     return;
+        // }
+
+        // if (Auth::user()->credit < $game->bid_amount) {
+        //     //session()->flash('error', 'Insufficient balance to join this game.');
+        //     $this->dispatch('showToast', 'Insufficient balance to join this game', 'error');
+        //     return;
+        // }
+        //$this->dispatch('showToast', 'User created successfully!', 'success');
         $position = $game->participants()->count() + 1;
+
+        $user = Auth::user();
+        $admin = User::find(1);
 
         $game->participants()->create([
             'user_id' => Auth::id(),
             'status' => 'joined',
             'position' => $position
         ]);
+
+       // Deduct bid amount from creator
+            $user->credit -= $game->bid_amount;
+            $user->save();
+
+            // Add bid amount to admin account
+            $admin->credit += $game->bid_amount;
+            $admin->save();
+
+            // Create transaction for creator (debit)
+            Transaction::create([
+                'user_id' => $user->id,
+                'type' => 'debit',
+                'amount' => $game->bid_amount,
+                'details' => 'Game Joing  : ' . $game->title,
+            ]);
+
+            // Create transaction for admin (credit)
+            Transaction::create([
+                'user_id' => $admin->id,
+                'type' => 'credit',
+                'amount' => $game->bid_amount,
+                'details' => 'Game Joing bid from user: ' . $user->name . ' for game: ' . $game->title,
+            ]);
 
         // session()->flash('success', 'Successfully joined the game!');
         $this->dispatch('showToast', 'Successfully joined the game!', 'success');

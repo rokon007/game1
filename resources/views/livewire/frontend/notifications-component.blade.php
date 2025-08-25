@@ -175,6 +175,10 @@
                                     <p><strong>Transaction ID:</strong> {{ $selectedNotification->data['transaction_id'] }}</p>
                                 @endif
 
+                                @if(isset($selectedNotification->data['game_entry_url']))
+                                     <a class="btn btn-light" href="{{ $selectedNotification->data['game_entry_url'] }}">Join Now</a>
+                                @endif
+
                             <a class="btn btn-light" href="#">View More</a>
                         </div>
                     </div>

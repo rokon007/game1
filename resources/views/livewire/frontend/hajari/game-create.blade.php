@@ -794,6 +794,8 @@
                 width: auto;
             }
         }
+
+
     </style>
     @endsection
 
@@ -841,7 +843,8 @@
                         </div>
                     </div>
 
-                    <form wire:submit.prevent="createGame">
+                    {{-- <form wire:submit.prevent="createGame"> --}}
+                        <form wire:submit.prevent="confirmCreate">
 
                         <!-- Game Information Card -->
                         <div class="form-card" data-aos="fade-up" data-aos-delay="300">
@@ -1037,6 +1040,38 @@
                     </form>
                 </div>
             </div>
+            <!-- Add this modal code before the closing div tag -->
+            <div class="modal-backdrop fade show" wire:click="$set('showConfirmationModal', false)" style="display: {{ $showConfirmationModal ? 'block' : 'none' }};"></div>
+
+            <div class="modal fade show" tabindex="-1" style="display: {{ $showConfirmationModal ? 'block' : 'none' }}; background: rgba(0,0,0,0.5);">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content" style="border-radius: var(--border-radius-lg); overflow: hidden; box-shadow: var(--shadow-xl);">
+                        <div class="modal-header" style="background: var(--primary-gradient); color: white; border-bottom: none;">
+                            <h5 class="modal-title">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                Confirm Bid Deduction
+                            </h5>
+                        </div>
+                        <div class="modal-body" style="padding: var(--spacing-lg);">
+                            <p style="font-size: 1.1rem; margin-bottom: 1rem;">
+                                {{ $bid_amount }} Credit has been deducted from your account.
+                            </p>
+                            <p style="color: #6c757d;">
+                                This amount will be deposited into the Admin's account and will be transferred to the winner after the game ends.
+                            </p>
+                        </div>
+                        <div class="modal-footer" style="border-top: none; padding: var(--spacing-md) var(--spacing-lg); background: var(--bg-secondary);">
+                            <button type="button" class="btn btn-secondary" wire:click="$set('showConfirmationModal', false)">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </button>
+                            <button type="button" class="btn btn-primary" wire:click="createGame">
+                                <i class="fas fa-check me-2"></i>Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
     @section('footer')

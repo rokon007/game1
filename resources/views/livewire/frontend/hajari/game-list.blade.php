@@ -11,7 +11,7 @@
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.all.min.js"></script>
         <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.min.css" rel="stylesheet">
-        <style>
+          <style>
             .custom-badge {
                 position: absolute;
                 top: 10px;
@@ -27,6 +27,111 @@
                 vertical-align: middle;
                 margin-right: 1px;
             }
+
+            /* Fixed Modal Styles */
+            .modal-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 1040;
+                width: 100vw;
+                height: 100vh;
+                background-color: #000;
+                opacity: 0.5;
+            }
+
+            .modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 1050;
+                width: 100%;
+                height: 100%;
+                overflow-x: hidden;
+                overflow-y: auto;
+                outline: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .modal-dialog {
+                position: relative;
+                width: auto;
+                margin: 0.5rem;
+                pointer-events: none;
+                max-width: 500px;
+            }
+
+            .modal-content {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                pointer-events: auto;
+                background-color: #fff;
+                background-clip: padding-box;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                border-radius: 0.3rem;
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+                outline: 0;
+            }
+
+            .modal-header {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                padding: 1rem 1rem;
+                border-bottom: 1px solid #dee2e6;
+                border-top-left-radius: 0.3rem;
+                border-top-right-radius: 0.3rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+
+            .modal-body {
+                position: relative;
+                flex: 1 1 auto;
+                padding: 1rem;
+            }
+
+            .modal-footer {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: flex-end;
+                padding: 0.75rem;
+                border-top: 1px solid #dee2e6;
+                border-bottom-right-radius: 0.3rem;
+                border-bottom-left-radius: 0.3rem;
+                background-color: #f8f9fa;
+            }
+
+            .modal-title {
+                margin-bottom: 0;
+                line-height: 1.5;
+                font-weight: 600;
+            }
+
+            .btn-close {
+                padding: 0.5rem 0.5rem;
+                margin: -0.5rem -0.5rem -0.5rem auto;
+                background-color: transparent;
+                border: 0;
+                appearance: none;
+                font-size: 1.5rem;
+                font-weight: 700;
+                line-height: 1;
+                color: #000;
+                text-shadow: 0 1px 0 #fff;
+                opacity: 0.5;
+                cursor: pointer;
+            }
+
+            .btn-close:hover {
+                opacity: 0.75;
+            }
+
         </style>
     @endsection
 
@@ -151,6 +256,43 @@
             </div>
         </div>
     </div>
+
+      <!-- Updated Modal Code -->
+    <div class="modal-backdrop fade show" wire:click="$set('showConfirmationModal', false)" style="display: {{ $showConfirmationModal ? 'block' : 'none' }};"></div>
+
+    <div class="modal fade show" tabindex="-1" style="display: {{ $showConfirmationModal ? 'flex' : 'none' }}; align-items: center; justify-content: center;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Confirm Bid Deduction
+                    </h5>
+                    <button type="button" class="btn-close" wire:click="$set('showConfirmationModal', false)" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size: 1.1rem; margin-bottom: 1rem;">
+                        {{ $bid_amount }} Credit has been deducted from your account.
+                    </p>
+                    <p style="color: #6c757d;">
+                        This amount will be deposited into the Admin's account and will be transferred to the winner after the game ends.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" wire:click="$set('showConfirmationModal', false)">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" wire:click="joinGame({{ $gameId }})">
+                        <i class="fas fa-check me-2"></i>Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     @section('footer')
     <livewire:layout.frontend.footer />
     @endsection

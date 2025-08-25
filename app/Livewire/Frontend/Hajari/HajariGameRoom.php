@@ -7,6 +7,7 @@ use App\Models\HajariGameParticipant;
 use App\Models\HajariGameMove;
 use App\Models\Transaction;
 use App\Models\GameSetting;
+use App\Models\User;
 use App\Events\GameUpdated;
 use App\Events\CardPlayed;
 use App\Events\ScoreUpdated;
@@ -1351,35 +1352,71 @@ class HajariGameRoom extends Component
             ->first();
     }
 
+    // private function processGamePayments($winner)
+    // {
+    //     $bidAmount = $this->game->bid_amount;
+    //     $participants = $this->game->participants()->get();
+
+    //     DB::transaction(function () use ($winner, $bidAmount, $participants) {
+    //         $winnerAmount = $bidAmount * 4;
+
+    //         Transaction::create([
+    //             'user_id' => $winner->user_id,
+    //             'type' => 'credit',
+    //             'amount' => $winnerAmount,
+    //             'details' => 'Game win: ' . $this->game->title,
+    //         ]);
+
+    //         $winner->user->increment('credit', $winnerAmount);
+
+    //         foreach ($participants as $participant) {
+    //             if ($participant->user_id !== $winner->user_id) {
+    //                 Transaction::create([
+    //                     'user_id' => $participant->user_id,
+    //                     'type' => 'debit',
+    //                     'amount' => $bidAmount,
+    //                     'details' => 'Game loss: ' . $this->game->title,
+    //                 ]);
+
+    //                 $participant->user->decrement('credit', $bidAmount);
+    //             }
+    //         }
+    //     });
+    // }
+
+
     private function processGamePayments($winner)
     {
         $bidAmount = $this->game->bid_amount;
         $participants = $this->game->participants()->get();
 
         DB::transaction(function () use ($winner, $bidAmount, $participants) {
-            $winnerAmount = $bidAmount * 4;
+            $admin = User::find(1);
+            $adminCommissionRate = GameSetting::getAdminCommission();
+            $totalBidAmount = $bidAmount * 4;
+            $adminCommission = $totalBidAmount * ($adminCommissionRate / 100); // Calculate commission
+            $winnerAmount = $totalBidAmount - $adminCommission;
+
+            // Add bid amount to admin account
+            $admin->credit -= $winnerAmount;
+            $admin->save();
+
+            // Create transaction for admin (credit)
+            Transaction::create([
+                'user_id' => $admin->id,
+                'type' => 'debit',
+                'amount' => $winnerAmount,
+                'details' => 'Game Winning Amount for user: ' . $winner->user->name . ' for game: ' . $this->game->title,
+            ]);
 
             Transaction::create([
                 'user_id' => $winner->user_id,
                 'type' => 'credit',
                 'amount' => $winnerAmount,
-                'details' => 'Game win: ' . $this->game->title,
-            ]);
+                'details' => 'Game win: ' . $this->game->title . ' (After ' . $adminCommissionRate . '% admin commission)',
+        ]);
 
             $winner->user->increment('credit', $winnerAmount);
-
-            foreach ($participants as $participant) {
-                if ($participant->user_id !== $winner->user_id) {
-                    Transaction::create([
-                        'user_id' => $participant->user_id,
-                        'type' => 'debit',
-                        'amount' => $bidAmount,
-                        'details' => 'Game loss: ' . $this->game->title,
-                    ]);
-
-                    $participant->user->decrement('credit', $bidAmount);
-                }
-            }
         });
     }
 

@@ -108,7 +108,7 @@
             @elseif($canJoin())
                 <!-- Join Actions -->
                 <div class="flex gap-2">
-                    <button wire:click="joinGame({{ $game->id }})"
+                    <button wire:click="confirmjoinGame({{ $game->id }})"
                             class="flex-1 btn btn-warning btn-sm mt-3 blink">
                         Join Game
                     </button>

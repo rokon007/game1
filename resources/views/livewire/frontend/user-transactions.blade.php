@@ -163,7 +163,7 @@
                             <h6>{{ $selectedTransactions->details ?? 'No Transactions Available' }}</h6>
                             <p>Amount : {{ $selectedTransactions->amount ?? 'No data available.' }}
                                 <br> Type : {{ $transaction->type ?? 'type' }}
-                                <br>{{ $transaction->created_at->diffForHumans() }}
+                                {{-- <br>{{ $transaction->created_at->diffForHumans() }} --}}
                             </p>
 
 
