@@ -375,17 +375,18 @@ class HajariGameRoom extends Component
             if ($cardCount === 3) {
                 $bestEvaluation = $this->evaluateHajariHand($cards);
             } elseif ($cardCount === 4) {
-                $combinations = $this->getThreeCardCombinations($cards);
-                foreach ($combinations as $combo) {
-                    $evaluation = $this->evaluateHajariHand($combo);
-                    if ($bestEvaluation === null ||
-                        $evaluation['priority'] < $bestEvaluation['priority'] ||
-                        ($evaluation['priority'] === $bestEvaluation['priority'] &&
-                        $evaluation['highest_card'] > $bestEvaluation['highest_card'])
-                    ) {
-                        $bestEvaluation = $evaluation;
-                    }
-                }
+                $bestEvaluation = $this->evaluateFourCardCombination($cards);
+                // $combinations = $this->getThreeCardCombinations($cards);
+                // foreach ($combinations as $combo) {
+                //     $evaluation = $this->evaluateHajariHand($combo);
+                //     if ($bestEvaluation === null ||
+                //         $evaluation['priority'] < $bestEvaluation['priority'] ||
+                //         ($evaluation['priority'] === $bestEvaluation['priority'] &&
+                //         $evaluation['highest_card'] > $bestEvaluation['highest_card'])
+                //     ) {
+                //         $bestEvaluation = $evaluation;
+                //     }
+                // }
             } else {
                 // অন্য সংখ্যক কার্ড হলে সরাসরি ইভ্যালুয়েটেশন
                 $bestEvaluation = $this->evaluateHajariHand($cards);
@@ -429,6 +430,61 @@ class HajariGameRoom extends Component
 
         return $results;
     }
+
+    private function evaluateFourCardCombination(array $cards)
+    {
+        $threeCardCombos = $this->getThreeCardCombinations($cards);
+        $bestEvaluation = null;
+
+        foreach ($threeCardCombos as $combo) {
+            // প্রতিটি তিন কার্ড কম্বিনেশন ইভ্যালুয়েট করুন
+            $evaluation = $this->evaluateHajariHand($combo);
+
+            // পেয়ার ক্ষেত্রে, সর্বোচ্চ মানের পেয়ার নির্বাচন
+            if ($evaluation['type'] === 'pair' && $bestEvaluation && $bestEvaluation['type'] === 'pair') {
+                if ($evaluation['highest_card'] > $bestEvaluation['highest_card']) {
+                    $bestEvaluation = $evaluation;
+                }
+                continue;
+            }
+
+            // অন্যান্য টাইপের ক্ষেত্রে, সর্বনীচ প্রাধান্য (priority) এবং সর্বোচ্চ কার্ড ভ্যালু অনুযায়ী নির্বাচন করুন
+            if ($bestEvaluation === null ||
+                $evaluation['priority'] < $bestEvaluation['priority'] ||
+                ($evaluation['priority'] === $bestEvaluation['priority'] && $evaluation['highest_card'] > $bestEvaluation['highest_card'])
+            ) {
+                $bestEvaluation = $evaluation;
+            }
+        }
+
+        // চার কার্ডের ক্ষেত্রেও রান, রানিং, টাই, কালার, পেয়ার বা মিক্সড সরাসরি ইভ্যালুয়েট করুন, যদি প্রয়োজন হয়
+        // (প্রয়োজনে $this->evaluateHajariHand($cards) ব্যবহার করে)
+        $fourCardEval = $this->evaluateHajariHand($cards);
+
+        // চার কার্ডের ইভ্যালুয়েশন যদি তিন কার্ডের থেকে ভালো হয়, তাহলে সেটিই ব্যবহার করুন
+        if ($fourCardEval['priority'] < $bestEvaluation['priority'] ||
+            ($fourCardEval['priority'] === $bestEvaluation['priority'] && $fourCardEval['highest_card'] > $bestEvaluation['highest_card'])
+        ) {
+            $bestEvaluation = $fourCardEval;
+        }
+
+        return $bestEvaluation;
+    }
+
+    // private function getThreeCardCombinations(array $cards)
+    // {
+    //     $results = [];
+    //     $count = count($cards);
+    //     for ($i = 0; $i < $count - 2; $i++) {
+    //         for ($j = $i + 1; $j < $count - 1; $j++) {
+    //             for ($k = $j + 1; $k < $count; $k++) {
+    //                 $results[] = [$cards[$i], $cards[$j], $cards[$k]];
+    //             }
+    //         }
+    //     }
+    //     return $results;
+    // }
+
 
 
     //*****Update for Wrong Rule
@@ -540,10 +596,11 @@ class HajariGameRoom extends Component
         };
     }
 
-
+    //A, 2, 3 কম্বিনেশনের জন্য A এর র‍্যাঙ্ক ১ হিসেবে ধারণা করার জন্য getCardValuesমেথডের পরিবর্তে getAdjustedCardValuesমেথড ব্যাবহার করা হচ্ছে
     private function evaluateHajariHand(array $cards)
     {
-        $cardValues = $this->getCardValues($cards);
+        //$cardValues = $this->getCardValues($cards);
+        $cardValues = $this->getAdjustedCardValues($cards);
         $suits = $this->getCardSuits($cards);
         $cardCount = count($cards);
 
@@ -637,6 +694,38 @@ class HajariGameRoom extends Component
         }
         return $values;
     }
+
+    //যেটি A,2,3 কম্বিনেশনের জন্য সঠিক র‍্যাঙ্ক প্রদান করবে
+    private function getAdjustedCardValues(array $cards): array
+    {
+        $ranks = [];
+        foreach ($cards as $card) {
+            if (mb_strlen($card) === 3) {
+                $rank = mb_substr($card, 0, 2);
+            } else {
+                $rank = mb_substr($card, 0, 1);
+            }
+            $ranks[] = $rank;
+        }
+
+        // A, 2, 3 কম্বিনেশন চেক
+        $hasA = in_array('A', $ranks);
+        $has2 = in_array('2', $ranks);
+        $has3 = in_array('3', $ranks);
+
+        $values = [];
+        foreach ($ranks as $rank) {
+            if ($hasA && $has2 && $has3 && $rank === 'A') {
+                // এই কন্ডিশনে A কে ১ ধরা হয়েছে
+                $values[] = 1;
+            } else {
+                $values[] = $this->getHajariCardValue($rank);
+            }
+        }
+
+        return $values;
+    }
+
 
 
 
