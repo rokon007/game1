@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use App\Models\Referral;
+use App\Models\Transaction;
+use App\Models\WelcomeBonusSetting;
 use Livewire\Volt\Component;
 
 new #[Layout('layouts.layout_login')] class extends Component
@@ -76,6 +78,23 @@ new #[Layout('layouts.layout_login')] class extends Component
         //event(new Registered($user = User::create($validated)));
 
         $user = User::create($validated);
+
+        // ওয়েলকাম বোনাস অ্যাপ্লাই
+        $setting = WelcomeBonusSetting::first();
+        $systemUser = User::where('role','admin')->first();
+        if ($setting && $setting->is_active && $setting->amount > 0) {
+            $user->addBonusCredit($setting->amount, 'Welcome Bonus');
+            // অ্যাডমিন ক্রেডিট বিয়োগ করা
+            $systemUser->decrement('credit', $setting->amount);
+
+            // ট্রান্সাকশন লগ
+            Transaction::create([
+                'user_id' => $systemUser->id,
+                'type' => 'debit',
+                'amount' => $setting->amount,
+                'details' => 'Welcome Bonus: ' . $user->name,
+            ]);
+        }
 
         // If a referral code is provided, create a referral record
         if ($validated['referral_code']) {

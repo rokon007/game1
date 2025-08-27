@@ -11,6 +11,46 @@ use Exception;
 
 class LotteryService
 {
+    // public function purchaseTicket(Lottery $lottery, User $user, int $quantity = 1): array
+    // {
+    //     if (!$lottery->isActive()) {
+    //         throw new Exception('Lottery is no longer active.');
+    //     }
+
+    //     $totalCost = $lottery->price * $quantity;
+
+    //     if (!$user->hasEnoughCredit($totalCost)) {
+    //         throw new Exception('Insufficient credit.');
+    //     }
+
+    //     $tickets = [];
+
+    //     DB::transaction(function () use ($lottery, $user, $quantity, $totalCost, &$tickets) {
+    //         // Deduct credit from user
+    //         $user->deductCredit($totalCost, "Lottery ticket purchase - {$lottery->name}");
+
+    //         // Add credit to admin
+    //         $admin = User::where('role', 'admin')->first();
+    //         if ($admin) {
+    //             $admin->addCredit($totalCost, "Lottery ticket sale - {$lottery->name}");
+    //         }
+
+    //         // Create tickets
+    //         for ($i = 0; $i < $quantity; $i++) {
+    //             $ticket = LotteryTicket::create([
+    //                 'lottery_id' => $lottery->id,
+    //                 'user_id' => $user->id,
+    //                 'ticket_number' => LotteryTicket::generateUniqueTicketNumber(),
+    //                 'purchased_at' => now()
+    //             ]);
+
+    //             $tickets[] = $ticket;
+    //         }
+    //     });
+
+    //     return $tickets;
+    // }
+
     public function purchaseTicket(Lottery $lottery, User $user, int $quantity = 1): array
     {
         if (!$lottery->isActive()) {
@@ -18,24 +58,24 @@ class LotteryService
         }
 
         $totalCost = $lottery->price * $quantity;
-        
-        if (!$user->hasEnoughCredit($totalCost)) {
-            throw new Exception('Insufficient credit.');
+
+        if ($user->total_balance < $totalCost) {
+            throw new Exception('Insufficient balance.');
         }
 
         $tickets = [];
-        
+
         DB::transaction(function () use ($lottery, $user, $quantity, $totalCost, &$tickets) {
-            // Deduct credit from user
-            $user->deductCredit($totalCost, "Lottery ticket purchase - {$lottery->name}");
-            
-            // Add credit to admin
+            // ✅ ইউজারের ব্যালেন্স থেকে কাটবে (bonus → credit)
+            $user->spendBalance($totalCost, "Lottery ticket purchase - {$lottery->name}");
+
+            // অ্যাডমিনকে ক্রেডিট যোগ করা
             $admin = User::where('role', 'admin')->first();
             if ($admin) {
                 $admin->addCredit($totalCost, "Lottery ticket sale - {$lottery->name}");
             }
-            
-            // Create tickets
+
+            // 🎟️ টিকিট তৈরি করা
             for ($i = 0; $i < $quantity; $i++) {
                 $ticket = LotteryTicket::create([
                     'lottery_id' => $lottery->id,
@@ -43,13 +83,14 @@ class LotteryService
                     'ticket_number' => LotteryTicket::generateUniqueTicketNumber(),
                     'purchased_at' => now()
                 ]);
-                
+
                 $tickets[] = $ticket;
             }
         });
 
         return $tickets;
     }
+
 
     public function conductDraw(Lottery $lottery): array
     {
@@ -77,15 +118,15 @@ class LotteryService
 
             foreach ($prizes as $prize) {
                 $winningTicket = null;
-                
+
                 // Check pre-selected winners
-                if ($lottery->pre_selected_winners && 
+                if ($lottery->pre_selected_winners &&
                     isset($lottery->pre_selected_winners[$prize->position])) {
-                    
+
                     $preSelectedTicketNumber = $lottery->pre_selected_winners[$prize->position];
                     $winningTicket = $tickets->where('ticket_number', $preSelectedTicketNumber)->first();
                 }
-                
+
                 // Random selection
                 if (!$winningTicket) {
                     $availableTickets = $tickets->whereNotIn('id', $usedTickets);
@@ -96,7 +137,7 @@ class LotteryService
 
                 if ($winningTicket) {
                     $usedTickets[] = $winningTicket->id;
-                    
+
                     // Save result
                     $result = LotteryResult::create([
                         'lottery_id' => $lottery->id,
@@ -110,14 +151,14 @@ class LotteryService
 
                     // Award prize
                     $winningTicket->user->addCredit(
-                        $prize->amount, 
+                        $prize->amount,
                         "Lottery prize - {$prize->position} - {$lottery->name}"
                     );
 
                     // Deduct from admin
                     if ($admin) {
                         $admin->deductCredit(
-                            $prize->amount, 
+                            $prize->amount,
                             "Lottery prize payment - {$prize->position} - {$lottery->name}"
                         );
                     }
@@ -153,7 +194,7 @@ class LotteryService
                 $existingResult = LotteryResult::where('lottery_id', $lottery->id)
                     ->where('lottery_prize_id', $resultData['lottery_prize_id'])
                     ->first();
-                
+
                 if ($existingResult) {
                     continue; // Skip if already exists
                 }
@@ -175,14 +216,14 @@ class LotteryService
 
                     // Add credit to winner
                     $winningTicket->user->addCredit(
-                        $resultData['prize_amount'], 
+                        $resultData['prize_amount'],
                         "Lottery prize - {$resultData['prize_position']} - {$lottery->name}"
                     );
 
                     // Deduct credit from admin
                     if ($admin) {
                         $admin->deductCredit(
-                            $resultData['prize_amount'], 
+                            $resultData['prize_amount'],
                             "Lottery prize payment - {$resultData['prize_position']} - {$lottery->name}"
                         );
                     }

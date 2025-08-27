@@ -27,6 +27,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'avatar',
         'role',
         'credit',
+        'bonus_credit',
         'status',
         'is_online',
         'last_seen_at',
@@ -61,7 +62,59 @@ class User extends Authenticatable implements MustVerifyEmail
             'longitude' => 'decimal:7',
         ];
 
+    public function getTotalBalanceAttribute(): float
+    {
+        return $this->credit + $this->bonus_credit;
+    }
 
+    public function addBonusCredit(float $amount, string $details = null): void
+    {
+        $this->increment('bonus_credit', $amount);
+
+        Transaction::create([
+            'user_id' => $this->id,
+            'type' => 'credit',
+            'amount' => $amount,
+            'details' => $details
+        ]);
+    }
+
+
+    public function deductBonusCredit(float $amount, string $details = null): void
+    {
+        $this->decrement('bonus_credit', $amount);
+
+        Transaction::create([
+            'user_id' => $this->id,
+            'type' => 'debit',
+            'amount' => $amount,
+            'details' => $details
+        ]);
+    }
+
+    public function spendBalance(float $amount, string $details = null): void
+    {
+        if ($this->total_balance < $amount) {
+            throw new \Exception('Insufficient balance!');
+        }
+
+        // আগে bonus থেকে কাটবে
+        $bonusUsed = min($amount, $this->bonus_credit);
+        if ($bonusUsed > 0) {
+            $this->deductBonusCredit($bonusUsed, $details ?? 'Bonus used for purchase');
+            $amount -= $bonusUsed;
+        }
+
+        // বাকি মেইন ক্রেডিট থেকে কাটবে
+        if ($amount > 0) {
+            $this->deductCredit($amount, $details ?? 'Credit used for purchase');
+        }
+    }
+
+
+
+
+    //---------------------------
 
     public function transactions()
     {
@@ -104,7 +157,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(User::class, 'referred_by', 'unique_id');
     }
 
-    
+
 
     public function lotteryTickets(): HasMany
     {
@@ -129,7 +182,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function deductCredit(float $amount, string $details = null): void
     {
         $this->decrement('credit', $amount);
-        
+
         Transaction::create([
             'user_id' => $this->id,
             'type' => 'debit',
@@ -141,7 +194,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function addCredit(float $amount, string $details = null): void
     {
         $this->increment('credit', $amount);
-        
+
         Transaction::create([
             'user_id' => $this->id,
             'type' => 'credit',

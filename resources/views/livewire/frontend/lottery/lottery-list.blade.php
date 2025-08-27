@@ -102,9 +102,12 @@
                                             <a href="{{ route('lottery.draw', $lottery->id) }}" class="btn btn-outline-secondary btn-sm">
                                                 <i class="fas fa-eye me-1"></i> View Results
                                             </a>
-                                            <button class="btn btn-primary btn-sm"
+                                            {{-- <button class="btn btn-primary btn-sm"
                                                     wire:click="selectLottery({{ $lottery->id }})"
                                                     data-bs-toggle="modal" data-bs-target="#purchaseModal">
+                                                <i class="fas fa-shopping-cart me-1"></i> Buy Tickets
+                                            </button> --}}
+                                            <button class="btn btn-primary btn-sm" wire:click="selectLottery({{ $lottery->id }})">
                                                 <i class="fas fa-shopping-cart me-1"></i> Buy Tickets
                                             </button>
                                         </div>
@@ -125,7 +128,7 @@
             </div>
 
             <!-- Purchase Modal -->
-            @if($selectedLottery)
+            {{-- @if($selectedLottery)
                 <div class="modal fade" id="purchaseModal" tabindex="-1" wire:ignore.self>
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
@@ -182,13 +185,74 @@
                         </div>
                     </div>
                 </div>
+            @endif --}}
+
+            <!-- Purchase Modal - Livewire Controlled -->
+            @if($selectedLottery)
+                <div class="modal fade @if($showModal) show d-block @endif" id="purchaseModal" tabindex="-1" wire:ignore.self
+                    style="@if($showModal) background-color: rgba(0,0,0,0.5); @endif">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header py-2">
+                                <h5 class="modal-title fs-6">{{ $selectedLottery->name }} - Ticket Purchase</h5>
+                                <button type="button" class="btn-close" wire:click="closeModal"></button>
+                            </div>
+                            <div class="modal-body p-3">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Ticket Price:</span>
+                                        <strong>{{ number_format($selectedLottery->price, 2) }} Credit</strong>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label mb-1">Number of Tickets:</label>
+                                    <div class="input-group input-group-sm">
+                                        <button class="btn btn-outline-secondary" wire:click="decrementQuantity" type="button">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <input type="number" class="form-control text-center" wire:model="ticketQuantity"
+                                            min="1" max="10000" wire:change="calculateTotal">
+                                        <button class="btn btn-outline-secondary" wire:click="incrementQuantity" type="button">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="mb-2 p-2 bg-light rounded">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Total Cost:</span>
+                                        <strong class="h6 mb-0">{{ number_format($selectedLottery->price * $ticketQuantity, 2) }} Credit</strong>
+                                    </div>
+                                </div>
+
+                                @auth
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Your Credit:</span>
+                                            <strong class="{{ auth()->user()->total_balance < ($selectedLottery->price * $ticketQuantity) ? 'text-danger' : 'text-success' }}">
+                                                {{ number_format(auth()->user()->total_balance, 2) }} Credit
+                                            </strong>
+                                        </div>
+                                    </div>
+                                @endauth
+                            </div>
+                            <div class="modal-footer py-2">
+                                <button type="button" class="btn btn-sm btn-secondary" wire:click="closeModal">Cancel</button>
+                                <button type="button" class="btn btn-sm btn-primary" wire:click="purchaseTickets">
+                                    <i class="fas fa-shopping-cart me-1"></i> Purchase
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             @endif
 
             <!-- Live Draw Modal Component -->
             <livewire:frontend.lottery.live-draw-modal />
         </div>
 
-        <style>
+        {{-- <style>
             @media (max-width: 576px) {
                 .container {
                     max-width: 380px !important;
@@ -246,6 +310,102 @@
             .modal-content {
                 border-radius: 12px;
             }
+
+            .input-group button {
+                width: 40px;
+            }
+
+            .input-group input {
+                max-width: 100px;
+                text-align: center;
+            }
+        </style> --}}
+
+        <style>
+            @media (max-width: 576px) {
+                .container {
+                    max-width: 380px !important;
+                    padding-left: 15px;
+                    padding-right: 15px;
+                }
+
+                /* Modal adjustments for mobile */
+                #purchaseModal .modal-dialog {
+                    margin: 10px;
+                    max-height: 90vh;
+                }
+
+                #purchaseModal .modal-content {
+                    max-height: 90vh;
+                    overflow-y: auto;
+                }
+
+                #purchaseModal .modal-body {
+                    padding: 0.75rem;
+                }
+
+                #purchaseModal .modal-header,
+                #purchaseModal .modal-footer {
+                    padding: 0.5rem 0.75rem;
+                }
+
+                #purchaseModal .input-group {
+                    width: 140px;
+                    margin: 0 auto;
+                }
+            }
+
+            .lottery-card {
+                transition: all 0.3s ease;
+                border-radius: 10px;
+                overflow: hidden;
+                border: none;
+            }
+
+            .lottery-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            }
+
+            .prize-tiles {
+                margin-left: -0.5rem;
+                margin-right: -0.5rem;
+            }
+
+            .prize-tile {
+                background-color: #f8f9fa;
+                transition: all 0.2s;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            .prize-tile:hover {
+                background-color: #e9ecef;
+                transform: scale(1.05);
+            }
+
+            .prize-position {
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                font-weight: bold;
+            }
+
+            .prize-amount {
+                font-size: 13px;
+                color: #28a745;
+            }
+
+            .modal-content {
+                border-radius: 12px;
+                height: 50vh !important;
+            }
+
 
             .input-group button {
                 width: 40px;

@@ -165,6 +165,7 @@ class HajariGameRoom extends Component
         // Auto select cards for current turn player (only if game is playing and not in arrangement phase)
         if ($this->game->status === HajariGame::STATUS_PLAYING && !$this->isArrangementPhase) {
             $this->autoSelectCardsForCurrentPlayer();
+            $this->playCards();
         }
     }
 

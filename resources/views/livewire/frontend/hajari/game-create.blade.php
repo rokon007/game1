@@ -795,6 +795,136 @@
             }
         }
 
+        /* Confirmation Modal Styles */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            display: none;
+        }
+
+        .custom-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1050;
+            display: none;
+            overflow-x: hidden;
+            overflow-y: auto;
+            outline: 0;
+        }
+
+        .modal-dialog {
+            position: relative;
+            width: auto;
+            margin: 0.5rem;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            min-height: calc(100% - 1rem);
+        }
+
+        .modal-content {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            pointer-events: auto;
+            background-color: #fff;
+            background-clip: padding-box;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-xl);
+            outline: 0;
+        }
+
+        .modal-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: var(--spacing-md);
+            border-top-left-radius: var(--border-radius);
+            border-top-right-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            border-bottom: none;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-body {
+            position: relative;
+            flex: 1 1 auto;
+            padding: var(--spacing-lg);
+        }
+
+        .modal-main-text {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .modal-subtext {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 0;
+            line-height: 1.5;
+        }
+
+        .modal-footer {
+            display: flex;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: flex-end;
+            padding: var(--spacing-md);
+            border-top: 1px solid var(--border-color);
+            border-bottom-right-radius: var(--border-radius);
+            border-bottom-left-radius: var(--border-radius);
+            gap: var(--spacing-sm);
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 576px) {
+            .modal-dialog {
+                max-width: 400px;
+                margin: 1.75rem auto;
+                min-height: auto;
+            }
+
+            .modal-title {
+                font-size: 1.25rem;
+            }
+
+            .modal-main-text {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 575px) {
+            .modal-footer {
+                flex-direction: column;
+            }
+
+            .modal-content {
+            max-height: 80vh;
+            height: 50vh !important;
+        }
+
+            .modal-footer .btn {
+                width: 100%;
+            }
+        }
+
 
     </style>
     @endsection
@@ -1040,27 +1170,27 @@
                     </form>
                 </div>
             </div>
-            <!-- Add this modal code before the closing div tag -->
+            <!-- Confirmation Modal -->
             <div class="modal-backdrop fade show" wire:click="$set('showConfirmationModal', false)" style="display: {{ $showConfirmationModal ? 'block' : 'none' }};"></div>
 
-            <div class="modal fade show" tabindex="-1" style="display: {{ $showConfirmationModal ? 'block' : 'none' }}; background: rgba(0,0,0,0.5);">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content" style="border-radius: var(--border-radius-lg); overflow: hidden; box-shadow: var(--shadow-xl);">
-                        <div class="modal-header" style="background: var(--primary-gradient); color: white; border-bottom: none;">
+            <div class="modal fade show custom-modal" tabindex="-1" style="display: {{ $showConfirmationModal ? 'block' : 'none' }};">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
                             <h5 class="modal-title">
                                 <i class="fas fa-exclamation-circle me-2"></i>
                                 Confirm Bid Deduction
                             </h5>
                         </div>
-                        <div class="modal-body" style="padding: var(--spacing-lg);">
-                            <p style="font-size: 1.1rem; margin-bottom: 1rem;">
+                        <div class="modal-body">
+                            <p class="modal-main-text">
                                 {{ $bid_amount }} Credit has been deducted from your account.
                             </p>
-                            <p style="color: #6c757d;">
+                            <p class="modal-subtext">
                                 This amount will be deposited into the Admin's account and will be transferred to the winner after the game ends.
                             </p>
                         </div>
-                        <div class="modal-footer" style="border-top: none; padding: var(--spacing-md) var(--spacing-lg); background: var(--bg-secondary);">
+                        <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" wire:click="$set('showConfirmationModal', false)">
                                 <i class="fas fa-times me-2"></i>Cancel
                             </button>

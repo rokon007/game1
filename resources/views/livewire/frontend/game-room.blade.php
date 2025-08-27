@@ -179,10 +179,10 @@
                                 {{ $remainingTime }}
                             </span>
                         </div>
-                        <span class="badge bg-dark fs-6">
+                        {{-- <span class="badge bg-dark fs-6">
                             <i class="fas fa-users me-1"></i>
                             <span id="playerCount">{{$totalParticipants}}</span> Players
-                        </span>
+                        </span> --}}
                     </div>
                 </div>
 

@@ -12,127 +12,259 @@
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.all.min.js"></script>
         <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.min.css" rel="stylesheet">
           <style>
-            .custom-badge {
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                background-color: #ffc107;
-                color: #fff;
-                padding: 5px 10px;
-                font-size: 12px;
-                border-radius: 50px;
-            }
-            .currency-icon {
-                display: inline-block;
-                vertical-align: middle;
-                margin-right: 1px;
-            }
+    /* ... existing styles ... */
 
-            /* Fixed Modal Styles */
-            .modal-backdrop {
-                position: fixed;
-                top: 0;
-                left: 0;
-                z-index: 1040;
-                width: 100vw;
-                height: 100vh;
-                background-color: #000;
-                opacity: 0.5;
-            }
+    /* Fixed Modal Styles */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1040;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        display: none;
+    }
 
-            .modal {
-                position: fixed;
-                top: 0;
-                left: 0;
-                z-index: 1050;
-                width: 100%;
-                height: 100%;
-                overflow-x: hidden;
-                overflow-y: auto;
-                outline: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1050;
+        width: 100%;
+        height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        outline: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        box-sizing: border-box;
+    }
 
-            .modal-dialog {
-                position: relative;
-                width: auto;
-                margin: 0.5rem;
-                pointer-events: none;
-                max-width: 500px;
-            }
+    .modal-dialog {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+        pointer-events: none;
+    }
 
-            .modal-content {
-                position: relative;
-                display: flex;
-                flex-direction: column;
-                width: 100%;
-                pointer-events: auto;
-                background-color: #fff;
-                background-clip: padding-box;
-                border: 1px solid rgba(0, 0, 0, 0.2);
-                border-radius: 0.3rem;
-                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-                outline: 0;
-            }
+    .modal-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        pointer-events: auto;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        outline: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
 
-            .modal-header {
-                display: flex;
-                align-items: flex-start;
-                justify-content: space-between;
-                padding: 1rem 1rem;
-                border-bottom: 1px solid #dee2e6;
-                border-top-left-radius: 0.3rem;
-                border-top-right-radius: 0.3rem;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-            }
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
 
-            .modal-body {
-                position: relative;
-                flex: 1 1 auto;
-                padding: 1rem;
-            }
+    .modal-title {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-            .modal-footer {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                justify-content: flex-end;
-                padding: 0.75rem;
-                border-top: 1px solid #dee2e6;
-                border-bottom-right-radius: 0.3rem;
-                border-bottom-left-radius: 0.3rem;
-                background-color: #f8f9fa;
-            }
+    .modal-title i {
+        font-size: 1.5rem;
+    }
 
-            .modal-title {
-                margin-bottom: 0;
-                line-height: 1.5;
-                font-weight: 600;
-            }
+    .modal-body {
+        position: relative;
+        flex: 1 1 auto;
+        padding: 20px;
+        background: #f8fafc;
+        overflow-y: auto;
+    }
 
-            .btn-close {
-                padding: 0.5rem 0.5rem;
-                margin: -0.5rem -0.5rem -0.5rem auto;
-                background-color: transparent;
-                border: 0;
-                appearance: none;
-                font-size: 1.5rem;
-                font-weight: 700;
-                line-height: 1;
-                color: #000;
-                text-shadow: 0 1px 0 #fff;
-                opacity: 0.5;
-                cursor: pointer;
-            }
+    .modal-main-text {
+        font-size: 1.1rem;
+        color: #2d3748;
+        margin-bottom: 15px;
+        font-weight: 500;
+        line-height: 1.4;
+    }
 
-            .btn-close:hover {
-                opacity: 0.75;
-            }
+    .modal-subtext {
+        color: #718096;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin-bottom: 0;
+    }
 
-        </style>
+    .modal-footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 16px 20px;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        gap: 12px;
+        background: #fff;
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+    }
+
+    .modal-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 120px;
+        flex: 1;
+    }
+
+    .modal-btn-secondary {
+        background: #f8f9fa;
+        color: #718096;
+        border: 2px solid #e2e8f0;
+    }
+
+    .modal-btn-secondary:hover {
+        background: #e2e8f0;
+        border-color: #cbd5e0;
+        transform: translateY(-2px);
+    }
+
+    .modal-btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .modal-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-close {
+        padding: 0;
+        margin: 0;
+        background-color: transparent;
+        border: 0;
+        appearance: none;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+        color: rgba(255, 255, 255, 0.8);
+        text-shadow: none;
+        opacity: 0.8;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+    }
+
+    .btn-close:hover {
+        opacity: 1;
+        background-color: rgba(255, 255, 255, 0.2);
+        transform: rotate(90deg);
+    }
+
+    /* Mobile-specific adjustments */
+    @media (max-width: 575px) {
+        .modal {
+            padding: 10px;
+            align-items: flex-start;
+            padding-top: 40px;
+        }
+
+        .modal-dialog {
+            max-width: 100%;
+            margin: 0;
+        }
+
+        .modal-content {
+            max-height: 80vh;
+            height: 50vh !important;
+        }
+
+        .modal-header {
+            padding: 16px;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+        }
+
+        .modal-body {
+            padding: 16px;
+        }
+
+        .modal-main-text {
+            font-size: 1rem;
+        }
+
+        .modal-subtext {
+            font-size: 0.9rem;
+        }
+
+        .modal-footer {
+            flex-direction: column;
+            padding: 16px;
+        }
+
+        .modal-btn {
+            width: 100%;
+            min-width: auto;
+        }
+    }
+
+    /* For very small devices */
+    @media (max-width: 340px) {
+        .modal-title {
+            font-size: 1rem;
+        }
+
+        .modal-title i {
+            font-size: 1.2rem;
+        }
+
+        .modal-btn {
+            padding: 10px 16px;
+            font-size: 0.9rem;
+        }
+    }
+</style>
     @endsection
 
     @section('preloader')
@@ -257,35 +389,35 @@
         </div>
     </div>
 
-      <!-- Updated Modal Code -->
-    <div class="modal-backdrop fade show" wire:click="$set('showConfirmationModal', false)" style="display: {{ $showConfirmationModal ? 'block' : 'none' }};"></div>
+      <!-- Confirmation2 Modal -->
+    <div class="modal-backdrop" wire:click="$set('showConfirmationModal', false)" style="display: {{ $showConfirmationModal ? 'block' : 'none' }};"></div>
 
-    <div class="modal fade show" tabindex="-1" style="display: {{ $showConfirmationModal ? 'flex' : 'none' }}; align-items: center; justify-content: center;">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal" tabindex="-1" style="display: {{ $showConfirmationModal ? 'flex' : 'none' }};">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <i class="fas fa-exclamation-circle"></i>
                         Confirm Bid Deduction
                     </h5>
                     <button type="button" class="btn-close" wire:click="$set('showConfirmationModal', false)" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
+                        &times;
                     </button>
                 </div>
                 <div class="modal-body">
-                    <p style="font-size: 1.1rem; margin-bottom: 1rem;">
+                    <p class="modal-main-text">
                         {{ $bid_amount }} Credit has been deducted from your account.
                     </p>
-                    <p style="color: #6c757d;">
+                    <p class="modal-subtext">
                         This amount will be deposited into the Admin's account and will be transferred to the winner after the game ends.
                     </p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" wire:click="$set('showConfirmationModal', false)">
-                        <i class="fas fa-times me-2"></i>Cancel
+                    <button type="button" class="modal-btn modal-btn-secondary" wire:click="$set('showConfirmationModal', false)">
+                        <i class="fas fa-times"></i>Cancel
                     </button>
-                    <button type="button" class="btn btn-primary" wire:click="joinGame({{ $gameId }})">
-                        <i class="fas fa-check me-2"></i>Confirm
+                    <button type="button" class="modal-btn modal-btn-primary" wire:click="joinGame({{ $gameId }})">
+                        <i class="fas fa-check"></i>Confirm
                     </button>
                 </div>
             </div>

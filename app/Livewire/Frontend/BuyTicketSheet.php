@@ -59,6 +59,82 @@ class BuyTicketSheet extends Component
         $this->buySheet();
     }
 
+    // public function buySheet()
+    // {
+    //     $user = Auth::user();
+    //     $systemUser = User::where('role','admin')->first();
+    //     $game = Game::where('id', $this->selectedGameId)
+    //                 ->where('is_active', true)
+    //                 ->first();
+
+    //     if (!$game) {
+    //         session()->flash('error', 'Selected game not found or inactive.');
+    //         return;
+    //     }
+
+    //     // চেকবক্স ভ্যালিডেশন (অতিরিক্ত সুরক্ষা)
+    //     if (empty($this->agreements[$this->selectedGameId])) {
+    //         $this->addError('agreements.'.$this->selectedGameId, 'You must agree to the terms and conditions');
+    //         return;
+    //     }
+
+    //     if ($user->credit < $game->ticket_price) {
+    //         session()->flash('error', 'Insufficient balance!');
+    //         return;
+    //     }
+
+    //     // ✅ Check if user already bought a ticket for this game
+    //     $alreadyBought = Ticket::where('user_id', $user->id)
+    //                             ->where('game_id', $game->id)
+    //                             ->exists();
+
+    //     if ($alreadyBought) {
+    //         session()->flash('error', 'You have already purchased a ticket sheet for this game.');
+    //         return;
+    //     }
+
+    //     // ক্রেডিট কর্তন
+    //     $user->decrement('credit', $game->ticket_price);
+    //     $systemUser->increment('credit', $game->ticket_price);
+
+    //     // ট্রান্সাকশন লগ
+    //     Transaction::create([
+    //         'user_id' => $user->id,
+    //         'type' => 'debit',
+    //         'amount' => $game->ticket_price,
+    //         'details' => 'Ticket Sheet purchase for game ID: ' . $game->id,
+    //     ]);
+
+    //     Transaction::create([
+    //         'user_id' => $systemUser->id,
+    //         'type' => 'credit',
+    //         'amount' => $game->ticket_price,
+    //         'details' => 'Ticket Sheet purchase for game ID: ' . $game->id . ' by ' . $user->name,
+    //     ]);
+
+    //     // ইউনিক শীট নাম্বার
+    //     // $sheetUid = 'SHEET-' . strtoupper(Str::random(8));
+    //     $sheetUid = strtoupper(Str::random(8));
+
+    //     // Reset static variables before generating tickets
+    //     $this->resetTicketGenerator();
+
+    //     // ৬টি টিকিট তৈরি
+    //     for ($i = 0; $i < 6; $i++) {
+    //         Ticket::create([
+    //             'user_id' => $user->id,
+    //             'game_id' => $game->id,
+    //             'ticket_number' => $sheetUid . '-' . ($i + 1),
+    //             'numbers' => json_encode($this->generateHousieTicket()),
+    //         ]);
+    //     }
+
+    //     session()->flash('success', 'Ticket Sheet Purchased Successfully!');
+    //     $this->sheetShow($sheetUid);
+    //     $this->selectedGameId = null;
+    //     $this->getCredit();
+    // }
+
     public function buySheet()
     {
         $user = Auth::user();
@@ -78,11 +154,6 @@ class BuyTicketSheet extends Component
             return;
         }
 
-        if ($user->credit < $game->ticket_price) {
-            session()->flash('error', 'Insufficient balance!');
-            return;
-        }
-
         // ✅ Check if user already bought a ticket for this game
         $alreadyBought = Ticket::where('user_id', $user->id)
                                 ->where('game_id', $game->id)
@@ -93,125 +164,47 @@ class BuyTicketSheet extends Component
             return;
         }
 
-        // ক্রেডিট কর্তন
-        $user->decrement('credit', $game->ticket_price);
-        $systemUser->increment('credit', $game->ticket_price);
+        try {
+            // ইউজারের ব্যালেন্স থেকে কাটবে (bonus → তারপর credit)
+            $user->spendBalance($game->ticket_price, 'Ticket Sheet purchase for game ID: ' . $game->id);
 
-        // ট্রান্সাকশন লগ
-        Transaction::create([
-            'user_id' => $user->id,
-            'type' => 'debit',
-            'amount' => $game->ticket_price,
-            'details' => 'Ticket Sheet purchase for game ID: ' . $game->id,
-        ]);
+            // অ্যাডমিনকে ক্রেডিট যোগ করা
+            $systemUser->increment('credit', $game->ticket_price);
 
-        Transaction::create([
-            'user_id' => $systemUser->id,
-            'type' => 'credit',
-            'amount' => $game->ticket_price,
-            'details' => 'Ticket Sheet purchase for game ID: ' . $game->id . ' by ' . $user->name,
-        ]);
-
-        // ইউনিক শীট নাম্বার
-        // $sheetUid = 'SHEET-' . strtoupper(Str::random(8));
-        $sheetUid = strtoupper(Str::random(8));
-
-        // Reset static variables before generating tickets
-        $this->resetTicketGenerator();
-
-        // ৬টি টিকিট তৈরি
-        for ($i = 0; $i < 6; $i++) {
-            Ticket::create([
-                'user_id' => $user->id,
-                'game_id' => $game->id,
-                'ticket_number' => $sheetUid . '-' . ($i + 1),
-                'numbers' => json_encode($this->generateHousieTicket()),
+            // ট্রান্সাকশন লগ
+            Transaction::create([
+                'user_id' => $systemUser->id,
+                'type' => 'credit',
+                'amount' => $game->ticket_price,
+                'details' => 'Ticket Sheet purchase for game ID: ' . $game->id . ' by ' . $user->name,
             ]);
-        }
 
-        session()->flash('success', 'Ticket Sheet Purchased Successfully!');
-        $this->sheetShow($sheetUid);
-        $this->selectedGameId = null;
-        $this->getCredit();
+            // ইউনিক শীট নাম্বার
+            $sheetUid = strtoupper(Str::random(8));
+
+            // Reset static variables before generating tickets
+            $this->resetTicketGenerator();
+
+            // ৬টি টিকিট তৈরি
+            for ($i = 0; $i < 6; $i++) {
+                Ticket::create([
+                    'user_id' => $user->id,
+                    'game_id' => $game->id,
+                    'ticket_number' => $sheetUid . '-' . ($i + 1),
+                    'numbers' => json_encode($this->generateHousieTicket()),
+                ]);
+            }
+
+            session()->flash('success', 'Ticket Sheet Purchased Successfully!');
+            $this->sheetShow($sheetUid);
+            $this->selectedGameId = null;
+            $this->getCredit();
+        } catch (\Exception $e) {
+            session()->flash('error', $e->getMessage());
+        }
     }
 
-    // private function resetTicketGenerator()
-    // {
-    //     // This will reset the static variables when starting a new sheet
-    //     $this->generateHousieTicket();
-    // }
 
-    // private function generateHousieTicket()
-    // {
-    //     static $usedNumbers = []; // Track used numbers across all tickets in this sheet
-    //     static $initialized = false;
-
-    //     // Reset for each new sheet
-    //     if (!$initialized) {
-    //         $usedNumbers = [];
-    //         $initialized = true;
-    //     }
-
-    //     $ticket = array_fill(0, 3, array_fill(0, 9, null));
-    //     $availableNumbers = array_diff(range(1, 90), $usedNumbers);
-
-    //     // If not enough numbers left, reset (shouldn't happen as we're making exactly 6 tickets)
-    //     if (count($availableNumbers) < 15) {
-    //         $usedNumbers = [];
-    //         $availableNumbers = range(1, 90);
-    //     }
-
-    //     // Group available numbers by column
-    //     $columnNumbers = array_fill(0, 9, []);
-    //     foreach ($availableNumbers as $number) {
-    //         $col = min(8, floor(($number - 1) / 10));
-    //         $columnNumbers[$col][] = $number;
-    //     }
-
-    //     // 1. Ensure each column has at least one number
-    //     for ($col = 0; $col < 9; $col++) {
-    //         if (empty($columnNumbers[$col])) continue;
-
-    //         $row = rand(0, 2);
-    //         $number = array_pop($columnNumbers[$col]);
-    //         $ticket[$row][$col] = $number;
-    //         $usedNumbers[] = $number;
-    //     }
-
-    //     // 2. Fill remaining numbers (total 15 per ticket)
-    //     $numbersToAdd = 6; // Already placed 9 numbers (one per column)
-    //     $attempts = 0;
-    //     $maxAttempts = 100;
-
-    //     while ($numbersToAdd > 0 && $attempts < $maxAttempts) {
-    //         $attempts++;
-    //         $col = rand(0, 8);
-
-    //         if (!empty($columnNumbers[$col])) {
-    //             $number = array_pop($columnNumbers[$col]);
-
-    //             // Find suitable row
-    //             $availableRows = array_filter([0, 1, 2], function($row) use ($ticket, $col) {
-    //                 return is_null($ticket[$row][$col]) &&
-    //                     count(array_filter($ticket[$row])) < 5;
-    //             });
-
-    //             if (!empty($availableRows)) {
-    //                 $row = $availableRows[array_rand($availableRows)];
-    //                 $ticket[$row][$col] = $number;
-    //                 $usedNumbers[] = $number;
-    //                 $numbersToAdd--;
-    //             }
-    //         }
-    //     }
-
-    //     // Sort columns
-    //     foreach ($ticket as &$row) {
-    //         ksort($row);
-    //     }
-
-    //     return $ticket;
-    // }
 
     private function resetTicketGenerator()
     {

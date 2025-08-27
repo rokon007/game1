@@ -86,7 +86,7 @@ new class extends Component
         <li>
             <a href="{{ route('admin.manage_game') }}">
                 <div class="parent-icon"><i class="bi bi-controller"></i></div>
-                <div class="menu-title">Manage Games</div>
+                <div class="menu-title">Manage Housi Games</div>
             </a>
         </li>
         <li>
@@ -129,6 +129,12 @@ new class extends Component
             <a href="{{ route('admin.referral-settings') }}">
                 <div class="parent-icon"><i class="bi bi-share"></i></div>
                 <div class="menu-title">Referral Program</div>
+            </a>
+        </li>
+        <li>
+            <a href="{{ route('admin.welcomeBonus-settings') }}">
+                <div class="parent-icon"><i class="bi bi-share"></i></div>
+                <div class="menu-title">Welcome Bonus</div>
             </a>
         </li>
 

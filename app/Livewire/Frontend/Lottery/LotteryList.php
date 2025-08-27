@@ -11,6 +11,7 @@ class LotteryList extends Component
 {
     public $selectedLottery = null;
     public $ticketQuantity = 1;
+    public $showModal = false;
 
     protected $lotteryService;
 
@@ -19,10 +20,24 @@ class LotteryList extends Component
         $this->lotteryService = $lotteryService;
     }
 
+    // public function selectLottery($lotteryId)
+    // {
+    //     $this->selectedLottery = Lottery::with('prizes')->findOrFail($lotteryId);
+    //     $this->ticketQuantity = 1;
+    // }
+
     public function selectLottery($lotteryId)
     {
         $this->selectedLottery = Lottery::with('prizes')->findOrFail($lotteryId);
         $this->ticketQuantity = 1;
+
+        $this->showModal = true;
+    }
+
+    public function closeModal()
+    {
+        $this->showModal = false;
+        $this->selectedLottery = null;
     }
 
     public function incrementQuantity()
@@ -53,6 +68,7 @@ class LotteryList extends Component
             );
 
             session()->flash('success', 'Tickets purchased successfully!');
+            $this->closeModal();
             $this->selectedLottery = null;
             $this->dispatch('ticketPurchased');
 

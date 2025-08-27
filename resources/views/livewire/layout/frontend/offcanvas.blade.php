@@ -35,7 +35,12 @@ new class extends Component
                     <div class="user-info">
                     <h5 class="user-name mb-1 text-white">{{auth()->user()->name}}</h5>
                     <p class="available-balance bg-warning text-dark">ID: <span class="">{{auth()->user()->unique_id}}</span></p>
+                    @if(auth()->user()->bonus_credit > 0)
+                        <p class="available-balance text-white">Main Balance <span class="counter"> {{auth()->user()->credit}}</span></p>
+                        <p class="available-balance text-white">Bonus Balance <span class="counter"> {{auth()->user()->bonus_credit}}</span></p>
+                    @else
                     <p class="available-balance text-white">Current Balance <span class="counter">{{auth()->user()->credit}}</span></p>
+                    @endif
                     </div>
                 </div>
             @endauth

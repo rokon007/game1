@@ -37,6 +37,7 @@ use App\Livewire\Backend\AgentComponent;
 use App\Livewire\Backend\ReferralSettings;
 use App\Livewire\Backend\HowToGuideManager;
 use App\Livewire\Backend\HajariGameSettings;
+use App\Livewire\Backend\WelcomeBonusSettings;
 use App\Livewire\Frontend\NewChat\Main;
 use App\Http\Controllers\CkeditorController;
 use App\Livewire\SitemapXml;
@@ -101,6 +102,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::get('/lottery/create', CreateLottery::class)->name('lottery.create');
     Route::get('/lottery/{lottery}', Show::class)->name('lottery.show');
     Route::get('/lottery/{lottery}/edit', EditLottery::class)->name('lottery.edit');
+    //WelcomeBonusSettings
+    Route::get('/welcome-bonus-settings', WelcomeBonusSettings::class)->name('welcomeBonus-settings');
 
 });
 
