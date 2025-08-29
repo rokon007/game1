@@ -324,19 +324,10 @@
     @endif
 
     @if($showAllWrongModal)
-        <div class="modal show" style="display: block;">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">সব প্লেয়ার Wrong!</h5>
-                    </div>
-                    <div class="modal-body">
-                        <p>সব ৪ জন প্লেয়ার Wrong কম্বিনেশন খেলেছেন। নতুন করে কার্ড বিতরণ করা হবে।</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" wire:click="dealNewCardsAfterAllWrong">ঠিক আছে</button>
-                    </div>
-                </div>
+        <div class="modal-overlay">
+            <div class="winner-modal">
+                <h2>All player wrong</h2>
+                <p>All 4 players have played a Wrong combination. The cards will be redistributed.</p>
             </div>
         </div>
     @endif
@@ -350,6 +341,13 @@
                 playSound('rongSoundPlay');
                 // UI আপডেট করুন
                 Livewire.dispatch('refreshGameWrong',e.user.id);
+            });
+
+            .listen('AllPlayerWrong', (e) => {
+                Livewire.dispatch('showAllWrongModal');
+            })
+            .listen('HajariGameOver', (e) => {
+                Livewire.dispatch('showGameOverModal', e);
             });
 
             document.addEventListener('livewire:init', () => {
@@ -557,6 +555,14 @@
 
                 Livewire.on('gameOver', () => {
                     playSound('gameOverSound');
+                });
+
+                Livewire.on('playCardsAfterDelay', (event) => {
+                    const seconds = event.seconds || event;
+                    setTimeout(() => {
+                        // Use the correct method to call the component action
+                        @this.call('playCards');
+                    }, seconds * 1000);
                 });
 
                 Livewire.on('refresh-after-delay', (event) => {
