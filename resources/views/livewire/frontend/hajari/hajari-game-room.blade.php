@@ -353,7 +353,7 @@
             });
     </script>
 
-    <script>
+    {{-- <script>
         window.Echo.channel('game.{{ $game->id }}')
             .listen('AllPlayerWrong', (e) => {
                 // সরাসরি কম্পোনেন্টের মেথড কল করুন
@@ -363,7 +363,7 @@
                 // ইভেন্ট ডাটা সহ কম্পোনেন্টের মেথড কল করুন
                 @this.call('showGameOverModal', e);
             });
-    </script>
+    </script> --}}
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -578,6 +578,17 @@
                         @this.call('closeWrongModel');
                     }, seconds * 1000);
                 });
+
+
+                window.Echo.channel('game.{{ $game->id }}')
+                    .listen('AllPlayerWrong', (e) => {
+                        // সরাসরি কম্পোনেন্টের মেথড কল করুন
+                        @this.call('showAllWrongModal');
+                    })
+                    .listen('HajariGameOver', (e) => {
+                        // ইভেন্ট ডাটা সহ কম্পোনেন্টের মেথড কল করুন
+                        @this.call('showGameOverModal', e);
+                    });
 
                 Livewire.on('refresh-after-delay', (event) => {
                     const seconds = event.seconds || 7;

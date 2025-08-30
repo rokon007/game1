@@ -85,7 +85,7 @@ class HajariGameRoom extends Component
     {
         $this->showAllWrongModal = true;
         $this->dispatch('rongSound');
-       // $this->dispatch('closeWrongModelAfterDelay', seconds: 8);
+        $this->dispatch('closeWrongModelAfterDelay', seconds: 8);
     }
 
     public function closeWrongModel()
