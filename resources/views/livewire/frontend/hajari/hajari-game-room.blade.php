@@ -343,19 +343,24 @@
                 Livewire.dispatch('refreshGameWrong',e.user.id);
             });
 
-            .listen('AllPlayerWrong', (e) => {
-                Livewire.dispatch('showAllWrongModal');
-            })
-            .listen('HajariGameOver', (e) => {
-                Livewire.dispatch('showGameOverModal', e);
-            });
-
             document.addEventListener('livewire:init', () => {
                 Livewire.on('refresh-after-delay', (data) => {
                     setTimeout(() => {
                         Livewire.dispatch('dealNewCardsAfterAllWrong');
                     }, data.seconds * 1000);
                 });
+            });
+    </script>
+
+    <script>
+        window.Echo.channel('game.{{ $game->id }}')
+            .listen('AllPlayerWrong', (e) => {
+                // সরাসরি কম্পোনেন্টের মেথড কল করুন
+                @this.call('showAllWrongModal');
+            })
+            .listen('HajariGameOver', (e) => {
+                // ইভেন্ট ডাটা সহ কম্পোনেন্টের মেথড কল করুন
+                @this.call('showGameOverModal', e);
             });
     </script>
 
@@ -562,6 +567,14 @@
                     setTimeout(() => {
                         // Use the correct method to call the component action
                         @this.call('playCards');
+                    }, seconds * 1000);
+                });
+
+                Livewire.on('closeWrongModelAfterDelay', (event) => {
+                    const seconds = event.seconds || event;
+                    setTimeout(() => {
+                        // Use the correct method to call the component action
+                        @this.call('closeWrongModel');
                     }, seconds * 1000);
                 });
 
@@ -1188,12 +1201,12 @@
         }
 
         .ultra-slim-header {
-            height: 35px;
+            height: 18px;
             padding: 0 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(0, 0, 0, 0.2);
+
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 

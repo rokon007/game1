@@ -52,6 +52,8 @@ class HajariGameRoom extends Component
     protected $listeners = [
         'refreshGame' => '$refresh',
         'refreshGameWrong' => 'refreshGameForWrong',
+        'showAllWrongModal' => 'showAllWrongModal',
+        'showGameOverModal' => 'showGameOverModal',
         'echo-presence:game.{game.id},GameUpdated' => 'handleGameUpdate',
         'echo-presence:game.{game.id},CardPlayed' => 'handleCardPlayed',
         'echo-presence:game.{game.id},ScoreUpdated' => 'handleScoreUpdate',
@@ -77,6 +79,28 @@ class HajariGameRoom extends Component
         if ($game->status === HajariGame::STATUS_PENDING && $game->canStart()) {
             $this->startGame();
         }
+    }
+
+    public function showAllWrongModal()
+    {
+        $this->showAllWrongModal = true;
+        $this->dispatch('rongSound');
+        $this->dispatch('closeWrongModelAfterDelay', seconds: 8);
+    }
+
+    public function closeWrongModel()
+    {
+        $this->showAllWrongModal = false;
+    }
+
+    public function showGameOverModal($eventData)
+    {
+        $this->winnerData = [
+            'winner_name' => $eventData['winner']['name'] ?? 'Unknown',
+            'final_scores' => $eventData['winner']['total_points'] ?? 0
+        ];
+        $this->showWinnerModal = true;
+        $this->dispatch('gameOver');
     }
 
     public function handleAllPlayerWrong($data)
@@ -185,7 +209,7 @@ class HajariGameRoom extends Component
         // Auto select cards for current turn player (only if game is playing and not in arrangement phase)
         if ($this->game->status === HajariGame::STATUS_PLAYING && !$this->isArrangementPhase) {
             $this->autoSelectCardsForCurrentPlayer();
-            $this->dispatch('playCardsAfterDelay', seconds: 3);
+            $this->dispatch('playCardsAfterDelay', seconds: 8);
         }
     }
 
@@ -534,7 +558,7 @@ class HajariGameRoom extends Component
 
         if ($validMoves->isEmpty()) {
              broadcast(new AllPlayerWrong($this->game));
-            $this->showAllWrongModal=true;
+            //$this->showAllWrongModal=true;
             // ৩ সেকেন্ড পর স্বয়ংক্রিয়ভাবে নতুন কার্ড বিতরণ করুন
             $this->dispatch('refresh-after-delay', ['seconds' => 3]);
             Log::info('এই রাউন্ডে কোনো বিজয়ী নেই কারণ সকল খেলোয়াড় ভুল চাল দিয়েছেন।');
