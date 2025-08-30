@@ -85,7 +85,7 @@ class HajariGameRoom extends Component
     {
         $this->showAllWrongModal = true;
         $this->dispatch('rongSound');
-        $this->dispatch('closeWrongModelAfterDelay', seconds: 8);
+       // $this->dispatch('closeWrongModelAfterDelay', seconds: 8);
     }
 
     public function closeWrongModel()
@@ -118,6 +118,7 @@ class HajariGameRoom extends Component
         $this->showWinnerModal = true;
         $this->dispatch('gameOver');
     }
+
 
 
     public function handleWrongMove($data)
@@ -1418,6 +1419,10 @@ class HajariGameRoom extends Component
             'final_scores' => $winner->total_points
         ];
 
+        // Show the winner modal for the current player
+        $this->showWinnerModal = true;
+
+
         // Broadcast game over event to all players
         broadcast(new HajariGameOver($this->game, $winner, $finalScores));
 
@@ -1435,6 +1440,7 @@ class HajariGameRoom extends Component
         $transactions = $this->processGamePayments($winner);
 
         $this->dispatch('gameOver');
+
 
         // Broadcast game winner event
         broadcast(new GameWinner($this->game, $winner, $finalScores, $transactions));

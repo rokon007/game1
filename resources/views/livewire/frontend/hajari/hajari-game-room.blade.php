@@ -328,6 +328,7 @@
             <div class="winner-modal">
                 <h2>All player wrong</h2>
                 <p>All 4 players have played a Wrong combination. The cards will be redistributed.</p>
+                <button wire:click="dealNewCardsAfterAllWrong" class="close-btn">Close</button>
             </div>
         </div>
     @endif
