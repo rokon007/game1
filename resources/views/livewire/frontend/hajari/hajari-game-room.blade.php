@@ -362,12 +362,12 @@
 
                 gameChannel.listen('AllPlayerWrong', (e) => {
                     console.log('AllPlayerWrong event received:', e);
-                    @this.call('showAllWrongModal');
+                    Livewire.dispatch('showAllWrongModals');
                 });
 
                 gameChannel.listen('HajariGameOver', (e) => {
                     console.log('HajariGameOver event received:', e);
-                    @this.call('showGameOverModal', e);
+                    Livewire.dispatch('showGameOverModals', e);
                 });
 
                 // Error handling

@@ -52,8 +52,8 @@ class HajariGameRoom extends Component
     protected $listeners = [
         'refreshGame' => '$refresh',
         'refreshGameWrong' => 'refreshGameForWrong',
-        'showAllWrongModal' => 'showAllWrongModal',
-        'showGameOverModal' => 'showGameOverModal',
+        'showAllWrongModals' => 'showAllWrongModal',
+        'showGameOverModals' => 'showGameOverModal',
         'echo-presence:game.{game.id},GameUpdated' => 'handleGameUpdate',
         'echo-presence:game.{game.id},CardPlayed' => 'handleCardPlayed',
         'echo-presence:game.{game.id},ScoreUpdated' => 'handleScoreUpdate',

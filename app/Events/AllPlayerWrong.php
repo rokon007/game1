@@ -18,10 +18,8 @@ class AllPlayerWrong implements ShouldBroadcast
         public HajariGame $game
     ) {}
 
-    public function broadcastOn(): array
+    public function broadcastOn()
     {
-        return [
-            new PresenceChannel('game.' . $this->game->id),
-        ];
+        return new PresenceChannel('game.' . $this->game->id);
     }
 }
