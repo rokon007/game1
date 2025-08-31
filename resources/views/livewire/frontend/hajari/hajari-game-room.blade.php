@@ -353,17 +353,30 @@
             });
     </script>
 
-    {{-- <script>
-        window.Echo.channel('game.{{ $game->id }}')
-            .listen('AllPlayerWrong', (e) => {
-                // সরাসরি কম্পোনেন্টের মেথড কল করুন
-                @this.call('showAllWrongModal');
-            })
-            .listen('HajariGameOver', (e) => {
-                // ইভেন্ট ডাটা সহ কম্পোনেন্টের মেথড কল করুন
-                @this.call('showGameOverModal', e);
-            });
-    </script> --}}
+    <script>
+       // আপনার blade file এ এই কোড ব্যবহার করুন:
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.Echo) {
+                // Presence channel ব্যবহার করুন
+                const gameChannel = window.Echo.join('game.{{ $game->id }}');
+
+                gameChannel.listen('AllPlayerWrong', (e) => {
+                    console.log('AllPlayerWrong event received:', e);
+                    @this.call('showAllWrongModal');
+                });
+
+                gameChannel.listen('HajariGameOver', (e) => {
+                    console.log('HajariGameOver event received:', e);
+                    @this.call('showGameOverModal', e);
+                });
+
+                // Error handling
+                gameChannel.error((error) => {
+                    console.error('Echo channel error:', error);
+                });
+            }
+        });
+    </script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -578,17 +591,6 @@
                         @this.call('closeWrongModel');
                     }, seconds * 1000);
                 });
-
-
-                window.Echo.channel('game.{{ $game->id }}')
-                    .listen('AllPlayerWrong', (e) => {
-                        // সরাসরি কম্পোনেন্টের মেথড কল করুন
-                        @this.call('showAllWrongModal');
-                    })
-                    .listen('HajariGameOver', (e) => {
-                        // ইভেন্ট ডাটা সহ কম্পোনেন্টের মেথড কল করুন
-                        @this.call('showGameOverModal', e);
-                    });
 
                 Livewire.on('refresh-after-delay', (event) => {
                     const seconds = event.seconds || 7;
