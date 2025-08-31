@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Livewire\Attributes\On;
 
 class HajariGameRoom extends Component
 {
@@ -48,7 +49,6 @@ class HajariGameRoom extends Component
     public $speakingPlayers = [];
     public $wrongPlayers = [];
     public $showAllWrongModal = false;
-    public $finalScores;
 
     protected $listeners = [
         'refreshGame' => '$refresh',
@@ -63,7 +63,6 @@ class HajariGameRoom extends Component
         'echo-presence:game.{game.id},VoiceChatUpdate' => 'handleVoiceChatUpdate',
         'echo-presence:game.{game.id},WrongMove' => 'handleWrongMove',
         'echo-presence:game.{game.id},AllPlayerWrong' => 'handleAllPlayerWrong',
-        'echo:game.*,game.hajariOver' => 'handleGameOver',
         // 'echo-presence:game.{game.id},HajariGameOver' => 'handleGameOver',
     ];
 
@@ -81,8 +80,6 @@ class HajariGameRoom extends Component
         if ($game->status === HajariGame::STATUS_PENDING && $game->canStart()) {
             $this->startGame();
         }
-
-        $this->hajariGameOver();
     }
 
     public function showAllWrongModal()
@@ -107,12 +104,14 @@ class HajariGameRoom extends Component
         $this->dispatch('gameOver');
     }
 
+    #[On('echo-presence:game.{game.id},AllPlayerWrong')]
     public function handleAllPlayerWrong($data)
     {
         $this->showAllWrongModal = true;
         $this->dispatch('rongSound');
     }
 
+    #[On('echo-presence:game.{game.id},HajariGameOver')]
     public function handleGameOver($data)
     {
         $this->winnerData = [
@@ -1328,55 +1327,6 @@ class HajariGameRoom extends Component
                 $this->endGame(); // গেম শেষ করুন
             } else {
                 $this->dealNewCards(); // নতুন কার্ড বিতরণ করুন
-            }
-        }
-    }
-
-    public function hajariGameOver()
-    {
-        $playersWithCards = $this->game->participants()
-            ->where('status', HajariGameParticipant::STATUS_PLAYING)
-            ->get()
-            ->filter(function ($participant) {
-                return is_array($participant->cards) && count($participant->cards) > 0;
-            })
-            ->count();
-
-        // কার্ড শেষ হলে নতুন শর্ত চেক
-        if ($playersWithCards === 0) {
-            // ১০০০+ পয়েন্ট আছে এমন প্লেয়ার খুঁজুন
-            $hasWinner = $this->game->participants()
-                ->where('status', HajariGameParticipant::STATUS_PLAYING)
-                ->where('total_points', '>=', 1000)
-                ->exists();
-
-            if ($hasWinner) {
-                $winner = $this->calculateWinner();
-                 $this->finalScores = $this->game->participants()
-                    ->with('user')
-                    ->get()
-                    ->map(function ($participant) {
-                        return [
-                            'user_id' => $participant->user_id,
-                            'name' => $participant->user->name,
-                            'total_points' => $participant->total_points,
-                            'rounds_won' => $participant->rounds_won,
-                            'hazari_count' => $participant->hazari_count,
-                            'position' => $participant->position
-                        ];
-                    })
-                    ->sortByDesc('total_points')
-                    ->values()
-                    ->toArray();
-
-                // Set winner data for the modal
-                $this->winnerData = [
-                    'winner_name' => $winner->user->name,
-                    'final_scores' => $winner->total_points
-                ];
-
-                // Show the winner modal for the current player
-                $this->showWinnerModal = true;
             }
         }
     }

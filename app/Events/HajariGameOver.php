@@ -22,14 +22,11 @@ class HajariGameOver implements ShouldBroadcast
         public array $finalScores
     ) {}
 
-    public function broadcastOn()
+    public function broadcastOn(): array
     {
-        return new Channel('game.' . $this->game->id);
-    }
-
-    public function broadcastAs()
-    {
-        return 'game.hajariOver';
+        return [
+            new PresenceChannel('game.' . $this->game->id),
+        ];
     }
 
     public function broadcastWith(): array
