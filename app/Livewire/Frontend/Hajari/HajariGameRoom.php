@@ -49,41 +49,21 @@ class HajariGameRoom extends Component
     public $wrongPlayers = [];
     public $showAllWrongModal = false;
 
-    // protected $listeners = [
-    //     'refreshGame' => '$refresh',
-    //     'refreshGameWrong' => 'refreshGameForWrong',
-    //     'showAllWrongModal' => 'showAllWrongModal',
-    //     'showGameOverModal' => 'showGameOverModal',
-    //     'echo-presence:game.{game.id},GameUpdated' => 'handleGameUpdate',
-    //     'echo-presence:game.{game.id},CardPlayed' => 'handleCardPlayed',
-    //     'echo-presence:game.{game.id},ScoreUpdated' => 'handleScoreUpdate',
-    //     'echo-presence:game.{game.id},GameWinner' => 'handleGameWinner',
-    //     'echo-presence:game.{game.id},RoundWinner' => 'handleRoundWinner',
-    //     'echo-presence:game.{game.id},VoiceChatUpdate' => 'handleVoiceChatUpdate',
-    //     'echo-presence:game.{game.id},WrongMove' => 'handleWrongMove',
-    //     'echo-presence:game.{game.id},AllPlayerWrong' => 'handleAllPlayerWrong',
-    //     'echo-presence:game.{game.id},HajariGameOver' => 'handleGameOver',
-    // ];
-
-
-    public function getListeners()
-    {
-        return [
-            'refreshGame' => '$refresh',
-            'refreshGameWrong' => 'refreshGameForWrong',
-            'showAllWrongModal' => 'showAllWrongModal',
-            'showGameOverModal' => 'showGameOverModal',
-            'echo-presence:game.{game.id},GameUpdated' => 'handleGameUpdate',
-            'echo-presence:game.{game.id},CardPlayed' => 'handleCardPlayed',
-            'echo-presence:game.{game.id},ScoreUpdated' => 'handleScoreUpdate',
-            'echo-presence:game.{game.id},GameWinner' => 'handleGameWinner',
-            'echo-presence:game.{game.id},RoundWinner' => 'handleRoundWinner',
-            'echo-presence:game.{game.id},VoiceChatUpdate' => 'handleVoiceChatUpdate',
-            'echo-presence:game.{game.id},WrongMove' => 'handleWrongMove',
-            'echo-presence:game.{game.id},AllPlayerWrong' => 'handleAllPlayerWrong',
-            'echo-presence:game.{game.id},HajariGameOver' => 'handleGameOver',
-        ];
-    }
+    protected $listeners = [
+        'refreshGame' => '$refresh',
+        'refreshGameWrong' => 'refreshGameForWrong',
+        'showAllWrongModal' => 'showAllWrongModal',
+        'showGameOverModal' => 'showGameOverModal',
+        'echo-presence:game.{game.id},GameUpdated' => 'handleGameUpdate',
+        'echo-presence:game.{game.id},CardPlayed' => 'handleCardPlayed',
+        'echo-presence:game.{game.id},ScoreUpdated' => 'handleScoreUpdate',
+        'echo-presence:game.{game.id},GameWinner' => 'handleGameWinner',
+        'echo-presence:game.{game.id},RoundWinner' => 'handleRoundWinner',
+        'echo-presence:game.{game.id},VoiceChatUpdate' => 'handleVoiceChatUpdate',
+        'echo-presence:game.{game.id},WrongMove' => 'handleWrongMove',
+        'echo-presence:game.{game.id},AllPlayerWrong' => 'handleAllPlayerWrong',
+        'echo-presence:game.{game.id},HajariGameOver' => 'handleGameOver',
+    ];
 
     public function mount(HajariGame $game)
     {

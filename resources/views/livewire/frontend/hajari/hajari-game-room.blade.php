@@ -581,12 +581,12 @@
                 });
 
 
-                window.Echo.channel('game.{{ $game->id }}')
+                Echo.channel('game.{{ $game->id }}')
                     .listen('AllPlayerWrong', (e) => {
                         // সরাসরি কম্পোনেন্টের মেথড কল করুন
                         @this.call('showAllWrongModal');
                     })
-                    .listen('game.hajariOver', (e) => {
+                    .listen('HajariGameOver', (e) => {
                         // ইভেন্ট ডাটা সহ কম্পোনেন্টের মেথড কল করুন
                         Livewire.dispatch('handleGameOver', e);
                     });
