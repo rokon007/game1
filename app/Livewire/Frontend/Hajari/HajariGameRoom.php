@@ -52,8 +52,8 @@ class HajariGameRoom extends Component
     protected $listeners = [
         'refreshGame' => '$refresh',
         'refreshGameWrong' => 'refreshGameForWrong',
-        'showAllWrongModals' => 'showAllWrongModal',
-        'showGameOverModals' => 'showGameOverModal',
+        'showAllWrongModal' => 'showAllWrongModal',
+        'showGameOverModal' => 'showGameOverModal',
         'echo-presence:game.{game.id},GameUpdated' => 'handleGameUpdate',
         'echo-presence:game.{game.id},CardPlayed' => 'handleCardPlayed',
         'echo-presence:game.{game.id},ScoreUpdated' => 'handleScoreUpdate',
@@ -62,7 +62,8 @@ class HajariGameRoom extends Component
         'echo-presence:game.{game.id},VoiceChatUpdate' => 'handleVoiceChatUpdate',
         'echo-presence:game.{game.id},WrongMove' => 'handleWrongMove',
         'echo-presence:game.{game.id},AllPlayerWrong' => 'handleAllPlayerWrong',
-        'echo-presence:game.{game.id},HajariGameOver' => 'handleGameOver',
+        'echo:game.*,game.hajariOver' => 'handleGameOver',
+        // 'echo-presence:game.{game.id},HajariGameOver' => 'handleGameOver',
     ];
 
     public function mount(HajariGame $game)
