@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Broadcast;
+use App\Models\User;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,6 +20,10 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 
 Broadcast::channel('chat.{receiver}', function ($user, $receiver) {
     return (int) $user->id === (int) $receiver;
+});
+
+Broadcast::channel('game.{gameId}', function (User $user, $gameId) {
+    return true; // অথবা গেম অংশগ্রহণকারী চেক করে true return করো
 });
 
 // Broadcast::channel('game.{gameId}', function ($user, $gameId) {

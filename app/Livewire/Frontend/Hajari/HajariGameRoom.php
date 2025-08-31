@@ -22,7 +22,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
-use Livewire\Attributes\On;
 
 class HajariGameRoom extends Component
 {
@@ -50,21 +49,41 @@ class HajariGameRoom extends Component
     public $wrongPlayers = [];
     public $showAllWrongModal = false;
 
-    protected $listeners = [
-        'refreshGame' => '$refresh',
-        'refreshGameWrong' => 'refreshGameForWrong',
-        'showAllWrongModal' => 'showAllWrongModal',
-        'showGameOverModal' => 'showGameOverModal',
-        'echo-presence:game.{game.id},GameUpdated' => 'handleGameUpdate',
-        'echo-presence:game.{game.id},CardPlayed' => 'handleCardPlayed',
-        'echo-presence:game.{game.id},ScoreUpdated' => 'handleScoreUpdate',
-        'echo-presence:game.{game.id},GameWinner' => 'handleGameWinner',
-        'echo-presence:game.{game.id},RoundWinner' => 'handleRoundWinner',
-        'echo-presence:game.{game.id},VoiceChatUpdate' => 'handleVoiceChatUpdate',
-        'echo-presence:game.{game.id},WrongMove' => 'handleWrongMove',
-        'echo-presence:game.{game.id},AllPlayerWrong' => 'handleAllPlayerWrong',
-        // 'echo-presence:game.{game.id},HajariGameOver' => 'handleGameOver',
-    ];
+    // protected $listeners = [
+    //     'refreshGame' => '$refresh',
+    //     'refreshGameWrong' => 'refreshGameForWrong',
+    //     'showAllWrongModal' => 'showAllWrongModal',
+    //     'showGameOverModal' => 'showGameOverModal',
+    //     'echo-presence:game.{game.id},GameUpdated' => 'handleGameUpdate',
+    //     'echo-presence:game.{game.id},CardPlayed' => 'handleCardPlayed',
+    //     'echo-presence:game.{game.id},ScoreUpdated' => 'handleScoreUpdate',
+    //     'echo-presence:game.{game.id},GameWinner' => 'handleGameWinner',
+    //     'echo-presence:game.{game.id},RoundWinner' => 'handleRoundWinner',
+    //     'echo-presence:game.{game.id},VoiceChatUpdate' => 'handleVoiceChatUpdate',
+    //     'echo-presence:game.{game.id},WrongMove' => 'handleWrongMove',
+    //     'echo-presence:game.{game.id},AllPlayerWrong' => 'handleAllPlayerWrong',
+    //     'echo-presence:game.{game.id},HajariGameOver' => 'handleGameOver',
+    // ];
+
+
+    public function getListeners()
+    {
+        return [
+            'refreshGame' => '$refresh',
+            'refreshGameWrong' => 'refreshGameForWrong',
+            'showAllWrongModal' => 'showAllWrongModal',
+            'showGameOverModal' => 'showGameOverModal',
+            'echo-presence:game.{game.id},GameUpdated' => 'handleGameUpdate',
+            'echo-presence:game.{game.id},CardPlayed' => 'handleCardPlayed',
+            'echo-presence:game.{game.id},ScoreUpdated' => 'handleScoreUpdate',
+            'echo-presence:game.{game.id},GameWinner' => 'handleGameWinner',
+            'echo-presence:game.{game.id},RoundWinner' => 'handleRoundWinner',
+            'echo-presence:game.{game.id},VoiceChatUpdate' => 'handleVoiceChatUpdate',
+            'echo-presence:game.{game.id},WrongMove' => 'handleWrongMove',
+            'echo-presence:game.{game.id},AllPlayerWrong' => 'handleAllPlayerWrong',
+            'echo-presence:game.{game.id},HajariGameOver' => 'handleGameOver',
+        ];
+    }
 
     public function mount(HajariGame $game)
     {
@@ -104,14 +123,12 @@ class HajariGameRoom extends Component
         $this->dispatch('gameOver');
     }
 
-    #[On('echo-presence:game.{game.id},AllPlayerWrong')]
     public function handleAllPlayerWrong($data)
     {
         $this->showAllWrongModal = true;
         $this->dispatch('rongSound');
     }
 
-    #[On('echo-presence:game.{game.id},HajariGameOver')]
     public function handleGameOver($data)
     {
         $this->winnerData = [
