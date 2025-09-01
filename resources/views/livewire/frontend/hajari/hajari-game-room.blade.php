@@ -343,7 +343,7 @@
             // Ensure Echo is available
             if (typeof Echo !== 'undefined') {
                 // Get or create the channel
-                const channel = Echo.channel('game.{{ $games_Id }}');
+                const channel = Echo.channel('game.{{ $game->id }}');
 
 
                 // Add specific listener for game over events
