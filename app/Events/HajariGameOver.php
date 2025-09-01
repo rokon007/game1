@@ -16,11 +16,19 @@ class HajariGameOver implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    public $game;
+    public $winner;
+    public $finalScores;
+
     public function __construct(
-        public HajariGame $game,
-        public HajariGameParticipant $winner,
-        public array $finalScores
-    ) {}
+         HajariGame $game,
+         HajariGameParticipant $winner,
+         $finalScores
+    ) {
+        $this->game = $game;
+        $this->winner = $winner;
+        $this->finalScores = $finalScores;
+    }
 
     // public function broadcastOn(): array
     // {
@@ -32,6 +40,11 @@ class HajariGameOver implements ShouldBroadcast
     public function broadcastOn()
     {
         return new Channel('game.' . $this->game->id);
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'game.over';
     }
 
     public function broadcastWith(): array

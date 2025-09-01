@@ -334,6 +334,44 @@
     @endif
 
     <script src="{{ asset('js/hajari-room.js') }}" defer></script>
+
+    <script>
+        // Additional Echo setup for notice events
+        document.addEventListener('livewire:initialized', () => {
+            console.log('Livewire initialized, setting up additional Echo listeners');
+
+            // Ensure Echo is available
+            if (typeof Echo !== 'undefined') {
+                // Get or create the channel
+                const channel = Echo.channel('game.{{ $games_Id }}');
+
+
+                // Add specific listener for game over events
+                channel.listen('.game.over', (event) => {
+                    console.log('Direct Echo game over listener triggered:', event);
+
+                    // Find the Livewire component and call the method
+                    const component = Livewire.find('{{ $_instance->getId() }}');
+                    if (component) {
+                        component.call('handleGameOver', event);
+                    } else {
+                        console.error('Livewire component not found');
+                    }
+                });
+
+                // Verify the listener is registered
+                console.log('Game Over listener registered on channel:', channel);
+
+            } else {
+                console.error('Echo is not defined');
+            }
+        });
+    </script>
+
+
+
+
+
     <script>
         window.Echo.channel('game.{{ $game->id }}')
             .listen('WrongMove', (e) => {
@@ -581,15 +619,7 @@
                 });
 
 
-                Echo.channel('game.{{ $game->id }}')
-                    .listen('AllPlayerWrong', (e) => {
-                        // সরাসরি কম্পোনেন্টের মেথড কল করুন
-                        @this.call('showAllWrongModal');
-                    })
-                    .listen('HajariGameOver', (e) => {
-                        // ইভেন্ট ডাটা সহ কম্পোনেন্টের মেথড কল করুন
-                        Livewire.dispatch('handleGameOver', e);
-                    });
+
 
                 Livewire.on('refresh-after-delay', (event) => {
                     const seconds = event.seconds || 7;

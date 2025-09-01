@@ -62,7 +62,7 @@ class HajariGameRoom extends Component
         'echo-presence:game.{game.id},VoiceChatUpdate' => 'handleVoiceChatUpdate',
         'echo-presence:game.{game.id},WrongMove' => 'handleWrongMove',
         'echo-presence:game.{game.id},AllPlayerWrong' => 'handleAllPlayerWrong',
-        'echo-presence:game.{game.id},HajariGameOver' => 'handleGameOver',
+        'echo:game.*,game.over' => 'handleGameOver',
     ];
 
     public function mount(HajariGame $game)
