@@ -19,7 +19,7 @@
         <source src="{{ asset('sounds/playCardSound.mp3') }}" type="audio/mpeg">
     </audio>
     <audio id="gameOverSound" preload="auto">
-        <source src="{{ asset('sounds/gameOverSound.mp3') }}" type="audio/mpeg">
+        <source src="{{ asset('sounds/winner1.mp3') }}" type="audio/mpeg">
     </audio>
 
     <!-- Game notifications container -->
@@ -176,7 +176,7 @@
                         {{-- Rong মার্কার ডিভ --}}
                         @if(in_array($participant->user_id, $wrongPlayers))
                             <div class="rong-indicator" title="Rong">
-                                <i class="fas fa-exclamation-triangle" style="color: red;"></i>Rong
+                                <i class="fas fa-exclamation-triangle" style="color: red;"></i>Wrong
                             </div>
                         @endif
                     </div>
@@ -334,6 +334,24 @@
     @endif
 
     <script src="{{ asset('js/hajari-room.js') }}" defer></script>
+    <script>
+        window.Echo.channel('game.{{ $game->id }}')
+            .listen('WrongMove', (e) => {
+                // Wrong move notification দেখান
+                alert(e.user.name + ' has played a wrong combination!');
+                playSound('rongSoundPlay');
+                // UI আপডেট করুন
+                Livewire.dispatch('refreshGameWrong',e.user.id);
+            });
+
+            document.addEventListener('livewire:init', () => {
+                Livewire.on('refresh-after-delay', (data) => {
+                    setTimeout(() => {
+                        Livewire.dispatch('dealNewCardsAfterAllWrong');
+                    }, data.seconds * 1000);
+                });
+            });
+    </script>
 
     <script>
         // Additional Echo setup for notice events
@@ -359,50 +377,27 @@
                     }
                 });
 
+                // Add specific listener for all Player Wrong events
+                channel.listen('.game.allWrong', (event) => {
+                    console.log('Direct Echo all Player Wrong listener triggered:', event);
+
+                    // Find the Livewire component and call the method
+                    const component = Livewire.find('{{ $_instance->getId() }}');
+                    if (component) {
+                        component.call('handleAllPlayerWrong', event);
+                    } else {
+                        console.error('Livewire component not found');
+                    }
+                });
+
                 // Verify the listener is registered
-                console.log('Game Over listener registered on channel:', channel);
+                console.log('Game Over and all Player Wrong listener registered on channel:', channel);
 
             } else {
                 console.error('Echo is not defined');
             }
         });
     </script>
-
-
-
-
-
-    <script>
-        window.Echo.channel('game.{{ $game->id }}')
-            .listen('WrongMove', (e) => {
-                // Wrong move notification দেখান
-                alert(e.user.name + ' has played a wrong combination!');
-                playSound('rongSoundPlay');
-                // UI আপডেট করুন
-                Livewire.dispatch('refreshGameWrong',e.user.id);
-            });
-
-            document.addEventListener('livewire:init', () => {
-                Livewire.on('refresh-after-delay', (data) => {
-                    setTimeout(() => {
-                        Livewire.dispatch('dealNewCardsAfterAllWrong');
-                    }, data.seconds * 1000);
-                });
-            });
-
-    </script>
-
-    {{-- <script>
-        window.Echo.channel('game.{{ $game->id }}')
-            .listen('AllPlayerWrong', (e) => {
-                // সরাসরি কম্পোনেন্টের মেথড কল করুন
-                @this.call('showAllWrongModal');
-            })
-            .listen('HajariGameOver', (e) => {
-                // ইভেন্ট ডাটা সহ কম্পোনেন্টের মেথড কল করুন
-                @this.call('showGameOverModal', e);
-            });
-    </script> --}}
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -609,17 +604,6 @@
                         @this.call('playCards');
                     }, seconds * 1000);
                 });
-
-                Livewire.on('closeWrongModelAfterDelay', (event) => {
-                    const seconds = event.seconds || event;
-                    setTimeout(() => {
-                        // Use the correct method to call the component action
-                        @this.call('closeWrongModel');
-                    }, seconds * 1000);
-                });
-
-
-
 
                 Livewire.on('refresh-after-delay', (event) => {
                     const seconds = event.seconds || 7;
@@ -1244,12 +1228,12 @@
         }
 
         .ultra-slim-header {
-            height: 18px;
+            height: 35px;
             padding: 0 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-
+            background: rgba(0, 0, 0, 0.2);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 

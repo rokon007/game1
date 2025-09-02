@@ -13,13 +13,26 @@ use Illuminate\Queue\SerializesModels;
 class AllPlayerWrong implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
+    public $game;
 
     public function __construct(
-        public HajariGame $game
-    ) {}
+        HajariGame $game
+    ) {
+        $this->game = $game;
+    }
 
     public function broadcastOn()
     {
         return new PresenceChannel('game.' . $this->game->id);
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'game.allWrong';
+    }
+
+    public function broadcastWith(): array
+    {
+        return ['game_id' => $this->game->id];
     }
 }

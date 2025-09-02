@@ -52,8 +52,6 @@ class HajariGameRoom extends Component
     protected $listeners = [
         'refreshGame' => '$refresh',
         'refreshGameWrong' => 'refreshGameForWrong',
-        'showAllWrongModal' => 'showAllWrongModal',
-        'showGameOverModal' => 'showGameOverModal',
         'echo-presence:game.{game.id},GameUpdated' => 'handleGameUpdate',
         'echo-presence:game.{game.id},CardPlayed' => 'handleCardPlayed',
         'echo-presence:game.{game.id},ScoreUpdated' => 'handleScoreUpdate',
@@ -61,7 +59,7 @@ class HajariGameRoom extends Component
         'echo-presence:game.{game.id},RoundWinner' => 'handleRoundWinner',
         'echo-presence:game.{game.id},VoiceChatUpdate' => 'handleVoiceChatUpdate',
         'echo-presence:game.{game.id},WrongMove' => 'handleWrongMove',
-        'echo-presence:game.{game.id},AllPlayerWrong' => 'handleAllPlayerWrong',
+        'echo:game.*,game.allWrong' => 'handleAllPlayerWrong',
         'echo:game.*,game.over' => 'handleGameOver',
     ];
 
@@ -81,34 +79,6 @@ class HajariGameRoom extends Component
         }
     }
 
-    public function showAllWrongModal()
-    {
-        $this->showAllWrongModal = true;
-        $this->dispatch('rongSound');
-        $this->dispatch('closeWrongModelAfterDelay', seconds: 8);
-    }
-
-    public function closeWrongModel()
-    {
-        $this->showAllWrongModal = false;
-    }
-
-    public function showGameOverModal($eventData)
-    {
-        $this->winnerData = [
-            'winner_name' => $eventData['winner']['name'] ?? 'Unknown',
-            'final_scores' => $eventData['winner']['total_points'] ?? 0
-        ];
-        $this->showWinnerModal = true;
-        $this->dispatch('gameOver');
-    }
-
-    public function handleAllPlayerWrong($data)
-    {
-        $this->showAllWrongModal = true;
-        $this->dispatch('rongSound');
-    }
-
     public function handleGameOver($data)
     {
         $this->winnerData = [
@@ -119,6 +89,11 @@ class HajariGameRoom extends Component
         $this->dispatch('gameOver');
     }
 
+    public function handleAllPlayerWrong($data)
+    {
+        $this->showAllWrongModal = true;
+        $this->dispatch('rongSound');
+    }
 
 
     public function handleWrongMove($data)
@@ -558,8 +533,8 @@ class HajariGameRoom extends Component
         $validMoves = $roundMoves->whereNotIn('player_id', $wrongPlayerIds);
 
         if ($validMoves->isEmpty()) {
-             broadcast(new AllPlayerWrong($this->game));
-            //$this->showAllWrongModal=true;
+            $this->showAllWrongModal=true;
+            broadcast(new AllPlayerWrong($this->game));
             // ৩ সেকেন্ড পর স্বয়ংক্রিয়ভাবে নতুন কার্ড বিতরণ করুন
             $this->dispatch('refresh-after-delay', ['seconds' => 3]);
             Log::info('এই রাউন্ডে কোনো বিজয়ী নেই কারণ সকল খেলোয়াড় ভুল চাল দিয়েছেন।');
@@ -1333,69 +1308,27 @@ class HajariGameRoom extends Component
         $this->showWinnerModal = false;
     }
 
-    // private function endGame()
-    // {
-    //     $winner = $this->calculateWinner();
-
-    //     // Set winner data for the modal
-    //     $this->winnerData = [
-    //         'winner_name' => $winner->user->name,
-    //         'final_scores' => $winner->total_points
-    //     ];
-
-    //     // Show the winner modal
-    //     // $this->showWinnerModal = true;
-    //     broadcast(new HajariGameOver($this->game, $winner, $finalScores));
-    //     // end  for the modal
-
-    //     $this->game->update([
-    //         'status' => HajariGame::STATUS_COMPLETED,
-    //         'winner_id' => $winner->user_id
-    //     ]);
-
-    //     $this->game->participants()->update([
-    //         'status' => HajariGameParticipant::STATUS_FINISHED
-    //     ]);
-
-    //     $finalScores = $this->game->participants()
-    //         ->with('user')
-    //         ->get()
-    //         ->map(function ($participant) {
-    //             return [
-    //                 'user_id' => $participant->user_id,
-    //                 'name' => $participant->user->name,
-    //                 'total_points' => $participant->total_points,
-    //                 'rounds_won' => $participant->rounds_won,
-    //                 'hazari_count' => $participant->hazari_count,
-    //                 'position' => $participant->position
-    //             ];
-    //         })
-    //         ->sortByDesc('total_points')
-    //         ->values()
-    //         ->toArray();
-
-    //     // ট্রানজাকশন প্রক্রিয়া এবং নোটিফিকেশন
-    //     $transactions = $this->processGamePayments($winner);
-
-    //     $this->dispatch('gameOver');
-
-    //     // গেম উইনার ইভেন্টে ট্রানজাকশনের তথ্য যোগ
-    //     broadcast(new GameWinner($this->game, $winner, $finalScores, $transactions));
-
-    //     Log::info('Game Ended', [
-    //         'game_id' => $this->game->id,
-    //         'winner_id' => $winner->user_id,
-    //         'winner_name' => $winner->user->name,
-    //         'final_scores' => $finalScores,
-    //         'transactions' => $transactions
-    //     ]);
-    // }
-
     private function endGame()
     {
         $winner = $this->calculateWinner();
 
-        // Calculate final scores first
+        // Set winner data for the modal
+        $this->winnerData = [
+            'winner_name' => $winner->user->name,
+            'final_scores' => $winner->total_points
+        ];
+
+
+
+        $this->game->update([
+            'status' => HajariGame::STATUS_COMPLETED,
+            'winner_id' => $winner->user_id
+        ]);
+
+        $this->game->participants()->update([
+            'status' => HajariGameParticipant::STATUS_FINISHED
+        ]);
+
         $finalScores = $this->game->participants()
             ->with('user')
             ->get()
@@ -1413,35 +1346,21 @@ class HajariGameRoom extends Component
             ->values()
             ->toArray();
 
-        // Set winner data for the modal
-        $this->winnerData = [
-            'winner_name' => $winner->user->name,
-            'final_scores' => $winner->total_points
-        ];
-
-        // Update game status
-        $this->game->update([
-            'status' => HajariGame::STATUS_COMPLETED,
-            'winner_id' => $winner->user_id
-        ]);
-
-        $this->game->participants()->update([
-            'status' => HajariGameParticipant::STATUS_FINISHED
-        ]);
-
-        // Process payments and notifications
+        // ট্রানজাকশন প্রক্রিয়া এবং নোটিফিকেশন
         $transactions = $this->processGamePayments($winner);
 
         $this->dispatch('gameOver');
+
+        // গেম উইনার ইভেন্টে ট্রানজাকশনের তথ্য যোগ
+        broadcast(new GameWinner($this->game, $winner, $finalScores, $transactions));
+
+
         // Show the winner modal for the current player
         $this->showWinnerModal = true;
 
 
         // Broadcast game over event to all players
         broadcast(new HajariGameOver($this->game, $winner, $finalScores));
-
-        // Broadcast game winner event
-        broadcast(new GameWinner($this->game, $winner, $finalScores, $transactions));
 
         Log::info('Game Ended', [
             'game_id' => $this->game->id,
