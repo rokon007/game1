@@ -50,7 +50,7 @@ class HajariGameRoom extends Component
     public $wrongPlayers = [];
     public $showAllWrongModal = false;
 
-    protected HajariGameService $gameService;
+    //protected HajariGameService $gameService;
 
     protected $listeners = [
         'refreshGame' => '$refresh',
@@ -66,14 +66,12 @@ class HajariGameRoom extends Component
         'echo:game.*,game.over' => 'handleGameOver',
     ];
 
-    // কনস্ট্রাক্টরে Service ইনজেকশন
-    public function __construct($id = null)
+    protected function getGameService()
     {
-        parent::__construct($id);
-        $this->gameService = app(HajariGameService::class);
+        return app(HajariGameService::class);
     }
 
-    public function mount(HajariGame $game, HajariGameService $gameService)
+    public function mount(HajariGame $game)
     {
         $this->game = $game;
         $this->player = $game->participants()->where('user_id', Auth::id())->first();
@@ -894,7 +892,7 @@ class HajariGameRoom extends Component
     private function checkForNewCardDeal()
     {
         // Service ব্যবহার করে গেম শেষ হওয়ার শর্ত চেক করুন
-        if ($this->gameService->checkGameEndConditions($this->game)) {
+        if ($this->getGameService()->checkGameEndConditions($this->game)) {
             return; // গেম শেষ হয়ে গেছে
         }
 
@@ -1343,7 +1341,7 @@ class HajariGameRoom extends Component
     {
         try {
             // Service ব্যবহার করে গেম শেষ হওয়ার শর্ত চেক করুন
-            if ($this->gameService->checkGameEndConditions($this->game)) {
+            if ($this->getGameService()->checkGameEndConditions($this->game)) {
                 return; // গেম শেষ হয়ে গেছে
             }
 
