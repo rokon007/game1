@@ -26,7 +26,6 @@ use App\Services\HajariGameService;
 
 class HajariGameRoom extends Component
 {
-    protected HajariGameService $gameService;
     public HajariGame $game;
     public $player;
     public $selectedCards = [];
@@ -51,6 +50,8 @@ class HajariGameRoom extends Component
     public $wrongPlayers = [];
     public $showAllWrongModal = false;
 
+    protected HajariGameService $gameService;
+
     protected $listeners = [
         'refreshGame' => '$refresh',
         'refreshGameWrong' => 'refreshGameForWrong',
@@ -65,10 +66,16 @@ class HajariGameRoom extends Component
         'echo:game.*,game.over' => 'handleGameOver',
     ];
 
+    // কনস্ট্রাক্টরে Service ইনজেকশন
+    public function __construct($id = null)
+    {
+        parent::__construct($id);
+        $this->gameService = app(HajariGameService::class);
+    }
+
     public function mount(HajariGame $game, HajariGameService $gameService)
     {
         $this->game = $game;
-        $this->gameService = $gameService; // Service ইনজেক্ট করুন
         $this->player = $game->participants()->where('user_id', Auth::id())->first();
 
         if (!$this->player) {
