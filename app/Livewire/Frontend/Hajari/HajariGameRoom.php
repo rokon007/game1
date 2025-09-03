@@ -22,9 +22,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Services\HajariGameService;
 
 class HajariGameRoom extends Component
 {
+    protected HajariGameService $gameService;
     public HajariGame $game;
     public $player;
     public $selectedCards = [];
@@ -63,9 +65,10 @@ class HajariGameRoom extends Component
         'echo:game.*,game.over' => 'handleGameOver',
     ];
 
-    public function mount(HajariGame $game)
+    public function mount(HajariGame $game, HajariGameService $gameService)
     {
         $this->game = $game;
+        $this->gameService = $gameService; // Service ইনজেক্ট করুন
         $this->player = $game->participants()->where('user_id', Auth::id())->first();
 
         if (!$this->player) {
@@ -860,9 +863,35 @@ class HajariGameRoom extends Component
         return $playedCards;
     }
 
+    // private function checkForNewCardDeal()
+    // {
+    //     // সব প্লেয়ারের কার্ড শেষ কিনা চেক
+    //     $playersWithCards = $this->game->participants()
+    //         ->where('status', HajariGameParticipant::STATUS_PLAYING)
+    //         ->get()
+    //         ->filter(function ($participant) {
+    //             return is_array($participant->cards) && count($participant->cards) > 0;
+    //         })
+    //         ->count();
+
+    //     if ($playersWithCards === 0 && $this->game->status === HajariGame::STATUS_PLAYING) {
+    //         $this->dealNewCards();
+    //         // নতুন কার্ড ডিলের পর টার্ন রিসেট
+    //         $lastRound = $this->game->moves()->max('round') ?? 1;
+    //         $lastRoundWinner = $this->getRoundWinnerPosition($lastRound);
+    //         $this->gameState['current_turn'] = $this->getPlayerTurnOrder($lastRoundWinner ?? 1);
+    //         $this->gameState['current_round']++;
+    //     }
+    // }
+
     private function checkForNewCardDeal()
     {
-        // সব প্লেয়ারের কার্ড শেষ কিনা চেক
+        // Service ব্যবহার করে গেম শেষ হওয়ার শর্ত চেক করুন
+        if ($this->gameService->checkGameEndConditions($this->game)) {
+            return; // গেম শেষ হয়ে গেছে
+        }
+
+        // বাকি লজিক অপরিবর্তিত রাখুন
         $playersWithCards = $this->game->participants()
             ->where('status', HajariGameParticipant::STATUS_PLAYING)
             ->get()
@@ -1277,8 +1306,40 @@ class HajariGameRoom extends Component
 
 
 
+    // private function checkGameProgress()
+    // {
+    //     $playersWithCards = $this->game->participants()
+    //         ->where('status', HajariGameParticipant::STATUS_PLAYING)
+    //         ->get()
+    //         ->filter(function ($participant) {
+    //             return is_array($participant->cards) && count($participant->cards) > 0;
+    //         })
+    //         ->count();
+
+    //     // কার্ড শেষ হলে নতুন শর্ত চেক
+    //     if ($playersWithCards === 0) {
+    //         // ১০০০+ পয়েন্ট আছে এমন প্লেয়ার খুঁজুন
+    //         $hasWinner = $this->game->participants()
+    //             ->where('status', HajariGameParticipant::STATUS_PLAYING)
+    //             ->where('total_points', '>=', 1000)
+    //             ->exists();
+
+    //         if ($hasWinner) {
+    //             $this->endGame(); // গেম শেষ করুন
+    //         } else {
+    //             $this->dealNewCards(); // নতুন কার্ড বিতরণ করুন
+    //         }
+    //     }
+    // }
+    //3. checkGameProgress মেথড আপডেট
     private function checkGameProgress()
     {
+        // Service ব্যবহার করে গেম শেষ হওয়ার শর্ত চেক করুন
+        if ($this->gameService->checkGameEndConditions($this->game)) {
+            return; // গেম শেষ হয়ে গেছে
+        }
+
+        // যদি গেম না শেষ হয়, তবে কার্ড ডিল করার লজিক চালু রাখুন
         $playersWithCards = $this->game->participants()
             ->where('status', HajariGameParticipant::STATUS_PLAYING)
             ->get()
@@ -1287,19 +1348,8 @@ class HajariGameRoom extends Component
             })
             ->count();
 
-        // কার্ড শেষ হলে নতুন শর্ত চেক
-        if ($playersWithCards === 0) {
-            // ১০০০+ পয়েন্ট আছে এমন প্লেয়ার খুঁজুন
-            $hasWinner = $this->game->participants()
-                ->where('status', HajariGameParticipant::STATUS_PLAYING)
-                ->where('total_points', '>=', 1000)
-                ->exists();
-
-            if ($hasWinner) {
-                $this->endGame(); // গেম শেষ করুন
-            } else {
-                $this->dealNewCards(); // নতুন কার্ড বিতরণ করুন
-            }
+        if ($playersWithCards === 0 && $this->game->status === HajariGame::STATUS_PLAYING) {
+            $this->dealNewCards();
         }
     }
 
@@ -1308,77 +1358,77 @@ class HajariGameRoom extends Component
         $this->showWinnerModal = false;
     }
 
-    private function endGame()
-    {
-        $winner = $this->calculateWinner();
+    // private function endGame()
+    // {
+    //     $winner = $this->calculateWinner();
 
-        // Set winner data for the modal
-        $this->winnerData = [
-            'winner_name' => $winner->user->name,
-            'final_scores' => $winner->total_points
-        ];
-
-
-
-        $this->game->update([
-            'status' => HajariGame::STATUS_COMPLETED,
-            'winner_id' => $winner->user_id
-        ]);
-
-        $this->game->participants()->update([
-            'status' => HajariGameParticipant::STATUS_FINISHED
-        ]);
-
-        $finalScores = $this->game->participants()
-            ->with('user')
-            ->get()
-            ->map(function ($participant) {
-                return [
-                    'user_id' => $participant->user_id,
-                    'name' => $participant->user->name,
-                    'total_points' => $participant->total_points,
-                    'rounds_won' => $participant->rounds_won,
-                    'hazari_count' => $participant->hazari_count,
-                    'position' => $participant->position
-                ];
-            })
-            ->sortByDesc('total_points')
-            ->values()
-            ->toArray();
-
-        // ট্রানজাকশন প্রক্রিয়া এবং নোটিফিকেশন
-        $transactions = $this->processGamePayments($winner);
-
-        $this->dispatch('gameOver');
-
-        // গেম উইনার ইভেন্টে ট্রানজাকশনের তথ্য যোগ
-        broadcast(new GameWinner($this->game, $winner, $finalScores, $transactions));
+    //     // Set winner data for the modal
+    //     $this->winnerData = [
+    //         'winner_name' => $winner->user->name,
+    //         'final_scores' => $winner->total_points
+    //     ];
 
 
-        // Show the winner modal for the current player
-        $this->showWinnerModal = true;
+
+    //     $this->game->update([
+    //         'status' => HajariGame::STATUS_COMPLETED,
+    //         'winner_id' => $winner->user_id
+    //     ]);
+
+    //     $this->game->participants()->update([
+    //         'status' => HajariGameParticipant::STATUS_FINISHED
+    //     ]);
+
+    //     $finalScores = $this->game->participants()
+    //         ->with('user')
+    //         ->get()
+    //         ->map(function ($participant) {
+    //             return [
+    //                 'user_id' => $participant->user_id,
+    //                 'name' => $participant->user->name,
+    //                 'total_points' => $participant->total_points,
+    //                 'rounds_won' => $participant->rounds_won,
+    //                 'hazari_count' => $participant->hazari_count,
+    //                 'position' => $participant->position
+    //             ];
+    //         })
+    //         ->sortByDesc('total_points')
+    //         ->values()
+    //         ->toArray();
+
+    //     // ট্রানজাকশন প্রক্রিয়া এবং নোটিফিকেশন
+    //     $transactions = $this->processGamePayments($winner);
+
+    //     $this->dispatch('gameOver');
+
+    //     // গেম উইনার ইভেন্টে ট্রানজাকশনের তথ্য যোগ
+    //     broadcast(new GameWinner($this->game, $winner, $finalScores, $transactions));
 
 
-        // Broadcast game over event to all players
-        broadcast(new HajariGameOver($this->game, $winner, $finalScores));
+    //     // Show the winner modal for the current player
+    //     $this->showWinnerModal = true;
 
-        Log::info('Game Ended', [
-            'game_id' => $this->game->id,
-            'winner_id' => $winner->user_id,
-            'winner_name' => $winner->user->name,
-            'final_scores' => $finalScores,
-            'transactions' => $transactions
-        ]);
-    }
 
-    private function calculateWinner()
-    {
-        return $this->game->participants()
-            ->orderByDesc('total_points')
-            ->orderByDesc('rounds_won')
-            ->orderByDesc('hazari_count')
-            ->first();
-    }
+    //     // Broadcast game over event to all players
+    //     broadcast(new HajariGameOver($this->game, $winner, $finalScores));
+
+    //     Log::info('Game Ended', [
+    //         'game_id' => $this->game->id,
+    //         'winner_id' => $winner->user_id,
+    //         'winner_name' => $winner->user->name,
+    //         'final_scores' => $finalScores,
+    //         'transactions' => $transactions
+    //     ]);
+    // }
+
+    // private function calculateWinner()
+    // {
+    //     return $this->game->participants()
+    //         ->orderByDesc('total_points')
+    //         ->orderByDesc('rounds_won')
+    //         ->orderByDesc('hazari_count')
+    //         ->first();
+    // }
 
     // private function processGamePayments($winner)
     // {
@@ -1413,40 +1463,40 @@ class HajariGameRoom extends Component
     // }
 
 
-    private function processGamePayments($winner)
-    {
-        $bidAmount = $this->game->bid_amount;
-        $participants = $this->game->participants()->get();
+    // private function processGamePayments($winner)
+    // {
+    //     $bidAmount = $this->game->bid_amount;
+    //     $participants = $this->game->participants()->get();
 
-        DB::transaction(function () use ($winner, $bidAmount, $participants) {
-            $admin = User::find(1);
-            $adminCommissionRate = GameSetting::getAdminCommission();
-            $totalBidAmount = $bidAmount * 4;
-            $adminCommission = $totalBidAmount * ($adminCommissionRate / 100); // Calculate commission
-            $winnerAmount = $totalBidAmount - $adminCommission;
+    //     DB::transaction(function () use ($winner, $bidAmount, $participants) {
+    //         $admin = User::find(1);
+    //         $adminCommissionRate = GameSetting::getAdminCommission();
+    //         $totalBidAmount = $bidAmount * 4;
+    //         $adminCommission = $totalBidAmount * ($adminCommissionRate / 100); // Calculate commission
+    //         $winnerAmount = $totalBidAmount - $adminCommission;
 
-            // Add bid amount to admin account
-            $admin->credit -= $winnerAmount;
-            $admin->save();
+    //         // Add bid amount to admin account
+    //         $admin->credit -= $winnerAmount;
+    //         $admin->save();
 
-            // Create transaction for admin (credit)
-            Transaction::create([
-                'user_id' => $admin->id,
-                'type' => 'debit',
-                'amount' => $winnerAmount,
-                'details' => 'Game Winning Amount for user: ' . $winner->user->name . ' for game: ' . $this->game->title,
-            ]);
+    //         // Create transaction for admin (credit)
+    //         Transaction::create([
+    //             'user_id' => $admin->id,
+    //             'type' => 'debit',
+    //             'amount' => $winnerAmount,
+    //             'details' => 'Game Winning Amount for user: ' . $winner->user->name . ' for game: ' . $this->game->title,
+    //         ]);
 
-            Transaction::create([
-                'user_id' => $winner->user_id,
-                'type' => 'credit',
-                'amount' => $winnerAmount,
-                'details' => 'Game win: ' . $this->game->title . ' (After ' . $adminCommissionRate . '% admin commission)',
-        ]);
+    //         Transaction::create([
+    //             'user_id' => $winner->user_id,
+    //             'type' => 'credit',
+    //             'amount' => $winnerAmount,
+    //             'details' => 'Game win: ' . $this->game->title . ' (After ' . $adminCommissionRate . '% admin commission)',
+    //     ]);
 
-            $winner->user->increment('credit', $winnerAmount);
-        });
-    }
+    //         $winner->user->increment('credit', $winnerAmount);
+    //     });
+    // }
 
     private function getRoundCompletionTime($round)
     {

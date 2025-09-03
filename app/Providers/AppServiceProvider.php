@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\HajariGameService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(HajariGameService::class, function ($app) {
+            return new HajariGameService();
+        });
     }
 
     /**
