@@ -1334,22 +1334,27 @@ class HajariGameRoom extends Component
     //3. checkGameProgress মেথড আপডেট
     private function checkGameProgress()
     {
-        // Service ব্যবহার করে গেম শেষ হওয়ার শর্ত চেক করুন
-        if ($this->gameService->checkGameEndConditions($this->game)) {
-            return; // গেম শেষ হয়ে গেছে
-        }
+        try {
+            // Service ব্যবহার করে গেম শেষ হওয়ার শর্ত চেক করুন
+            if ($this->gameService->checkGameEndConditions($this->game)) {
+                return; // গেম শেষ হয়ে গেছে
+            }
 
-        // যদি গেম না শেষ হয়, তবে কার্ড ডিল করার লজিক চালু রাখুন
-        $playersWithCards = $this->game->participants()
-            ->where('status', HajariGameParticipant::STATUS_PLAYING)
-            ->get()
-            ->filter(function ($participant) {
-                return is_array($participant->cards) && count($participant->cards) > 0;
-            })
-            ->count();
+            // যদি গেম না শেষ হয়, তবে কার্ড ডিল করার লজিক চালু রাখুন
+            $playersWithCards = $this->game->participants()
+                ->where('status', HajariGameParticipant::STATUS_PLAYING)
+                ->get()
+                ->filter(function ($participant) {
+                    return is_array($participant->cards) && count($participant->cards) > 0;
+                })
+                ->count();
 
-        if ($playersWithCards === 0 && $this->game->status === HajariGame::STATUS_PLAYING) {
-            $this->dealNewCards();
+            if ($playersWithCards === 0 && $this->game->status === HajariGame::STATUS_PLAYING) {
+                $this->dealNewCards();
+            }
+        } catch (\Exception $e) {
+            Log::error('Error in checkGameProgress: ' . $e->getMessage());
+            session()->flash('error', 'Game progress check failed: ' . $e->getMessage());
         }
     }
 

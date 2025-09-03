@@ -34,11 +34,20 @@ class HajariGameService
             ->where('status', HajariGameParticipant::STATUS_PLAYING)
             ->max('total_points');
 
+        // যদি কোনো প্লেয়ারেরই পয়েন্ট না থাকে, তবে গেম শেষ হবেনা
+        if ($maxPoints === null) {
+            return false;
+        }
+
         // সর্বোচ্চ পয়েন্ট প্রাপ্ত প্লেয়ারদের তালিকা করুন
         $potentialWinners = $game->participants()
             ->where('status', HajariGameParticipant::STATUS_PLAYING)
             ->where('total_points', $maxPoints)
             ->get();
+
+        if ($potentialWinners->isEmpty()) {
+            return false;
+        }
 
         // যদি একাধিক প্লেয়ারের একই সর্বোচ্চ পয়েন্ট থাকে
         if ($potentialWinners->count() > 1) {
@@ -46,6 +55,12 @@ class HajariGameService
             $winner = $this->determineEarliestMaxPointsWinner($potentialWinners, $game);
         } else {
             $winner = $potentialWinners->first();
+        }
+
+        // Winner null কিনা চেক করুন
+        if (!$winner) {
+            Log::error('No winner found in checkGameEndConditions', ['game_id' => $game->id]);
+            return false;
         }
 
         $this->endGame($game, $winner);
@@ -60,42 +75,56 @@ class HajariGameService
         foreach ($winners as $winner) {
             $timeReachedMaxPoints = $this->getTimeWhenReachedMaxPoints($winner, $game);
 
+            if ($timeReachedMaxPoints === null) {
+                continue; // সময় না পাওয়া গেলে skip করুন
+            }
+
             if ($earliestTime === null || $timeReachedMaxPoints < $earliestTime) {
                 $earliestTime = $timeReachedMaxPoints;
                 $earliestWinner = $winner;
             }
         }
 
-        return $earliestWinner;
+        // যদি কোনো বিজয়ী না পাওয়া যায়, প্রথম বিজয়ী রিটার্ন করুন
+        return $earliestWinner ?? $winners->first();
     }
 
     private function getTimeWhenReachedMaxPoints($participant, HajariGame $game)
     {
-        // প্লেয়ার কখন সর্বোচ্চ পয়েন্ট অর্জন করেছে তা নির্ধারণ করুন
-        $roundScores = $participant->round_scores ?? [];
-        $maxPoints = $participant->total_points;
-        $currentPoints = 0;
+        try {
+            // প্লেয়ার কখন সর্বোচ্চ পয়েন্ট অর্জন করেছে তা নির্ধারণ করুন
+            $roundScores = $participant->round_scores ?? [];
+            $maxPoints = $participant->total_points;
+            $currentPoints = 0;
 
-        foreach ($roundScores as $roundScore) {
-            $currentPoints += $roundScore['points'];
+            foreach ($roundScores as $roundScore) {
+                $currentPoints += $roundScore['points'];
 
-            // যখন পয়েন্ট সর্বোচ্চ পয়েন্টে পৌঁছায়
-            if ($currentPoints >= $maxPoints) {
-                // এই রাউন্ডের শেষ মুভের সময় রিটার্ন করুন
-                $roundMove = HajariGameMove::where('hajari_game_id', $game->id)
-                    ->where('round', $roundScore['round'])
-                    ->orderBy('created_at', 'desc')
-                    ->first();
+                // যখন পয়েন্ট সর্বোচ্চ পয়েন্টে পৌঁছায়
+                if ($currentPoints >= $maxPoints) {
+                    // এই রাউন্ডের শেষ মুভের সময় রিটার্ন করুন
+                    $roundMove = HajariGameMove::where('hajari_game_id', $game->id)
+                        ->where('round', $roundScore['round'])
+                        ->orderBy('created_at', 'desc')
+                        ->first();
 
-                return $roundMove ? $roundMove->created_at : now();
+                    return $roundMove ? $roundMove->created_at : now();
+                }
             }
-        }
 
-        return now(); // fallback
+            return now(); // fallback
+        } catch (\Exception $e) {
+            Log::error('Error in getTimeWhenReachedMaxPoints: ' . $e->getMessage());
+            return now(); // error fallback
+        }
     }
 
     public function endGame(HajariGame $game, HajariGameParticipant $winner)
     {
+        // যদি winner null হয়, তবে বিজয়ী নির্ধারণ করুন
+        if (!$winner) {
+            $winner = $this->calculateWinner($game);
+        }
         DB::transaction(function () use ($game, $winner) {
             $game->update([
                 'status' => HajariGame::STATUS_COMPLETED,
@@ -138,6 +167,16 @@ class HajariGameService
                 'transactions' => $transactions
             ]);
         });
+    }
+
+    private function calculateWinner(HajariGame $game)
+    {
+        return $game->participants()
+            ->where('status', HajariGameParticipant::STATUS_PLAYING)
+            ->orderByDesc('total_points')
+            ->orderByDesc('rounds_won')
+            ->orderByDesc('hazari_count')
+            ->first();
     }
 
     private function processGamePayments(HajariGame $game, HajariGameParticipant $winner)
