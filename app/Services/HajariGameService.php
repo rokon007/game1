@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 class HajariGameService
 {
+    //updated
     public function checkGameEndConditions(HajariGame $game): bool
     {
         // প্রথমে চেক করুন সকল প্লেয়ারের কার্ড শেষ হয়েছে কিনা
