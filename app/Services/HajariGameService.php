@@ -34,15 +34,16 @@ class HajariGameService
             ->where('status', HajariGameParticipant::STATUS_PLAYING)
             ->max('total_points');
 
-        // যদি কোনো প্লেয়ারেরই পয়েন্ট না থাকে, তবে গেম শেষ হবেনা
-        if ($maxPoints === null) {
+        // ১০০০ বা তার বেশি পয়েন্ট না থাকলে গেম শেষ হবেনা
+        if ($maxPoints === null || $maxPoints < 1000) {
             return false;
         }
 
         // সর্বোচ্চ পয়েন্ট প্রাপ্ত প্লেয়ারদের তালিকা করুন
         $potentialWinners = $game->participants()
             ->where('status', HajariGameParticipant::STATUS_PLAYING)
-            ->where('total_points', $maxPoints)
+            ->where('total_points', '>=', 1000) // শুধুমাত্র ১০০০+ পয়েন্ট প্রাপ্ত প্লেয়ার
+            ->where('total_points', $maxPoints) // সর্বোচ্চ পয়েন্ট প্রাপ্ত
             ->get();
 
         if ($potentialWinners->isEmpty()) {
