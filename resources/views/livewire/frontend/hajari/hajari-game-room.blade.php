@@ -1228,7 +1228,7 @@
         }
 
         .ultra-slim-header {
-            height: 35px;
+            height: 15px;
             padding: 0 10px;
             display: flex;
             justify-content: space-between;
