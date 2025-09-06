@@ -120,7 +120,7 @@ class GameCreate extends Component
                 'bid_amount' => $this->bid_amount,
                 'scheduled_at' => $this->scheduled_at,
                 'status' => 'pending',
-                'cancellation_time' => now()->addHours(36)
+                'cancellation_time' => now()->addHours(36) // New line
             ]);
 
             // Add creator as participant
