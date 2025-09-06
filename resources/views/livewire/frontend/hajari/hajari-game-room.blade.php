@@ -85,9 +85,9 @@
                 <button wire:click="sortCardsByRank" class="sort-btn" {{ $isCardsLocked ? 'disabled' : '' }}>
                     <i class="fas fa-sort-numeric-down"></i> Rank
                 </button>
-                <button wire:click="lockCards" class="lock-btn" {{ $isCardsLocked ? 'disabled' : '' }}>
+                {{-- <button wire:click="lockCards" class="lock-btn" {{ $isCardsLocked ? 'disabled' : '' }}>
                     <i class="fas fa-lock"></i> {{ $isCardsLocked ? 'Locked' : 'Lock Cards' }}
-                </button>
+                </button> --}}
             </div>
         </div>
     @endif
@@ -1233,8 +1233,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(0, 0, 0, 0.2);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            /* background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1); */
         }
 
         .ultra-slim-header .header-left {

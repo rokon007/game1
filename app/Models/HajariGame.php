@@ -22,21 +22,50 @@ class HajariGame extends Model
         'scheduled_at',
         'status',
         'game_settings',
-        'winner_id'
+        'winner_id',
+        'cancellation_time'
     ];
 
     protected $casts = [
         'scheduled_at' => 'datetime',
+        'cancellation_time' => 'datetime',
         'game_settings' => 'array',
-        'bid_amount' => 'decimal:2'
+        'bid_amount' => 'decimal:2',
     ];
 
     // Define valid status values
-    const STATUS_PENDING = 'pending';
-    const STATUS_WAITING = 'waiting';
-    const STATUS_PLAYING = 'playing';
+    const STATUS_PENDING   = 'pending';
+    const STATUS_WAITING   = 'waiting';
+    const STATUS_PLAYING   = 'playing';
     const STATUS_COMPLETED = 'completed';
     const STATUS_CANCELLED = 'cancelled';
+
+    /**
+     * Boot method - automatically set cancellation_time when creating
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->cancellation_time)) {
+                $model->cancellation_time = now()->addHours(36);
+            }
+        });
+    }
+
+    /**
+     * Scope for games that need cancellation
+     */
+    public function scopeNeedCancellation($query)
+    {
+        return $query->whereIn('status', [self::STATUS_PENDING, self::STATUS_WAITING, self::STATUS_PLAYING])
+                     ->where('cancellation_time', '<=', now());
+    }
+
+    // ------------------------
+    // Relationships
+    // ------------------------
 
     public function creator(): BelongsTo
     {
@@ -67,6 +96,10 @@ class HajariGame extends Model
     {
         return $this->hasMany(Transaction::class, 'hajari_game_id');
     }
+
+    // ------------------------
+    // Game Rules & Helpers
+    // ------------------------
 
     public function canJoin(User $user): bool
     {

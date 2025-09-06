@@ -23,6 +23,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('lottery:complete-stuck-draws')
             ->everyThreeMinutes()
             ->withoutOverlapping(5); // Prevent overlapping for up to 5 minutes
+
+        $schedule->command('hajari-games:cancel-old')->everyMinute();
     }
 
     protected function commands()

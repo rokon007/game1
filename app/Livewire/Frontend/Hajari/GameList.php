@@ -113,7 +113,9 @@ class GameList extends Component
 
     public function render()
     {
-        $query = HajariGame::with(['creator', 'participants.user']);
+        //$query = HajariGame::with(['creator', 'participants.user']);
+        $query = HajariGame::with(['creator', 'participants.user'])
+                ->whereNotIn('status', ['completed', 'cancelled']);
 
         switch ($this->filter) {
             case 'my_games':
