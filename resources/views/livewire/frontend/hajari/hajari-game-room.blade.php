@@ -132,7 +132,7 @@
                                                 :suit="$card['suit']"
                                                 :rank="$card['rank']"
                                                 :clickable="false"
-                                                size="small"
+                                                size="normal"
                                                 class="fan-center-card" />
                                         </div>
                                     @endforeach

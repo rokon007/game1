@@ -137,13 +137,11 @@
 }
 
 .card.small .suit {
-  /* Increased suit symbol size for better visibility */
-  font-size: 14px;
+  font-size: 10px;
 }
 
 .card.small .center-suit {
-  /* Increased center suit symbol size for better visibility */
-  font-size: 28px;
+  font-size: 18px;
 }
 
 .card.small .card-corner-top,
@@ -198,27 +196,16 @@
   }
 
   .card .suit {
-    /* Increased mobile suit symbol size for better visibility */
-    font-size: 14px;
+    font-size: 10px;
   }
 
   .card .center-suit {
-    /* Increased mobile center suit symbol size for better visibility */
-    font-size: 28px;
+    font-size: 18px;
   }
 
   .card .card-corner-top,
   .card .card-corner-bottom {
     font-size: 8px;
-  }
-
-  /* Special styling for small cards on mobile to make them even more visible */
-  .card.small .suit {
-    font-size: 16px;
-  }
-
-  .card.small .center-suit {
-    font-size: 32px;
   }
 }
 
