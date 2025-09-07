@@ -647,7 +647,7 @@ class HajariGameRoom extends Component
     public function dealNewCardsAfterAllWrong()
     {
         $this->showAllWrongModal = false;
-        $this->dealNewCards();
+        //$this->dealNewCards();
     }
 
     private function getHajariCardValue($rank)

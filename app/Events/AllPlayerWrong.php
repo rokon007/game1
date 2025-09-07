@@ -23,7 +23,7 @@ class AllPlayerWrong implements ShouldBroadcast
 
     public function broadcastOn()
     {
-        return new PresenceChannel('game.' . $this->game->id);
+        return new Channel('game.' . $this->game->id);
     }
 
     public function broadcastAs(): string
