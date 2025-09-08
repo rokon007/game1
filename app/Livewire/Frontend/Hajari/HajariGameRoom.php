@@ -503,11 +503,68 @@ class HajariGameRoom extends Component
     // }
 
     // এই মেথডটি পিয়ার কম্বিনেসনের ক্ষেত্রে সঠিক বিজয়ী নির্ধারনে সক্ষম
+    // private function evaluateFourCardCombination(array $cards)
+    // {
+    //     $threeCardCombos = $this->getThreeCardCombinations($cards);
+    //     $bestEvaluation = null;
+
+    //     foreach ($threeCardCombos as $combo) {
+    //         $evaluation = $this->evaluateHajariHand($combo);
+
+    //         // পেয়ার ক্ষেত্রে, সর্বোচ্চ মানের পেয়ার নির্বাচন
+    //         if ($evaluation['type'] === 'pair' && $bestEvaluation && $bestEvaluation['type'] === 'pair') {
+    //             if ($evaluation['highest_card'] > $bestEvaluation['highest_card']) {
+    //                 $bestEvaluation = $evaluation;
+    //             }
+    //             continue;
+    //         }
+
+    //         // অন্যান্য টাইপের ক্ষেত্রে, সর্বনিম্ন প্রাধান্য (priority) এবং সর্বোচ্চ কার্ড ভ্যালু অনুযায়ী নির্বাচন করুন
+    //         if ($bestEvaluation === null ||
+    //             $evaluation['priority'] < $bestEvaluation['priority'] ||
+    //             ($evaluation['priority'] === $bestEvaluation['priority'] && $evaluation['highest_card'] > $bestEvaluation['highest_card'])
+    //         ) {
+    //             $bestEvaluation = $evaluation;
+    //         }
+    //     }
+
+    //     // চার কার্ডের ক্ষেত্রেও evaluate করুন
+    //     $fourCardEval = $this->evaluateHajariHand($cards);
+
+    //     // চার কার্ডের ইভ্যালুয়েশন যদি তিন কার্ডের থেকে ভালো হয়, তাহলে সেটিই ব্যবহার করুন
+    //     if ($fourCardEval['priority'] < $bestEvaluation['priority'] ||
+    //         ($fourCardEval['priority'] === $bestEvaluation['priority'] && $fourCardEval['highest_card'] > $bestEvaluation['highest_card'])
+    //     ) {
+    //         $bestEvaluation = $fourCardEval;
+    //     }
+
+    //     // শুধুমাত্র পেয়ারের ক্ষেত্রে বিশেষ নিয়ম প্রয়োগ করুন
+    //     if ($bestEvaluation['type'] === 'pair') {
+    //         // ৪টি কার্ডে উপস্থিত সবচেয়ে উচ্চ র্যাঙ্কের পেয়ার খুঁজে বের করুন
+    //         $cardValues = $this->getCardValues($cards);
+    //         $valueCounts = array_count_values($cardValues);
+    //         $highestPairValue = 0;
+
+    //         foreach ($valueCounts as $value => $count) {
+    //             if ($count >= 2 && $value > $highestPairValue) {
+    //                 $highestPairValue = $value;
+    //             }
+    //         }
+
+    //         // সর্বোচ্চ পেয়ার ভ্যালু ব্যবহার করুন
+    //         $bestEvaluation['highest_card'] = $highestPairValue;
+    //     }
+
+    //     return $bestEvaluation;
+    // }
+
     private function evaluateFourCardCombination(array $cards)
     {
+        // ৪টি কার্ড থেকে সব সম্ভাব্য ৩-কার্ডের কম্বিনেশন বের করুন
         $threeCardCombos = $this->getThreeCardCombinations($cards);
         $bestEvaluation = null;
 
+        // প্রতিটি ৩-কার্ড কম্বিনেশন evaluate করুন
         foreach ($threeCardCombos as $combo) {
             $evaluation = $this->evaluateHajariHand($combo);
 
@@ -528,31 +585,24 @@ class HajariGameRoom extends Component
             }
         }
 
-        // চার কার্ডের ক্ষেত্রেও evaluate করুন
+        // সম্পূর্ণ ৪-কার্ড হ্যান্ডও evaluate করুন
         $fourCardEval = $this->evaluateHajariHand($cards);
 
-        // চার কার্ডের ইভ্যালুয়েশন যদি তিন কার্ডের থেকে ভালো হয়, তাহলে সেটিই ব্যবহার করুন
+        // ৪-কার্ড evaluation যদি ৩-কার্ড evaluation থেকে ভালো হয়, তাহলে সেটি ব্যবহার করুন
         if ($fourCardEval['priority'] < $bestEvaluation['priority'] ||
             ($fourCardEval['priority'] === $bestEvaluation['priority'] && $fourCardEval['highest_card'] > $bestEvaluation['highest_card'])
         ) {
             $bestEvaluation = $fourCardEval;
         }
 
-        // শুধুমাত্র পেয়ারের ক্ষেত্রে বিশেষ নিয়ম প্রয়োগ করুন
-        if ($bestEvaluation['type'] === 'pair') {
-            // ৪টি কার্ডে উপস্থিত সবচেয়ে উচ্চ র্যাঙ্কের পেয়ার খুঁজে বের করুন
+        // সকল হ্যান্ড টাইপের জন্য বিশেষ নিয়ম: ৪টি কার্ডে উপস্থিত সর্বোচ্চ র্যাঙ্কের কার্ড ব্যবহার করুন
+        $applicableTypes = ['pair', 'color', 'running', 'run', 'tie', 'mixed'];
+        if (in_array($bestEvaluation['type'], $applicableTypes)) {
             $cardValues = $this->getCardValues($cards);
-            $valueCounts = array_count_values($cardValues);
-            $highestPairValue = 0;
+            $highestCardValue = max($cardValues);
 
-            foreach ($valueCounts as $value => $count) {
-                if ($count >= 2 && $value > $highestPairValue) {
-                    $highestPairValue = $value;
-                }
-            }
-
-            // সর্বোচ্চ পেয়ার ভ্যালু ব্যবহার করুন
-            $bestEvaluation['highest_card'] = $highestPairValue;
+            // সর্বোচ্চ কার্ড ভ্যালু ব্যবহার করুন
+            $bestEvaluation['highest_card'] = $highestCardValue;
         }
 
         return $bestEvaluation;

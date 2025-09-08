@@ -18,6 +18,7 @@ use App\Livewire\Frontend\TicketView;
 use App\Livewire\Frontend\UserGameHistory;
 use App\Livewire\Frontend\WithdrawalForm;
 use App\Livewire\Frontend\BuyTicketSheet;
+use App\Livewire\Frontend\TopUsers;
 
 use App\Livewire\Frontend\Hajari\GameCreate;
 use App\Livewire\Frontend\Hajari\GameList;
@@ -129,6 +130,7 @@ Route::middleware(['auth', 'verified', 'banned'])->group(function(){
     Route::get('/game-history', UserGameHistory::class)->name('gameHistory');
     Route::get('/withdrawal', WithdrawalForm::class)->name('withdrawal');
     Route::get('/buy-ticket', BuyTicketSheet::class)->name('buy_ticket');
+    Route::get('/top-users', TopUsers::class)->name('top_users');
 
     //Hajari
     Route::get('/games', GameList::class)->name('games.index');

@@ -70,6 +70,7 @@ new class extends Component
             @auth
                 <li><a href="{{route('transactions')}}"><i class="ti ti-arrows-exchange"></i>Transactions</a></li>
                 {{-- <li><a href="profile.html"><i class="ti ti-heart"></i>My Wishlist</a></li> --}}
+                <li><a href="{{route('top_users')}}"><i class="ti ti-heart"></i>Top Users</a></li>
                 <li><a href="{{route('userProfile')}}"><i class="ti ti-user"></i>My Profile</a></li>
                 {{-- <li><a href="{{ route('wallet') }}"><i class="ti ti-wallet"></i> Wallet</a></li> --}}
                 <li><a href="{{ route('buy_ticket') }}"><i class="ti ti-grid-dots"></i> Buy Ticket Sheet</a></li>
