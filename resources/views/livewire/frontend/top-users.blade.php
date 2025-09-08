@@ -75,7 +75,7 @@
               <div id="notifications-container" class="notification-wrapper">
                 <div class="notification-area pb-2">
                     <div class="list-group">
-                        @forelse($users as $index => $user)
+                        @forelse($topUsers as $index => $user)
                             <a class="list-group-item d-flex align-items-center border-0">
                                 <span class="noti-icon">
                                     {{ $index + 1 }}
