@@ -21,6 +21,7 @@ class HajariGame extends Model
         'max_players',
         'scheduled_at',
         'status',
+        'payment_processed',
         'game_settings',
         'winner_id',
         'cancellation_time'
@@ -31,6 +32,7 @@ class HajariGame extends Model
         'cancellation_time' => 'datetime',
         'game_settings' => 'array',
         'bid_amount' => 'decimal:2',
+        'payment_processed' => 'boolean',
     ];
 
     // Define valid status values

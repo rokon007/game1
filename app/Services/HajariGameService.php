@@ -18,6 +18,11 @@ class HajariGameService
     //updated
     public function checkGameEndConditions(HajariGame $game): bool
     {
+        // শুরুতেই এই চেকটি গেম শেষ হয়েছে কিনা
+        if ($game->status === HajariGame::STATUS_COMPLETED) {
+            return true;
+        }
+
         // প্রথমে চেক করুন সকল প্লেয়ারের কার্ড শেষ হয়েছে কিনা
         $allCardsFinished = $game->participants()
             ->where('status', HajariGameParticipant::STATUS_PLAYING)
@@ -123,6 +128,12 @@ class HajariGameService
 
     public function endGame(HajariGame $game, HajariGameParticipant $winner)
     {
+        // আগে চেক করুন
+        if ($game->status === HajariGame::STATUS_COMPLETED) {
+            Log::warning('Game already ended: ' . $game->id);
+            return;
+        }
+
         // যদি winner null হয়, তবে বিজয়ী নির্ধারণ করুন
         if (!$winner) {
             $winner = $this->calculateWinner($game);
@@ -183,6 +194,15 @@ class HajariGameService
 
     private function processGamePayments(HajariGame $game, HajariGameParticipant $winner)
     {
+        // আগে চেক করুন
+        if ($game->payment_processed) {
+            Log::warning('Payments already processed for game: ' . $game->id);
+            return [
+                'winner_amount' => 0,
+                'admin_commission' => 0
+            ];
+        }
+
         $bidAmount = $game->bid_amount;
         $participants = $game->participants()->get();
 
@@ -213,6 +233,9 @@ class HajariGameService
             ]);
 
             $winner->user->increment('credit', $winnerAmount);
+
+             // পেমেন্ট প্রসেসড হিসেবে চিহ্নিত করুন
+            $game->update(['payment_processed' => true]);
 
             return [
                 'winner_amount' => $winnerAmount,
