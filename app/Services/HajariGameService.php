@@ -170,7 +170,7 @@ class HajariGameService
 
             // Broadcast game over event to all players
             broadcast(new HajariGameOver($game, $winner, $finalScores));
-            broadcast(new GameWinner($game, $winner, $finalScores, $transactions));
+            //broadcast(new GameWinner($game, $winner, $finalScores, $transactions));
 
             Log::info('Game Ended', [
                 'game_id' => $game->id,
@@ -194,30 +194,34 @@ class HajariGameService
 
     private function processGamePayments(HajariGame $game, HajariGameParticipant $winner)
     {
-        // আগে চেক করুন
-        if ($game->payment_processed) {
-            Log::warning('Payments already processed for game: ' . $game->id);
-            return [
-                'winner_amount' => 0,
-                'admin_commission' => 0
-            ];
-        }
+        return DB::transaction(function () use ($game, $winner) {
 
-        $bidAmount = $game->bid_amount;
-        $participants = $game->participants()->get();
+            // Lock the game row to prevent race conditions in concurrent calls
+            $game = HajariGame::where('id', $game->id)->lockForUpdate()->first();
 
-        return DB::transaction(function () use ($winner, $bidAmount, $participants, $game) {
+            // Check again if payment is processed inside transaction
+            if ($game->payment_processed) {
+                Log::warning('Payments already processed for game: ' . $game->id);
+                return [
+                    'winner_amount' => 0,
+                    'admin_commission' => 0
+                ];
+            }
+
+            $bidAmount = $game->bid_amount;
+            $participants = $game->participants()->get();
+
             $admin = User::find(1);
             $adminCommissionRate = GameSetting::getAdminCommission();
+
             $totalBidAmount = $bidAmount * 4;
             $adminCommission = $totalBidAmount * ($adminCommissionRate / 100);
             $winnerAmount = $totalBidAmount - $adminCommission;
 
-            // Add bid amount to admin account
-            $admin->credit -= $winnerAmount;
-            $admin->save();
+            // Reduce admin credit safely
+            $admin->decrement('credit', $winnerAmount);
 
-            // Create transaction for admin (credit)
+            // Create transaction records safely inside transaction
             Transaction::create([
                 'user_id' => $admin->id,
                 'type' => 'debit',
@@ -234,7 +238,7 @@ class HajariGameService
 
             $winner->user->increment('credit', $winnerAmount);
 
-             // পেমেন্ট প্রসেসড হিসেবে চিহ্নিত করুন
+            // Mark payment processed only after all DB operations succeed
             $game->update(['payment_processed' => true]);
 
             return [
@@ -243,4 +247,57 @@ class HajariGameService
             ];
         });
     }
+
+
+    // private function processGamePayments(HajariGame $game, HajariGameParticipant $winner)
+    // {
+    //     // আগে চেক করুন
+    //     if ($game->payment_processed) {
+    //         Log::warning('Payments already processed for game: ' . $game->id);
+    //         return [
+    //             'winner_amount' => 0,
+    //             'admin_commission' => 0
+    //         ];
+    //     }
+
+    //     $bidAmount = $game->bid_amount;
+    //     $participants = $game->participants()->get();
+
+    //     return DB::transaction(function () use ($winner, $bidAmount, $participants, $game) {
+    //         $admin = User::find(1);
+    //         $adminCommissionRate = GameSetting::getAdminCommission();
+    //         $totalBidAmount = $bidAmount * 4;
+    //         $adminCommission = $totalBidAmount * ($adminCommissionRate / 100);
+    //         $winnerAmount = $totalBidAmount - $adminCommission;
+
+    //         // Add bid amount to admin account
+    //         $admin->credit -= $winnerAmount;
+    //         $admin->save();
+
+    //         // Create transaction for admin (credit)
+    //         Transaction::create([
+    //             'user_id' => $admin->id,
+    //             'type' => 'debit',
+    //             'amount' => $winnerAmount,
+    //             'details' => 'Game Winning Amount for user: ' . $winner->user->name . ' for game: ' . $game->title,
+    //         ]);
+
+    //         Transaction::create([
+    //             'user_id' => $winner->user_id,
+    //             'type' => 'credit',
+    //             'amount' => $winnerAmount,
+    //             'details' => 'Game win: ' . $game->title . ' (After ' . $adminCommissionRate . '% admin commission)',
+    //         ]);
+
+    //         $winner->user->increment('credit', $winnerAmount);
+
+    //          // পেমেন্ট প্রসেসড হিসেবে চিহ্নিত করুন
+    //         $game->update(['payment_processed' => true]);
+
+    //         return [
+    //             'winner_amount' => $winnerAmount,
+    //             'admin_commission' => $adminCommission
+    //         ];
+    //     });
+    // }
 }
