@@ -509,6 +509,44 @@ class HajariGameRoom extends Component
     }
 
     // ৪ কার্ড থেকে সেরা ৩ কার্ড কম্বিনেশন নির্ণয় এবং যথাযথ highest_card সেটিং
+    // private function evaluateFourCardCombination(array $cards)
+    // {
+    //     $threeCardCombos = $this->getThreeCardCombinations($cards);
+    //     $bestEvaluation = null;
+
+    //     foreach ($threeCardCombos as $combo) {
+    //         $evaluation = $this->evaluateHajariHand($combo);
+
+    //         // পেয়ার টাইপের ক্ষেত্রে সর্বোচ্চ পেয়ার বিবেচনা
+    //         if ($evaluation['type'] === 'pair' && $bestEvaluation && $bestEvaluation['type'] === 'pair') {
+    //             if ($evaluation['highest_card'] > $bestEvaluation['highest_card']) {
+    //                 $bestEvaluation = $evaluation;
+    //             }
+    //             continue;
+    //         }
+
+    //         if ($bestEvaluation === null
+    //             || $evaluation['priority'] < $bestEvaluation['priority']
+    //             || ($evaluation['priority'] === $bestEvaluation['priority'] && $evaluation['highest_card'] > $bestEvaluation['highest_card'])
+    //         ) {
+    //             $bestEvaluation = $evaluation;
+    //         }
+    //     }
+
+    //     // পুরো ৪ কার্ড কম্বিনেশন ইভ্যালুয়েট কর
+    //     $fourCardEval = $this->evaluateHajariHand($cards);
+    //     if ($fourCardEval['priority'] < $bestEvaluation['priority']
+    //         || ($fourCardEval['priority'] === $bestEvaluation['priority'] && $fourCardEval['highest_card'] > $bestEvaluation['highest_card'])
+    //     ) {
+    //         $bestEvaluation = $fourCardEval;
+    //     }
+
+    //     // highest_card সর্বদা ৩ কার্ডের সর্বোচ্চ কার্ড নির্ধারণ করে দিন
+    //     $bestEvaluation['highest_card'] = $this->getMaxHighestCardFromThreeCardCombos($threeCardCombos);
+
+    //     return $bestEvaluation;
+    // }
+
     private function evaluateFourCardCombination(array $cards)
     {
         $threeCardCombos = $this->getThreeCardCombinations($cards);
@@ -517,142 +555,273 @@ class HajariGameRoom extends Component
         foreach ($threeCardCombos as $combo) {
             $evaluation = $this->evaluateHajariHand($combo);
 
-            // পেয়ার টাইপের ক্ষেত্রে সর্বোচ্চ পেয়ার বিবেচনা
-            if ($evaluation['type'] === 'pair' && $bestEvaluation && $bestEvaluation['type'] === 'pair') {
-                if ($evaluation['highest_card'] > $bestEvaluation['highest_card']) {
-                    $bestEvaluation = $evaluation;
-                }
-                continue;
-            }
-
             if ($bestEvaluation === null
                 || $evaluation['priority'] < $bestEvaluation['priority']
-                || ($evaluation['priority'] === $bestEvaluation['priority'] && $evaluation['highest_card'] > $bestEvaluation['highest_card'])
+                || ($evaluation['priority'] === $bestEvaluation['priority']
+                    && $evaluation['highest_card'] > $bestEvaluation['highest_card'])
             ) {
                 $bestEvaluation = $evaluation;
+                $bestEvaluation['cards'] = $combo; // সেরা ৩ কার্ড সেট করা হলো
             }
         }
 
-        // পুরো ৪ কার্ড কম্বিনেশন ইভ্যালুয়েট কর
-        $fourCardEval = $this->evaluateHajariHand($cards);
-        if ($fourCardEval['priority'] < $bestEvaluation['priority']
-            || ($fourCardEval['priority'] === $bestEvaluation['priority'] && $fourCardEval['highest_card'] > $bestEvaluation['highest_card'])
-        ) {
-            $bestEvaluation = $fourCardEval;
-        }
-
-        // highest_card সর্বদা ৩ কার্ডের সর্বোচ্চ কার্ড নির্ধারণ করে দিন
-        $bestEvaluation['highest_card'] = $this->getMaxHighestCardFromThreeCardCombos($threeCardCombos);
-
-        return $bestEvaluation;
+        return $bestEvaluation; // শুধু ৩ কার্ডের মধ্যে সেরা কম্বোই ফিরবে
     }
 
     // হ্যান্ড ইভ্যালুয়েশন: নির্ভুল highest_card নির্ধারণ
-    private function evaluateHajariHand(array $cards)
-    {
-        $cardValues = $this->getAdjustedCardValues($cards);
-        $suits = $this->getCardSuits($cards);
-        $cardCount = count($cards);
+    // private function evaluateHajariHand(array $cards)
+    // {
+    //     $cardValues = $this->getAdjustedCardValues($cards);
+    //     $suits = $this->getCardSuits($cards);
+    //     $cardCount = count($cards);
 
-        // সর্বোচ্চ কার্ড সঠিকভাবে ৩ কার্ডের মধ্যে থেকে নির্ধারণ
-        sort($cardValues);
-        $topThree = array_slice($cardValues, -3);
-        $highestCard = max($topThree);
+    //     // সর্বোচ্চ কার্ড সঠিকভাবে ৩ কার্ডের মধ্যে থেকে নির্ধারণ
+    //     sort($cardValues);
+    //     $topThree = array_slice($cardValues, -3);
+    //     $highestCard = max($topThree);
 
-        if ($this->isTie($cardValues)) {
-            return [
-                'type' => 'tie',
-                'priority' => 1,
-                'highest_card' => $highestCard,
-            ];
-        }
+    //     if ($this->isTie($cardValues)) {
+    //         return [
+    //             'type' => 'tie',
+    //             'priority' => 1,
+    //             'highest_card' => $highestCard,
+    //         ];
+    //     }
 
-        if ($this->isRunning($cardValues, $suits)) {
-            return [
-                'type' => 'running',
-                'priority' => 2,
-                'highest_card' => $highestCard,
-            ];
-        }
+    //     if ($this->isRunning($cardValues, $suits)) {
+    //         return [
+    //             'type' => 'running',
+    //             'priority' => 2,
+    //             'highest_card' => $highestCard,
+    //         ];
+    //     }
 
-        if ($this->isRun($cardValues)) {
-            return [
-                'type' => 'run',
-                'priority' => 3,
-                'highest_card' => $highestCard,
-            ];
-        }
+    //     if ($this->isRun($cardValues)) {
+    //         return [
+    //             'type' => 'run',
+    //             'priority' => 3,
+    //             'highest_card' => $highestCard,
+    //         ];
+    //     }
 
-        if ($this->isColor($suits)) {
-            return [
-                'type' => 'color',
-                'priority' => 4,
-                'highest_card' => $highestCard,
-            ];
-        }
+    //     if ($this->isColor($suits)) {
+    //         return [
+    //             'type' => 'color',
+    //             'priority' => 4,
+    //             'highest_card' => $highestCard,
+    //         ];
+    //     }
 
-        if ($this->isPair($cardValues)) {
-            return [
-                'type' => 'pair',
-                'priority' => 5,
-                'highest_card' => $highestCard,
-            ];
-        }
+    //     if ($this->isPair($cardValues)) {
+    //         return [
+    //             'type' => 'pair',
+    //             'priority' => 5,
+    //             'highest_card' => $highestCard,
+    //         ];
+    //     }
 
-        return [
-            'type' => 'mixed',
-            'priority' => 6,
-            'highest_card' => $highestCard,
-        ];
-    }
+    //     return [
+    //         'type' => 'mixed',
+    //         'priority' => 6,
+    //         'highest_card' => $highestCard,
+    //     ];
+    // }
 
     // বিজয়ী নির্ধারণ: সর্বদা ৩ কার্ডের সর্বোত্তম কম্বিনেশন বিবেচনা করবে
-    private function determineHajariWinner(array $hands)
-    {
-        if (empty($hands)) return null;
+    // private function determineHajariWinner(array $hands)
+    // {
+    //     if (empty($hands)) return null;
 
-        $evaluatedHands = [];
+    //     $evaluatedHands = [];
 
-        foreach ($hands as $index => $hand) {
-            $cards = $hand['cards'];
-            $cardCount = count($cards);
-            $bestEvaluation = null;
+    //     foreach ($hands as $index => $hand) {
+    //         $cards = $hand['cards'];
+    //         $cardCount = count($cards);
+    //         $bestEvaluation = null;
 
-            if ($cardCount === 3) {
-                $bestEvaluation = $this->evaluateHajariHand($cards);
-            } elseif ($cardCount === 4) {
-                $bestEvaluation = $this->evaluateFourCardCombination($cards);
-            } else {
-                $bestEvaluation = $this->evaluateHajariHand($cards);
-            }
+    //         if ($cardCount === 3) {
+    //             $bestEvaluation = $this->evaluateHajariHand($cards);
+    //         } elseif ($cardCount === 4) {
+    //             $bestEvaluation = $this->evaluateFourCardCombination($cards);
+    //         } else {
+    //             $bestEvaluation = $this->evaluateHajariHand($cards);
+    //         }
 
-            // highest_card সর্বদা ৩ কার্ডের মধ্যে নির্ধারণ
-            $threeCardCombos = $this->getThreeCardCombinations($cards);
-            $bestEvaluation['highest_card'] = $this->getMaxHighestCardFromThreeCardCombos($threeCardCombos);
+    //         // highest_card সর্বদা ৩ কার্ডের মধ্যে নির্ধারণ
+    //         $threeCardCombos = $this->getThreeCardCombinations($cards);
+    //         $bestEvaluation['highest_card'] = $this->getMaxHighestCardFromThreeCardCombos($threeCardCombos);
 
-            $evaluatedHands[] = [
-                'index' => $index,
-                'evaluation' => $bestEvaluation,
-                'submitted_at' => $hand['submitted_at'],
-                'player_id' => $hand['player_id'],
-            ];
-        }
+    //         $evaluatedHands[] = [
+    //             'index' => $index,
+    //             'evaluation' => $bestEvaluation,
+    //             'submitted_at' => $hand['submitted_at'],
+    //             'player_id' => $hand['player_id'],
+    //         ];
+    //     }
 
-        usort($evaluatedHands, function ($a, $b) {
-            if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
-                return $a['evaluation']['priority'] - $b['evaluation']['priority'];
-            }
-            if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
-                return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
-            }
-            return strcmp($b['submitted_at'], $a['submitted_at']);
-        });
+    //     usort($evaluatedHands, function ($a, $b) {
+    //         if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
+    //             return $a['evaluation']['priority'] - $b['evaluation']['priority'];
+    //         }
+    //         if ($a['evaluation']['highest_card'] !== $b['evaluation']['highest_card']) {
+    //             return $b['evaluation']['highest_card'] - $a['evaluation']['highest_card'];
+    //         }
+    //         return strcmp($b['submitted_at'], $a['submitted_at']);
+    //     });
 
-        return $evaluatedHands[0]['index'] ?? null;
-    }
+    //     return $evaluatedHands[0]['index'] ?? null;
+    // }
 
 
 //****************************************
+
+
+//===============================================
+private function evaluateHajariHand(array $cards)
+{
+    $cardValues = $this->getAdjustedCardValues($cards);
+    $suits = $this->getCardSuits($cards);
+    $cardCount = count($cards);
+
+    // সর্বোচ্চ কার্ড সঠিকভাবে ৩ কার্ডের মধ্যে থেকে নির্ধারণ
+    sort($cardValues);
+    $topThree = array_slice($cardValues, -3);
+    $highestCard = max($topThree);
+
+    if ($this->isTie($cardValues)) {
+        return [
+            'type' => 'tie',
+            'priority' => 1,
+            'highest_card' => $highestCard,
+            'all_cards_sorted' => $this->getSortedCardsForComparison($cardValues),
+        ];
+    }
+
+    if ($this->isRunning($cardValues, $suits)) {
+        return [
+            'type' => 'running',
+            'priority' => 2,
+            'highest_card' => $highestCard,
+            'all_cards_sorted' => $this->getSortedCardsForComparison($cardValues),
+        ];
+    }
+
+    if ($this->isRun($cardValues)) {
+        return [
+            'type' => 'run',
+            'priority' => 3,
+            'highest_card' => $highestCard,
+            'all_cards_sorted' => $this->getSortedCardsForComparison($cardValues),
+        ];
+    }
+
+    if ($this->isColor($suits)) {
+        return [
+            'type' => 'color',
+            'priority' => 4,
+            'highest_card' => $highestCard,
+            'all_cards_sorted' => $this->getSortedCardsForComparison($cardValues),
+        ];
+    }
+
+    if ($this->isPair($cardValues)) {
+        return [
+            'type' => 'pair',
+            'priority' => 5,
+            'highest_card' => $highestCard,
+            'all_cards_sorted' => $this->getSortedCardsForComparison($cardValues, true),
+        ];
+    }
+
+    return [
+        'type' => 'mixed',
+        'priority' => 6,
+        'highest_card' => $highestCard,
+        'all_cards_sorted' => $this->getSortedCardsForComparison($cardValues),
+    ];
+}
+
+private function getSortedCardsForComparison(array $cardValues, $isPair = false)
+{
+    if ($isPair) {
+        // জোড়ার জন্য বিশেষ sorting: জোড়ার র‍্যাঙ্ক প্রথমে, তারপর বাকি কার্ডগুলি descending order
+        $valueCounts = array_count_values($cardValues);
+        $pairRank = null;
+        foreach ($valueCounts as $rank => $count) {
+            if ($count >= 2) {
+                $pairRank = $rank;
+                break;
+            }
+        }
+
+        $pairedCards = array_filter($cardValues, function($value) use ($pairRank) {
+            return $value === $pairRank;
+        });
+
+        $otherCards = array_filter($cardValues, function($value) use ($pairRank) {
+            return $value !== $pairRank;
+        });
+
+        rsort($pairedCards);
+        rsort($otherCards);
+
+        return array_merge($pairedCards, $otherCards);
+    }
+
+    // সাধারণ descending order sorting
+    rsort($cardValues);
+    return $cardValues;
+}
+
+private function determineHajariWinner(array $hands)
+{
+    if (empty($hands)) return null;
+
+    $evaluatedHands = [];
+
+    foreach ($hands as $index => $hand) {
+        $cards = $hand['cards'];
+        $cardCount = count($cards);
+        $bestEvaluation = null;
+
+        if ($cardCount === 3) {
+            $bestEvaluation = $this->evaluateHajariHand($cards);
+        } elseif ($cardCount === 4) {
+            $bestEvaluation = $this->evaluateFourCardCombination($cards);
+        } else {
+            $bestEvaluation = $this->evaluateHajariHand($cards);
+        }
+
+        $evaluatedHands[] = [
+            'index' => $index,
+            'evaluation' => $bestEvaluation,
+            'submitted_at' => $hand['submitted_at'],
+            'player_id' => $hand['player_id'],
+        ];
+    }
+
+    usort($evaluatedHands, function ($a, $b) {
+        if ($a['evaluation']['priority'] !== $b['evaluation']['priority']) {
+            return $a['evaluation']['priority'] - $b['evaluation']['priority'];
+        }
+
+        // একই priority হলে all_cards_sorted array compare করা হবে
+        $aCards = $a['evaluation']['all_cards_sorted'];
+        $bCards = $b['evaluation']['all_cards_sorted'];
+
+        for ($i = 0; $i < min(count($aCards), count($bCards)); $i++) {
+            if ($aCards[$i] !== $bCards[$i]) {
+                return $bCards[$i] - $aCards[$i];
+            }
+        }
+
+        // সব কার্ড identical হলে submission time অনুযায়ী
+        return strcmp($b['submitted_at'], $a['submitted_at']);
+    });
+
+    return $evaluatedHands[0]['index'] ?? null;
+}
+//=============================================
 
     //*****Update for Wrong Rule
     private function calculateRoundWinner()
