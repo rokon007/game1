@@ -126,7 +126,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
 
 
 
-Route::middleware(['auth', 'verified', 'banned'])->group(function(){
+Route::middleware(['auth','auth.session','verified', 'banned'])->group(function(){
     Route::get('/rifle-account', RifleComponent::class)->name('rifleAccount');
     Route::get('/notifications', NotificationsComponent::class)->name('notifications');
     Route::get('/transactions', UserTransactions::class)->name('transactions');
