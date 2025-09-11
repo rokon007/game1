@@ -67,7 +67,7 @@ use App\Livewire\Backend\Lottery\EditLottery;
 |
 */
 
-Route::middleware(['web'])->group(function(){
+Route::middleware(['auth.session'])->group(function(){
     Route::get('/how-to-use', HowToUse::class)->name('how.to.use');
     Route::get('/', Home::class)->name('home');
     // XML সাইটম্যাপ রুট
