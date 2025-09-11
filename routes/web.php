@@ -67,7 +67,26 @@ use App\Livewire\Backend\Lottery\EditLottery;
 |
 */
 
+Route::middleware(['auth.session'])->group(function(){
+    Route::get('/how-to-use', HowToUse::class)->name('how.to.use');
+    Route::get('/', Home::class)->name('home');
+    // XML সাইটম্যাপ রুট
+    Route::get('/sitemap.xml', SitemapXml::class)->name('sitemap.xml');
+    Route::view('dashboard', 'dashboard')
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
+    Route::get('/banned', BannedUser ::class)->name('banned');
+    Route::get('/contact.support', ContactSupport ::class)->name('contact.support');
+    Route::get('/chat', Main::class)->name('chat');
+
+    Route::get('/user-profile', ProfileComponent::class)->name('userProfile');
+    Route::view('profile', 'profile')
+        ->middleware(['auth'])
+        ->name('profile');
+
+
+});
 Route::post('/set-timezone', function (Request $request) {
     session(['user_timezone' => $request->timezone]);
 
@@ -78,11 +97,7 @@ Route::post('/set-timezone', function (Request $request) {
     return response()->json(['status' => 'timezone set']);
 })->name('set.timezone');
 
-Route::get('/how-to-use', HowToUse::class)->name('how.to.use');
 
-Route::get('/', Home::class)->name('home');
-// XML সাইটম্যাপ রুট
-Route::get('/sitemap.xml', SitemapXml::class)->name('sitemap.xml');
 
 // Admin Routes (requires admin role and authentication)
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin'])->group(function () {
@@ -110,12 +125,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
 
 
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
 
-Route::get('/banned', BannedUser ::class)->name('banned');
-Route::get('/contact.support', ContactSupport ::class)->name('contact.support');
 
 Route::middleware(['auth', 'verified', 'banned'])->group(function(){
     Route::get('/rifle-account', RifleComponent::class)->name('rifleAccount');
@@ -153,11 +163,5 @@ Route::middleware(['auth', 'verified', 'banned'])->group(function(){
 
 });
 
-Route::get('/chat', Main::class)->name('chat');
-
-Route::get('/user-profile', ProfileComponent::class)->name('userProfile');
-Route::view('profile', 'profile')
-    ->middleware(['auth'])
-    ->name('profile');
 
 require __DIR__.'/auth.php';

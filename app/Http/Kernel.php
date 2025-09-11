@@ -24,7 +24,7 @@ class Kernel extends HttpKernel
     ];
 
     /**
-     * The application's route middleware groups.
+     * The application's route middleware groups.AuthenticateSession
      *
      * @var array<string, array<int, class-string|string>>
      */
@@ -37,8 +37,8 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\UpdateUserLastSeen::class,
-            \App\Http\Middleware\SingleSession::class,
+            // \App\Http\Middleware\UpdateUserLastSeen::class,
+            // \App\Http\Middleware\SingleSession::class,
         ],
 
         'api' => [

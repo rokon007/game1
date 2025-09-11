@@ -53,6 +53,7 @@ new #[Layout('layouts.layout_login')] class extends Component
 
         // ✅ Ensure single session login (logout other devices)
         Auth::logoutOtherDevices($this->form->password);
+        Session::regenerate();
 
         $user = auth()->user();
 
@@ -81,7 +82,7 @@ new #[Layout('layouts.layout_login')] class extends Component
         ]);
         //----------------------
 
-        Session::regenerate();
+
         Session::flash('login_success', 'Welcome back, ' . $user->name . '!');
 
         if ($user->role == 'admin') {
