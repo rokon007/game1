@@ -52,7 +52,7 @@ new #[Layout('layouts.layout_login')] class extends Component
         $this->form->authenticate();
 
         // ✅ Ensure single session login (logout other devices)
-        Auth::logoutOtherDevices($this->form->password);
+        auth()->logoutOtherDevices($this->form->password);
         Session::regenerate();
 
         $user = auth()->user();
