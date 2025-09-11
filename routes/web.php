@@ -67,7 +67,7 @@ use App\Livewire\Backend\Lottery\EditLottery;
 |
 */
 
-Route::middleware(['auth.session'])->group(function(){
+Route::middleware(['web'])->group(function(){
     Route::get('/how-to-use', HowToUse::class)->name('how.to.use');
     Route::get('/', Home::class)->name('home');
     // XML সাইটম্যাপ রুট
@@ -79,14 +79,13 @@ Route::middleware(['auth.session'])->group(function(){
     Route::get('/banned', BannedUser ::class)->name('banned');
     Route::get('/contact.support', ContactSupport ::class)->name('contact.support');
     Route::get('/chat', Main::class)->name('chat');
+});
 
-    Route::get('/user-profile', ProfileComponent::class)->name('userProfile');
+Route::get('/user-profile', ProfileComponent::class)->middleware(['auth'])->name('userProfile');
     Route::view('profile', 'profile')
         ->middleware(['auth'])
         ->name('profile');
 
-
-});
 Route::post('/set-timezone', function (Request $request) {
     session(['user_timezone' => $request->timezone]);
 
