@@ -10,15 +10,11 @@ new class extends Component
      */
     public function logout(Logout $logout): void
     {
-        // ⚡ Only normal logout here
         $logout();
 
-        // Redirect to home
         $this->redirect('/', navigate: true);
     }
-};
-?>
-
+}; ?>
 
 <div class="offcanvas offcanvas-start suha-offcanvas-wrap" tabindex="-1" id="suhaOffcanvas" aria-labelledby="suhaOffcanvasLabel">
     <!-- Close button-->
@@ -85,11 +81,7 @@ new class extends Component
                 <li><a href="{{ route('ticket') }}"><i class="ti ti-ticket"></i> Sheet</a></li>
                 {{-- <li><a href="{{ route('gameHistory') }}"><i class="ti ti-history"></i> Game History</a></li> --}}
                 {{-- <li><a href="{{ route('withdrawal') }}"><i class="ti ti-cash-out"></i> Withdrawal</a></li> --}}
-                <li>
-                    <a class="text-white" style="cursor: pointer" wire:click="logout">
-                        <i class="ti ti-logout"></i>Log Out
-                    </a>
-                </li>
+                <li><a class="text-white" style="cursor: pointer" wire:click="logout"><i class="ti ti-logout"></i>Log Out</a></li>
             @else
                 <li><a href="{{ route('login') }}"><i class="ti ti-logout"></i>Log in</a></li>
                 @if (Route::has('register'))

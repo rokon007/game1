@@ -85,7 +85,7 @@ Route::get('/', Home::class)->name('home');
 Route::get('/sitemap.xml', SitemapXml::class)->name('sitemap.xml');
 
 // Admin Routes (requires admin role and authentication)
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'auth.session', 'verified', 'admin'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/user', UserComponent::class)->name('user');
     Route::get('/user-transactions/{id}', TransactionComponent::class)->name('user_transactions');
@@ -114,9 +114,10 @@ Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
+Route::get('/banned', BannedUser ::class)->name('banned');
+Route::get('/contact.support', ContactSupport ::class)->name('contact.support');
 
-
-Route::middleware(['auth', 'auth.session', 'verified', 'banned'])->group(function(){
+Route::middleware(['auth', 'verified', 'banned'])->group(function(){
     Route::get('/rifle-account', RifleComponent::class)->name('rifleAccount');
     Route::get('/notifications', NotificationsComponent::class)->name('notifications');
     Route::get('/transactions', UserTransactions::class)->name('transactions');
@@ -149,15 +150,12 @@ Route::middleware(['auth', 'auth.session', 'verified', 'banned'])->group(functio
     Route::get('/lottery/history', LotteryHistory::class)->name('lottery.history');
     Route::get('/lottery/live-draw', LiveDrawModal::class)->name('lottery.live-draw');
     Route::get('/lottery-active', ActivLotteries::class)->name('lottery_active');
-    Route::get('/chat', Main::class)->name('chat');
-
-    Route::get('/user-profile', ProfileComponent::class)->name('userProfile');
-    Route::get('/banned', BannedUser ::class)->name('banned');
-    Route::get('/contact.support', ContactSupport ::class)->name('contact.support');
 
 });
 
+Route::get('/chat', Main::class)->name('chat');
 
+Route::get('/user-profile', ProfileComponent::class)->name('userProfile');
 Route::view('profile', 'profile')
     ->middleware(['auth'])
     ->name('profile');
