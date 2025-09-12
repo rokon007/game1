@@ -53,8 +53,18 @@ new #[Layout('layouts.layout_login')] class extends Component
      */
     public function login(): void
     {
-        $this->validate();
+        $email = $this->form->email;
+        $user = User::where('email', $email)->first();
 
+        if ($user && $user->is_online) {
+            $this->dispatch('show-alert',
+                type: 'info',
+                message: 'You are already logged in, please logout first'
+            );
+            return;
+        }
+
+        $this->validate();
         $this->form->authenticate();
 
         // Check if the user's unique_id is empty and generate one if needed
@@ -85,142 +95,140 @@ new #[Layout('layouts.layout_login')] class extends Component
         //----------------------
 
         Session::regenerate();
-        // Store session data
-        Session::flash('login_success', 'Welcome back, ' . $user->name . '!');
 
+        $this->dispatch('show-alert',
+            type: 'success',
+            message: 'Welcome back, ' . $user->name . '!'
+        );
+
+        // Add a small delay before redirecting to allow the alert to show
         if ($user->role == 'admin') {
-            $this->redirectIntended(default: RouteServiceProvider::ADMINHOME, navigate: true);
+            $this->js('setTimeout(() => { window.location.href = "' . RouteServiceProvider::ADMINHOME . '"; }, 1500);');
         } else {
             $redirectUrl = session('url.intended', RouteServiceProvider::HOME);
-            $this->redirect($redirectUrl, navigate: true);
+            $this->js('setTimeout(() => { window.location.href = "' . $redirectUrl . '"; }, 1500);');
         }
     }
 }; ?>
 
-    <div class="login-wrapper d-flex align-items-center justify-content-center text-center">
-        <!-- Background Shape-->
-        <div class="background-shape"></div>
-        <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-10 col-lg-8">
-                <img class="big-logo" style="width:50%" src="{{asset('assets/frontend/img/core-img/PNG2.png')}}" alt="">
-                <!-- Session Status -->
-                 <x-auth-session-status class="mb-4" :status="session('status')" />
-                <!-- Register Form-->
-                <div class="register-form mt-5">
-                    <form wire:submit="login">
-                    <div class="form-group text-start mb-4"><span>Email</span>
-                        <label for="email"><i class="ti ti-user"></i></label>
-                        <input class="form-control" wire:model="form.email" id="email" type="email" name="email" required autofocus autocomplete="username" placeholder="info@example.com">
-                        <x-input-error :messages="$errors->get('form.email')" class="mt-2 text-danger" />
-                    </div>
-                    {{-- <div class="form-group text-start mb-4"><span>Password</span>
-                        <label for="password"><i class="ti ti-key"></i></label>
-                        <input class="form-control" wire:model="form.password" id="password" type="password" name="password" required autocomplete="current-password" placeholder="Password">
-                        <x-input-error :messages="$errors->get('form.password')" class="mt-2 text-danger" />
-                    </div> --}}
-                    <div class="form-group text-start mb-4"><span>Password</span>
-                        <label for="password"><i class="ti ti-key"></i></label>
-
-                        <div class="input-group">
-                            <input class="form-control" wire:model="form.password" id="password" type="password" name="password" required autocomplete="current-password" placeholder="Password">
-                            <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()">
-                                <i id="passwordToggleIcon" style="color: wheat;" class="ti ti-eye"></i>
-                            </button>
-                        </div>
-
-                        <x-input-error :messages="$errors->get('form.password')" class="mt-2 text-danger" />
-                    </div>
-
-                    <script>
-                        function togglePasswordVisibility() {
-                            const passwordInput = document.getElementById("password");
-                            const icon = document.getElementById("passwordToggleIcon");
-
-                            if (passwordInput.type === "password") {
-                                passwordInput.type = "text";
-                                icon.classList.remove("ti-eye");
-                                icon.classList.add("ti-eye-off");
-                            } else {
-                                passwordInput.type = "password";
-                                icon.classList.remove("ti-eye-off");
-                                icon.classList.add("ti-eye");
-                            }
-                        }
-                    </script>
-
-
-
-                     <!-- Remember Me -->
-                    <div class="form-group text-start mb-4">
-                        <span>
-                            <input wire:model="form.remember" id="remember" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                            {{ __('Remember me') }}
-                        </span>
-                        <span></span>
-                    </div>
-
-                    <button class="btn btn-warning btn-lg w-100" type="submit">
-                        <span wire:loading.delay.long wire:target="login" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        {{ __('Log in') }}
-                    </button>
-                    </form>
+<div class="login-wrapper d-flex align-items-center justify-content-center text-center">
+    <!-- Background Shape-->
+    <div class="background-shape"></div>
+    <div class="container">
+    <div class="row justify-content-center">
+        <div class="col-10 col-lg-8">
+            <img class="big-logo" style="width:50%" src="{{asset('assets/frontend/img/core-img/PNG2.png')}}" alt="">
+            <!-- Session Status -->
+            <x-auth-session-status class="mb-4" :status="session('status')" />
+            <!-- Register Form-->
+            <div class="register-form mt-5">
+                <form wire:submit="login">
+                <div class="form-group text-start mb-4"><span>Email</span>
+                    <label for="email"><i class="ti ti-user"></i></label>
+                    <input class="form-control" wire:model="form.email" id="email" type="email" name="email" required autofocus autocomplete="username" placeholder="info@example.com">
+                    <x-input-error :messages="$errors->get('form.email')" class="mt-2 text-danger" />
                 </div>
-                <!-- Login Meta-->
+                <div class="form-group text-start mb-4"><span>Password</span>
+                    <label for="password"><i class="ti ti-key"></i></label>
 
-                    <div class="login-meta-data">
-                        @if (Route::has('password.request'))
-                            <a class="forgot-password d-block mt-3 mb-1" href="{{ route('password.request') }}">{{ __('Forgot your password') }}?</a>
-                        @endif
-                        <p class="mb-0">{{__("Didn't have an account")}}?<a class="mx-1" href="{{ route('register') }}">Register Now</a></p>
+                    <div class="input-group">
+                        <input class="form-control" wire:model="form.password" id="password" type="password" name="password" required autocomplete="current-password" placeholder="Password">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()">
+                            <i id="passwordToggleIcon" style="color: wheat;" class="ti ti-eye"></i>
+                        </button>
                     </div>
 
+                    <x-input-error :messages="$errors->get('form.password')" class="mt-2 text-danger" />
+                </div>
+
+                <script>
+                    function togglePasswordVisibility() {
+                        const passwordInput = document.getElementById("password");
+                        const icon = document.getElementById("passwordToggleIcon");
+
+                        if (passwordInput.type === "password") {
+                            passwordInput.type = "text";
+                            icon.classList.remove("ti-eye");
+                            icon.classList.add("ti-eye-off");
+                        } else {
+                            passwordInput.type = "password";
+                            icon.classList.remove("ti-eye-off");
+                            icon.classList.add("ti-eye");
+                        }
+                    }
+                </script>
+
+                 <!-- Remember Me -->
+                <div class="form-group text-start mb-4">
+                    <span>
+                        <input wire:model="form.remember" id="remember" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
+                        {{ __('Remember me') }}
+                    </span>
+                    <span></span>
+                </div>
+
+                <button class="btn btn-warning btn-lg w-100" type="submit">
+                    <span wire:loading.delay.long wire:target="login" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    {{ __('Log in') }}
+                </button>
+                </form>
             </div>
+            <!-- Login Meta-->
+
+                <div class="login-meta-data">
+                    @if (Route::has('password.request'))
+                        <a class="forgot-password d-block mt-3 mb-1" href="{{ route('password.request') }}">{{ __('Forgot your password') }}?</a>
+                    @endif
+                    <p class="mb-0">{{__("Didn't have an account")}}?<a class="mx-1" href="{{ route('register') }}">Register Now</a></p>
+                </div>
+
         </div>
     </div>
+</div>
 
-{{-- <div>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
-    <form wire:submit="login">
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input wire:model="form.email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('form.email')" class="mt-2" />
-        </div>
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
+<script>
+    // Listen for Livewire events
+    document.addEventListener('livewire:initialized', () => {
+        Livewire.on('show-alert', (event) => {
+            Swal.fire({
+                icon: event.type,
+                title: event.type.charAt(0).toUpperCase() + event.type.slice(1),
+                text: event.message,
+                confirmButtonColor: '#ffc107',
+                background: '#1a1d21',
+                color: '#fff'
+            });
+        });
+    });
 
-            <x-text-input wire:model="form.password" id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
+    // Also check for session messages on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        @if (Session::has('login_success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: '{{ Session::get('login_success') }}',
+                confirmButtonColor: '#ffc107',
+                background: '#1a1d21',
+                color: '#fff'
+            });
+        @endif
 
-            <x-input-error :messages="$errors->get('form.password')" class="mt-2" />
-        </div>
-
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember" class="inline-flex items-center">
-                <input wire:model="form.remember" id="remember" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-            </label>
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}" wire:navigate>
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
-
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
-        </div>
-    </form>
-</div> --}}
+        @if (Session::has('login_info'))
+            Swal.fire({
+                icon: 'info',
+                title: 'Info',
+                text: '{{ Session::get('login_info') }}',
+                confirmButtonColor: '#ffc107',
+                background: '#1a1d21',
+                color: '#fff'
+            });
+        @endif
+    });
+</script>
