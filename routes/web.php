@@ -117,7 +117,7 @@ Route::view('dashboard', 'dashboard')
 Route::get('/banned', BannedUser ::class)->name('banned');
 Route::get('/contact.support', ContactSupport ::class)->name('contact.support');
 
-Route::middleware(['auth', 'verified', 'banned'])->group(function(){
+Route::middleware(['auth','banned'])->group(function(){
     Route::get('/rifle-account', RifleComponent::class)->name('rifleAccount');
     Route::get('/notifications', NotificationsComponent::class)->name('notifications');
     Route::get('/transactions', UserTransactions::class)->name('transactions');
