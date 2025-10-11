@@ -134,62 +134,62 @@ class CreditTransferForm extends Component
             Notification::send($receiver, new CreditTransferred('You received ' . $amount . ' credits from ' . $authUser->unique_id));
 
             // রেফারেল কমিশন হ্যান্ডল করা
-            $referral = Referral::where('referred_user_id', $receiver->id)->first();
-            if ($referral) {
-                $settings = ReferralSetting::first();
-                if ($settings && $referral->commission_count < $settings->max_commission_count) {
-                    $commission = ($amount * $settings->commission_percentage) / 100;
+            // $referral = Referral::where('referred_user_id', $receiver->id)->first();
+            // if ($referral) {
+            //     $settings = ReferralSetting::first();
+            //     if ($settings && $referral->commission_count < $settings->max_commission_count) {
+            //         $commission = ($amount * $settings->commission_percentage) / 100;
 
-                    // রেফারারের ক্রেডিট আপডেট করা
-                    $referrer = User::find($referral->referrer_id);
-                    $referrer->credit += $commission;
-                    $referrer->save();
+            //         // রেফারারের ক্রেডিট আপডেট করা
+            //         $referrer = User::find($referral->referrer_id);
+            //         $referrer->credit += $commission;
+            //         $referrer->save();
 
-                    // রেফারারের জন্য ট্রানজাকশন তৈরি করা
-                    Transaction::create([
-                        'user_id' => $referrer->id,
-                        'type' => 'credit',
-                        'amount' => $commission,
-                        'details' => 'Referral commission for user ' . $receiver->unique_id,
-                    ]);
+            //         // রেফারারের জন্য ট্রানজাকশন তৈরি করা
+            //         Transaction::create([
+            //             'user_id' => $referrer->id,
+            //             'type' => 'credit',
+            //             'amount' => $commission,
+            //             'details' => 'Referral commission for user ' . $receiver->unique_id,
+            //         ]);
 
-                    // অ্যাডমিনের জন্য ট্রানজাকশন (ডেবিট)
-                    $admin = User::where('role', 'admin')->first();
-                    if ($admin) {
-                        // অ্যাডমিনের ক্রেডিট পর্যাপ্ত কিনা চেক করা
-                        if ($admin->credit < $commission) {
-                            throw new \Exception('The admin does not have sufficient credit for the referral commission.');
-                        }
+            //         // অ্যাডমিনের জন্য ট্রানজাকশন (ডেবিট)
+            //         $admin = User::where('role', 'admin')->first();
+            //         if ($admin) {
+            //             // অ্যাডমিনের ক্রেডিট পর্যাপ্ত কিনা চেক করা
+            //             if ($admin->credit < $commission) {
+            //                 throw new \Exception('The admin does not have sufficient credit for the referral commission.');
+            //             }
 
-                        $admin->credit -= $commission;
-                        $admin->save();
+            //             $admin->credit -= $commission;
+            //             $admin->save();
 
-                        Transaction::create([
-                            'user_id' => $admin->id,
-                            'type' => 'debit',
-                            'amount' => $commission,
-                            'details' => 'Referral commission given to user ' . $referrer->unique_id,
-                        ]);
+            //             Transaction::create([
+            //                 'user_id' => $admin->id,
+            //                 'type' => 'debit',
+            //                 'amount' => $commission,
+            //                 'details' => 'Referral commission given to user ' . $referrer->unique_id,
+            //             ]);
 
-                        // অ্যাডমিনকে ইমেইল এবং ডাটাবেস নোটিফিকেশন পাঠানো
-                        $admin->notify(new ReferralCommissionEarned([
-                            'title' => 'Referral Commission Given',
-                            'text' => 'User ' . $referrer->unique_id . ' has been given a commission of ' . $commission . ' for user ' . $receiver->unique_id . '.',
-                            'amount' => $commission,
-                        ]));
-                    }
+            //             // অ্যাডমিনকে ইমেইল এবং ডাটাবেস নোটিফিকেশন পাঠানো
+            //             $admin->notify(new ReferralCommissionEarned([
+            //                 'title' => 'Referral Commission Given',
+            //                 'text' => 'User ' . $referrer->unique_id . ' has been given a commission of ' . $commission . ' for user ' . $receiver->unique_id . '.',
+            //                 'amount' => $commission,
+            //             ]));
+            //         }
 
-                    // কমিশন কাউন্ট আপডেট করা
-                    $referral->increment('commission_count');
+            //         // কমিশন কাউন্ট আপডেট করা
+            //         $referral->increment('commission_count');
 
-                    // রেফারারকে ইমেইল এবং ডাটাবেস নোটিফিকেশন পাঠানো
-                   $referrer->notify(new ReferralCommissionEarned([
-                        'title' => 'Referral Commission Earned',
-                        'text' => 'You have earned a commission of ' . $commission . ' for the credit received by user ' . $receiver->unique_id . '.',
-                        'amount' => $commission,
-                    ]));
-                }
-            }
+            //         // রেফারারকে ইমেইল এবং ডাটাবেস নোটিফিকেশন পাঠানো
+            //        $referrer->notify(new ReferralCommissionEarned([
+            //             'title' => 'Referral Commission Earned',
+            //             'text' => 'You have earned a commission of ' . $commission . ' for the credit received by user ' . $receiver->unique_id . '.',
+            //             'amount' => $commission,
+            //         ]));
+            //     }
+            // }
         });
 
         $this->reset(['mobile', 'amount', 'password', 'receiverData']);

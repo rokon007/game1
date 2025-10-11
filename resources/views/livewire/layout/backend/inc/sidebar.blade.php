@@ -107,6 +107,12 @@ new class extends Component
                 <div class="menu-title">Rifle Requests</div>
             </a>
         </li>
+        <li>
+            <a href="{{ route('admin.withdrawal_request_management') }}">
+                <div class="parent-icon"><i class="bi bi-shield-check"></i></div>
+                <div class="menu-title">Withdrawal Requests</div>
+            </a>
+        </li>
 
         <!-- User Management -->
         <li class="menu-label">User Management</li>

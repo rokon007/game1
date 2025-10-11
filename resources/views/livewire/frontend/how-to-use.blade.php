@@ -19,8 +19,13 @@
         <div class="header-area" id="headerArea">
             <div class="container h-100 d-flex align-items-center justify-content-between rtl-flex-d-row-r">
                 <!-- Back Button-->
-                <div class="back-button me-2">
+                <div class="back-button me-2" style="display: {{$dataMode ? 'block' : 'none'}};">
                     <a href="{{ url()->previous() }}">
+                        <i class="ti ti-arrow-left"></i>
+                    </a>
+                </div>
+                <div class="back-button me-2" style="display: {{$detailsMode ? 'block' : 'none'}};">
+                    <a wire:click="backToList" style="cursor: pointer;">
                         <i class="ti ti-arrow-left"></i>
                     </a>
                 </div>
@@ -87,7 +92,7 @@
 
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    {!! $item->description !!}
+                    {!! $description !!}
                 </div>
             </div>
         </div>

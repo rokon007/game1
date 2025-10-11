@@ -97,6 +97,20 @@ class RifleRequestManagementComponent extends Component
                 'details' => 'Rifle balance accepted',
             ]);
 
+            $admin = User::where('role', 'admin')->first();
+
+            if ($admin) {
+                        $admin->credit -= $this->amount_rifle;
+                        $admin->save();
+
+                        Transaction::create([
+                            'user_id' => $admin->id,
+                            'type' => 'debit',
+                            'amount' => $this->amount_rifle,
+                            'details' => 'Rifle balance accepted',
+                        ]);
+                    }
+
             // ৪. ডাটাবেস এবং ইমেইল নোটিফিকেশন পাঠানোর জন্য
             $details = [
                 'title' => 'Rifle Balance Accepted',
@@ -127,7 +141,7 @@ class RifleRequestManagementComponent extends Component
                     ]);
 
                     // অ্যাডমিনের জন্য ট্রানজাকশন (ডেবিট)
-                    $admin = User::where('role', 'admin')->first();
+
                     if ($admin) {
                         $admin->credit -= $commission;
                         $admin->save();

@@ -27,6 +27,15 @@ class HowToUse extends Component
         $this->dataMode=false;
         $this->detailsMode=true;
     }
+
+    public function backToList()
+    {
+        dd('ok');
+        $this->dataMode = true;
+        $this->detailsMode = false;
+        $this->reset(['title', 'description', 'video_url']);
+    }
+
     public function render()
     {
         return view('livewire.frontend.how-to-use')->layout('livewire.layout.frontend.base');

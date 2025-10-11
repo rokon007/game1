@@ -31,6 +31,7 @@ use App\Livewire\Backend\User\UserComponent;
 use App\Livewire\Backend\User\TransactionComponent;
 use App\Livewire\Backend\AdBannerManagementComponent;
 use App\Livewire\Backend\RifleRequestManagementComponent;
+use App\Livewire\Backend\WithdrawalRequests;
 use App\Livewire\Backend\Game\ManageGame;
 use App\Livewire\Backend\Prize\ManagePrize;
 use App\Livewire\Backend\NumberAnnouncer;
@@ -92,6 +93,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::get('/add-banner', AdBannerManagementComponent::class)->name('addBanner');
     Route::get('/prizes', ManagePrize::class)->name('prizes');
     Route::get('/rifle-request-management', RifleRequestManagementComponent::class)->name('rifle_request_management');
+    Route::get('/withdrawal-request-management', WithdrawalRequests::class)->name('withdrawal_request_management');
     Route::get('/manage-game', ManageGame::class)->name('manage_game');
     Route::get('/number-announcer/{gameId}', NumberAnnouncer::class)->name('number_announcer');
     Route::get('/agent', AgentComponent::class)->name('agent');
