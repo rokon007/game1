@@ -50,50 +50,77 @@
     @endsection
 
     <div class="page-content-wrapper">
+        <!-- ruleSection অংশে এই পরিবর্তন করুন -->
         @if($ruleSection)
             <div class="container">
                 <div class="profile-wrapper-area py-3">
-                <!-- User Information-->
-                <div class="card user-info-card">
-                    <div class="card-body p-4 ">
-
-                    <div class="text-center">
-
-                        <h5 class=" text-white text-center">ব্যালেন্স রিফিল করার নিয়ম</h5>
-                    </div>
-                    </div>
-                </div>
-                <!-- User Meta Data-->
-                <div class="card user-data-card">
-                    <div class="card-body">
-                        <div class="balance-refill-instruction card p-4">
-                            <h4 class="mb-3 text-primary">How to Refill Your Balance</h4>
-                            <ol class="list-group list-group-numbered mb-3">
-                            <li class="list-group-item">
-                                Send money to this number: <strong>01711111111</strong> using
-                                <span class="badge bg-info text-dark">bKash</span>,
-                                <span class="badge bg-success">Nagad</span>,
-                                <span class="badge bg-warning text-dark">Rocket</span>, or
-                                <span class="badge bg-secondary">Upay</span>.
-                            </li>
-                            <li class="list-group-item">
-                                After the transaction is successful, take a screenshot of the confirmation message.
-                            </li>
-                            <li class="list-group-item">
-                                Copy the <strong>Transaction ID</strong> from the confirmation message.
-                            </li>
-                            <li class="list-group-item">
-                                Click the <strong>"Next"</strong> button to proceed to the next step.
-                            </li>
-                            </ol>
-                            <div class="alert alert-info">
-                            <strong>Note:</strong> Please double-check the transaction number before proceeding.
+                    <!-- User Information-->
+                    <div class="card user-info-card">
+                        <div class="card-body p-4 ">
+                            <div class="text-center">
+                                <h5 class="text-white text-center">ব্যালেন্স রিফিল করার নিয়ম</h5>
                             </div>
                         </div>
-
-                        <button class="btn btn-primary btn-lg w-100"  wire:click='nextToPaymentMethod'>Next</button>
                     </div>
-                </div>
+                    <!-- User Meta Data-->
+                    <div class="card user-data-card">
+                        <div class="card-body">
+                            <div class="balance-refill-instruction card p-4">
+                                <h4 class="mb-3 text-primary">How to Refill Your Balance</h4>
+                                <ol class="list-group list-group-numbered mb-3">
+                                    <li class="list-group-item">
+
+
+                                        <!-- যদি আলাদা আলাদা নাম্বার থাকে -->
+                                        @if($refillSettings && ($bikash_number !== $nagad_number || $bikash_number !== $rocket_number || $bikash_number !== $upay_number))
+                                            <div class="mt-2">
+                                                <small class="text-muted">
+                                                    <strong>Payment Numbers:</strong><br>
+                                                    @if($bikash_number)
+                                                        bKash: {{ $bikash_number }}<br>
+                                                    @endif
+                                                    @if($nagad_number)
+                                                        Nagad: {{ $nagad_number }}<br>
+                                                    @endif
+                                                    @if($rocket_number)
+                                                        Rocket: {{ $rocket_number }}<br>
+                                                    @endif
+                                                    @if($upay_number)
+                                                        Upay: {{ $upay_number }}
+                                                    @endif
+                                                </small>
+                                            </div>
+                                        @else
+                                            Send money to this number: <strong>{{ $bikash_number ?? '017XXXXXXXX' }}</strong> using
+                                            <span class="badge bg-info text-dark">bKash</span>,
+                                            <span class="badge bg-success">Nagad</span>,
+                                            <span class="badge bg-warning text-dark">Rocket</span>, or
+                                            <span class="badge bg-secondary">Upay</span>.
+                                        @endif
+                                    </li>
+                                    <li class="list-group-item">
+                                        After the transaction is successful, take a screenshot of the confirmation message.
+                                    </li>
+                                    <li class="list-group-item">
+                                        Copy the <strong>Transaction ID</strong> from the confirmation message.
+                                    </li>
+                                    <li class="list-group-item">
+                                        Click the <strong>"Next"</strong> button to proceed to the next step.
+                                    </li>
+                                </ol>
+                                @if($refillSettings && $refillSettings->instructions)
+                                    <div class="alert alert-info">
+                                        <strong>Note:</strong> {{ $refillSettings->instructions }}
+                                    </div>
+                                @else
+                                    <div class="alert alert-info">
+                                        <strong>Note:</strong> Please double-check the transaction number before proceeding.
+                                    </div>
+                                @endif
+                            </div>
+                            <button class="btn btn-primary btn-lg w-100" wire:click='nextToPaymentMethod'>Next</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         @endif

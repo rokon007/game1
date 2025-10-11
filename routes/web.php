@@ -27,6 +27,7 @@ use App\Livewire\Frontend\Hajari\HajariGameRoom;
 
 use App\Livewire\Frontend\Chat\Chat;
 use App\Livewire\Backend\Dashboard;
+use App\Livewire\Backend\RefillSettings;
 use App\Livewire\Backend\User\UserComponent;
 use App\Livewire\Backend\User\TransactionComponent;
 use App\Livewire\Backend\AdBannerManagementComponent;
@@ -88,6 +89,7 @@ Route::get('/sitemap.xml', SitemapXml::class)->name('sitemap.xml');
 // Admin Routes (requires admin role and authentication)
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
+    Route::get('/refill-settings', RefillSettings::class)->name('refill_settings');
     Route::get('/user', UserComponent::class)->name('user');
     Route::get('/user-transactions/{id}', TransactionComponent::class)->name('user_transactions');
     Route::get('/add-banner', AdBannerManagementComponent::class)->name('addBanner');

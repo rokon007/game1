@@ -102,17 +102,26 @@ new class extends Component
             </a>
         </li>
         <li>
-            <a href="{{ route('admin.rifle_request_management') }}">
-                <div class="parent-icon"><i class="bi bi-shield-check"></i></div>
-                <div class="menu-title">Rifle Requests</div>
+            <a href="{{ route('admin.refill_settings') }}">
+                <div class="parent-icon"><i class="bi bi-gear-fill"></i></div>
+                <div class="menu-title">Refill Settings</div>
             </a>
         </li>
+
+        <li>
+            <a href="{{ route('admin.rifle_request_management') }}">
+                <div class="parent-icon"><i class="bi bi-card-checklist"></i></div>
+                <div class="menu-title">Refill Requests</div>
+            </a>
+        </li>
+
         <li>
             <a href="{{ route('admin.withdrawal_request_management') }}">
-                <div class="parent-icon"><i class="bi bi-shield-check"></i></div>
+                <div class="parent-icon"><i class="bi bi-cash-coin"></i></div>
                 <div class="menu-title">Withdrawal Requests</div>
             </a>
         </li>
+
 
         <!-- User Management -->
         <li class="menu-label">User Management</li>
