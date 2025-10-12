@@ -104,6 +104,51 @@
                 color: #721c24;
             }
         </style>
+        <style>
+            /* Previous styles... */
+
+            /* Submit Section Textbox Styles */
+            .custom-input {
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 12px 15px;
+                font-size: 16px;
+                transition: all 0.3s ease;
+                background-color: #f9f9f9;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+
+            .custom-input:focus {
+                border-color: #007bff;
+                background-color: #ffffff;
+                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+                outline: none;
+            }
+
+            .custom-input:hover {
+                border-color: #b3b3b3;
+            }
+
+            .coupon-form {
+                margin-bottom: 15px;
+            }
+
+            .coupon-form p {
+                font-weight: 500;
+                color: #333;
+                margin-bottom: 8px;
+            }
+
+            /* File input custom styling */
+            .custom-input[type="file"] {
+                padding: 10px;
+                background-color: #f8f9fa;
+            }
+
+            .custom-input[type="file"]:focus {
+                background-color: #ffffff;
+            }
+        </style>
     @endsection
 
     @section('preloader')
@@ -186,7 +231,7 @@
                         <div class="col-md-8">
                             <label class="form-label">Amount (৳)</label>
                             <input type="number"
-                                   class="form-control form-control-lg"
+                                   class="form-control form-control-lg custom-input"
                                    wire:model="amount"
                                    placeholder="Enter amount between {{ $min_amount }} - {{ $max_amount }}"
                                    min="{{ $min_amount }}"
@@ -330,21 +375,21 @@
                                 <label class="form-label">Withdrawal Amount</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light">৳</span>
-                                    <input type="text" class="form-control" value="{{ $amount }}" readonly>
+                                    <input type="text" class="form-control custom-input" value="{{ $amount }}" readonly>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Payment Method</label>
-                                <input type="text" class="form-control" value="{{ $method }}" readonly>
+                                <input type="text" class="form-control custom-input" value="{{ $method }}" readonly>
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Your {{ $method }} Account Number *</label>
                             <input type="text"
-                                   class="form-control"
+                                   class="form-control custom-input"
                                    wire:model="account_number"
-                                   placeholder="Enter your {{ $method }} account number">
+                                   placeholder="Enter your {{ $method }} account number" disabled>
                             @error('account_number')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
@@ -352,7 +397,7 @@
 
                         <div class="mb-3">
                             <label class="form-label">Additional Notes (Optional)</label>
-                            <textarea class="form-control"
+                            <textarea class="form-control custom-input"
                                       wire:model="user_notes"
                                       rows="3"
                                       placeholder="Any additional information..."></textarea>
@@ -372,7 +417,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-6 mb-4">
                             <button type="button" class="btn btn-secondary w-100" wire:click="newRequest">
                                 <i class="fas fa-arrow-left me-2"></i>Cancel
                             </button>

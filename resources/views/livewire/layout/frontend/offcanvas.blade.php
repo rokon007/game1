@@ -64,12 +64,12 @@ new class extends Component
             <li><a href="wishlist-list.html">Wishlist List</a></li>
           </ul><i class="ti ti-help-circle me-2"></i>
         </li> --}}
-        <li><a href="{{ route('wallet') }}"><i class="ti ti-wallet"></i> Wallet</a></li>
-        <li><a href="{{ route('rifleAccount') }}"><i class="fas fa-plus-circle"></i> Add Credit</a></li>
-        <li><a href="{{ route('withdrawal') }}"><i class="ti ti-cash-out"></i> Withdrawal</a></li>
         <li><a href="{{ route('how.to.use') }}"><i class="ti ti-help-circle me-2"></i>User Guide</a></li>
         @if (Route::has('login'))
             @auth
+                <li><a href="{{ route('wallet') }}"><i class="fas fa-wallet"></i> Wallet</a></li>
+                <li><a href="{{ route('rifleAccount') }}"><i class="fas fa-plus-circle"></i> Deposit</a></li>
+                <li><a href="{{ route('withdrawal') }}"><i class="fas fa-hand-holding-usd"></i> Withdrawal</a></li>
                 <li><a href="{{route('transactions')}}"><i class="ti ti-arrows-exchange"></i>Transactions</a></li>
                 {{-- <li><a href="profile.html"><i class="ti ti-heart"></i>My Wishlist</a></li> --}}
                 <li><a href="{{route('top_users')}}"><i class="ti ti-heart"></i>Top Users</a></li>

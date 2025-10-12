@@ -30,6 +30,83 @@
                 vertical-align: middle;
                 margin-right: 1px;
             }
+            /* Number copy styles - Simple and Safe */
+            .number-item {
+                margin-bottom: 8px;
+                padding: 5px 0;
+            }
+            .copy-btn {
+                cursor: pointer;
+                font-size: 0.7rem;
+                padding: 2px 8px;
+                margin-left: 8px;
+                background: #007bff;
+                color: white;
+                border: none;
+                border-radius: 3px;
+            }
+            .copy-btn:hover {
+                background: #0056b3;
+            }
+            .copy-btn.copied {
+                background: #28a745;
+            }
+            .toast-message {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #28a745;
+                color: white;
+                padding: 10px 15px;
+                border-radius: 4px;
+                z-index: 9999;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            }
+        </style>
+        <style>
+            /* Previous styles... */
+
+            /* Submit Section Textbox Styles */
+            .custom-input {
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 12px 15px;
+                font-size: 16px;
+                transition: all 0.3s ease;
+                background-color: #f9f9f9;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+
+            .custom-input:focus {
+                border-color: #007bff;
+                background-color: #ffffff;
+                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+                outline: none;
+            }
+
+            .custom-input:hover {
+                border-color: #b3b3b3;
+            }
+
+            .coupon-form {
+                margin-bottom: 15px;
+            }
+
+            .coupon-form p {
+                font-weight: 500;
+                color: #333;
+                margin-bottom: 8px;
+            }
+
+            /* File input custom styling */
+            .custom-input[type="file"] {
+                padding: 10px;
+                background-color: #f8f9fa;
+            }
+
+            .custom-input[type="file"]:focus {
+                background-color: #ffffff;
+            }
         </style>
     @endsection
 
@@ -50,7 +127,7 @@
     @endsection
 
     <div class="page-content-wrapper">
-        <!-- ruleSection অংশে এই পরিবর্তন করুন -->
+        <!-- ruleSection অংশ -->
         @if($ruleSection)
             <div class="container">
                 <div class="profile-wrapper-area py-3">
@@ -69,33 +146,55 @@
                                 <h4 class="mb-3 text-primary">How to Refill Your Balance</h4>
                                 <ol class="list-group list-group-numbered mb-3">
                                     <li class="list-group-item">
-
-
                                         <!-- যদি আলাদা আলাদা নাম্বার থাকে -->
                                         @if($refillSettings && ($bikash_number !== $nagad_number || $bikash_number !== $rocket_number || $bikash_number !== $upay_number))
                                             <div class="mt-2">
-                                                <small class="text-muted">
-                                                    <strong>Payment Numbers:</strong><br>
-                                                    @if($bikash_number)
-                                                        bKash: {{ $bikash_number }}<br>
-                                                    @endif
-                                                    @if($nagad_number)
-                                                        Nagad: {{ $nagad_number }}<br>
-                                                    @endif
-                                                    @if($rocket_number)
-                                                        Rocket: {{ $rocket_number }}<br>
-                                                    @endif
-                                                    @if($upay_number)
+                                                <strong>Send money to this numbers:</strong><br>
+                                                @if($bikash_number)
+                                                    <div class="number-item">
+                                                        bKash: {{ $bikash_number }}
+                                                        <button class="copy-btn" onclick="copyToClipboard('{{ $bikash_number }}', this)">
+                                                            <i class="fas fa-copy"></i> Copy
+                                                        </button>
+                                                    </div>
+                                                @endif
+                                                @if($nagad_number)
+                                                    <div class="number-item">
+                                                        Nagad: {{ $nagad_number }}
+                                                        <button class="copy-btn" onclick="copyToClipboard('{{ $nagad_number }}', this)">
+                                                            <i class="fas fa-copy"></i> Copy
+                                                        </button>
+                                                    </div>
+                                                @endif
+                                                @if($rocket_number)
+                                                    <div class="number-item">
+                                                        Rocket: {{ $rocket_number }}
+                                                        <button class="copy-btn" onclick="copyToClipboard('{{ $rocket_number }}', this)">
+                                                            <i class="fas fa-copy"></i> Copy
+                                                        </button>
+                                                    </div>
+                                                @endif
+                                                @if($upay_number)
+                                                    <div class="number-item">
                                                         Upay: {{ $upay_number }}
-                                                    @endif
-                                                </small>
+                                                        <button class="copy-btn" onclick="copyToClipboard('{{ $upay_number }}', this)">
+                                                            <i class="fas fa-copy"></i> Copy
+                                                        </button>
+                                                    </div>
+                                                @endif
                                             </div>
                                         @else
-                                            Send money to this number: <strong>{{ $bikash_number ?? '017XXXXXXXX' }}</strong> using
-                                            <span class="badge bg-info text-dark">bKash</span>,
-                                            <span class="badge bg-success">Nagad</span>,
-                                            <span class="badge bg-warning text-dark">Rocket</span>, or
-                                            <span class="badge bg-secondary">Upay</span>.
+                                            <div class="mt-2">
+                                                Send money to this number: <strong>{{ $bikash_number ?? '017XXXXXXXX' }}</strong>
+                                                <button class="copy-btn" onclick="copyToClipboard('{{ $bikash_number ?? '017XXXXXXXX' }}', this)">
+                                                    <i class="fas fa-copy"></i> Copy
+                                                </button>
+                                                using
+                                                <span class="badge bg-info text-dark">bKash</span>,
+                                                <span class="badge bg-success">Nagad</span>,
+                                                <span class="badge bg-warning text-dark">Rocket</span>, or
+                                                <span class="badge bg-secondary">Upay</span>.
+                                            </div>
                                         @endif
                                     </li>
                                     <li class="list-group-item">
@@ -124,6 +223,8 @@
                 </div>
             </div>
         @endif
+
+        <!-- Payment Method Section -->
         @if($paymentMethodSection)
             <div class="container">
                 <div class="profile-wrapper-area py-3">
@@ -147,7 +248,6 @@
                             <div class="single-payment-method">
                                 <a class="cash" wire:click='paymentBikash'>
                                     <img src="{{asset('assets/frontend/img/paymentmethod/bikash.png') }}" alt="Image" width="150" />
-                                    {{-- <h6>Bikash</h6> --}}
                                 </a>
                             </div>
                         </div>
@@ -156,7 +256,6 @@
                             <div class="single-payment-method">
                                 <a class="cash" wire:click='paymentNagad'>
                                     <img src="{{asset('assets/frontend/img/paymentmethod/nagad.png') }}" alt="Image" width="150" />
-                                    {{-- <h6>Nagad</h6> --}}
                                 </a>
                             </div>
                         </div>
@@ -165,7 +264,6 @@
                             <div class="single-payment-method">
                                 <a class="cash" wire:click='paymentRoket'>
                                     <img src="{{asset('assets/frontend/img/paymentmethod/roket.png') }}" alt="Image" height="50" width="150" />
-                                    {{-- <h6>Roket</h6> --}}
                                 </a>
                             </div>
                         </div>
@@ -174,7 +272,6 @@
                             <div class="single-payment-method">
                                 <a class="cash" wire:click='paymentUpay'>
                                     <img src="{{asset('assets/frontend/img/paymentmethod/upay.png') }}" alt="Image" width="100" />
-                                    {{-- <h6>Upay</h6> --}}
                                 </a>
                             </div>
                         </div>
@@ -183,11 +280,12 @@
                 </div>
             </div>
         @endif
-        @if($submitSection)
 
+        <!-- Submit Section -->
+        @if($submitSection)
             <div class="container">
-              <!-- Cart Wrapper-->
-              <div class="cart-wrapper-area py-3">
+            <!-- Cart Wrapper-->
+            <div class="cart-wrapper-area py-3">
                 @if ($data_id)
                     <form wire:submit.prevent="updateRifleRequests">
                 @else
@@ -223,10 +321,9 @@
                         </div>
 
                         <div class="apply-coupon">
-
-                            <p class="mb-2">Upload your screen shot  here </p>
+                            <p class="mb-2">Upload your screen shot here</p>
                             <div class="coupon-form">
-                                <input class="form-control" wire:model="photo1" type="file">
+                                <input class="form-control custom-input" wire:model="photo1" type="file">
                                 @error('photo1')
                                     <small class="text-danger mb-2">{{ $message }}</small>
                                 @enderror
@@ -240,29 +337,29 @@
                         <div class="apply-coupon">
                             <p class="mb-2">Sending method</p>
                         <div class="coupon-form">
-                            <input class="form-control" wire:model='sending_method' type="text" >
+                            <input class="form-control custom-input" wire:model='sending_method' type="text" placeholder="Enter sending method (bKash, Nagad, etc.)">
                             @error('sending_method')
                                     <small class="text-danger mb-2">{{ $message }}</small>
                                 @enderror
                         </div>
-                        <p class="mb-2">Sender mobile</p>
+                        <p class="mb-2 mt-3">Sender mobile</p>
                         <div class="coupon-form">
-                            <input class="form-control" wire:model='sending_mobile' type="text" >
+                            <input class="form-control custom-input" wire:model='sending_mobile' type="text" placeholder="Enter sender mobile number">
                             @error('sending_mobile')
                                     <small class="text-danger mb-2">{{ $message }}</small>
                                 @enderror
                         </div>
 
-                        <p class="mb-2">Transiction id</p>
+                        <p class="mb-2 mt-3">Transaction id</p>
                         <div class="coupon-form">
-                            <input class="form-control" wire:model='transaction_id' type="text" >
+                            <input class="form-control custom-input" wire:model='transaction_id' type="text" placeholder="Enter transaction ID">
                             @error('transaction_id')
                                     <small class="text-danger mb-2">{{ $message }}</small>
                                 @enderror
                         </div>
-                        <p class="mb-2">Amount</p>
+                        <p class="mb-2 mt-3">Amount</p>
                         <div class="coupon-form">
-                            <input class="form-control" wire:model='amount_rifle' type="text" >
+                            <input class="form-control custom-input" wire:model='amount_rifle' type="text" placeholder="Enter amount">
                             @error('amount_rifle')
                                     <small class="text-danger mb-2">{{ $message }}</small>
                                 @enderror
@@ -275,7 +372,7 @@
                     <div class="card-body ">
                         <center>
                             @if ($data_id)
-                              <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary">
                                 <span wire:loading.delay.long wire:target="updateRifleRequests" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                                 Resubmit
                             </button>
@@ -289,10 +386,11 @@
                     </div>
                     </div>
                 </form>
-              </div>
             </div>
-
+            </div>
         @endif
+
+        <!-- Request Status Section -->
         @if($requestStatus)
             <div class="container">
                 <!-- Cart Wrapper-->
@@ -305,7 +403,6 @@
                                 @foreach($rifleStatus as $item)
                                     <tr>
                                         <th scope="row">
-
                                             <a class="product-title d-flex align-items-center gap-2">
                                                 @if($item->status === 'Pending')
                                                     <i style="font-size: 30px" class="ti ti-clock text-warning"></i>
@@ -360,6 +457,7 @@
             </div>
         @endif
 
+        <!-- Delete Modal -->
         @if($deletModal)
             <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5)">
                 <div class="modal-dialog" role="document">
@@ -368,14 +466,10 @@
                             <h5 class="modal-title">🗑️ Delete Confirmation Message:</h5>
                         </div>
                         <div class="modal-body">
-
                                 <p>This action cannot be undone. Are you sure you want to delete this item?</p>
-
                         </div>
                         <div class="modal-footer">
-
                             <button wire:click="deletData" class="btn btn-danger">OK</button>
-
                             <button class="btn btn-secondary" wire:click="$set('deletModal', false)">Cancel</button>
                         </div>
                     </div>
@@ -391,5 +485,102 @@
 
     @section('JS')
         @include('livewire.layout.frontend.js')
+
+        <!-- Simple and Safe Copy Function -->
+        <script>
+            function copyToClipboard(text, button) {
+                // Create a temporary textarea element
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                try {
+                    // Try to copy using modern API
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(text).then(function() {
+                            showCopySuccess(button);
+                        }).catch(function(err) {
+                            // Fallback for older browsers
+                            fallbackCopy(text, button);
+                        });
+                    } else {
+                        // Fallback for older browsers
+                        fallbackCopy(text, button);
+                    }
+                } catch (err) {
+                    // Final fallback
+                    fallbackCopy(text, button);
+                } finally {
+                    // Clean up
+                    document.body.removeChild(textArea);
+                }
+            }
+
+            function fallbackCopy(text, button) {
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        showCopySuccess(button);
+                    } else {
+                        showCopyError();
+                    }
+                } catch (err) {
+                    showCopyError();
+                }
+            }
+
+            function showCopySuccess(button) {
+                // Change button appearance
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                button.classList.add('copied');
+
+                // Show simple toast message
+                showToast('Number copied successfully!');
+
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }
+
+            function showCopyError() {
+                showToast('Failed to copy. Please copy manually.', 'error');
+            }
+
+            function showToast(message, type = 'success') {
+                // Remove existing toast
+                const existingToast = document.querySelector('.toast-message');
+                if (existingToast) {
+                    existingToast.remove();
+                }
+
+                // Create new toast
+                const toast = document.createElement('div');
+                toast.className = 'toast-message';
+                toast.style.background = type === 'success' ? '#28a745' : '#dc3545';
+                toast.textContent = message;
+
+                document.body.appendChild(toast);
+
+                // Remove toast after 3 seconds
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 3000);
+            }
+
+            // Initialize when page loads
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('Copy functionality loaded successfully');
+            });
+        </script>
     @endsection
 </div>

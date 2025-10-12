@@ -168,9 +168,9 @@ class RifleComponent extends Component
         ];
 
         if (!$this->data_id) {
-            $rules['photo1'] = 'required|image|mimes:jpeg,png,jpg,gif|max:1024';
+            $rules['photo1'] = 'nullable|image|mimes:jpeg,png,jpg,gif';
         } else {
-            $rules['photo1'] = 'nullable|image|mimes:jpeg,png,jpg,gif|max:1024';
+            $rules['photo1'] = 'nullable|image|mimes:jpeg,png,jpg,gif';
         }
 
         return $rules;

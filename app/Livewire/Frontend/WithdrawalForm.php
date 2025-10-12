@@ -33,7 +33,7 @@ class WithdrawalForm extends Component
         $this->withdrawalStatus = WithdrawalRequest::where('user_id', $userId)
             ->whereIn('status', ['pending'])
             ->get();
-
+        $this->account_number=auth()->user()->mobile;
         // If user has pending requests, show status
         if ($this->withdrawalStatus->count() > 0) {
             $this->ruleSection = false;

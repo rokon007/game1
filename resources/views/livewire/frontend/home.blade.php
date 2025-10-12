@@ -274,7 +274,23 @@
                 @endforeach --}}
               </div>
             </div>
-          </div>
+        </div>
+        <div class="container">
+            <center>
+                <!-- Action Buttons -->
+                <div class="action-buttons mb-4">
+                    <a href="{{route('rifleAccount')}}" class="btn btn-success me-2">
+                        <i class="fas fa-plus-circle me-2"></i>Deposit
+                    </a>
+                    <a href="{{route('withdrawal')}}" class="btn btn-warning">
+                        <i class="fas fa-hand-holding-usd me-2"></i>Withdraw
+                    </a>
+                </div>
+                <div class="mb-4">
+                    .
+                </div>
+            </center>
+        </div>
 
     </div>
 
