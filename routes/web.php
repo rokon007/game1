@@ -58,6 +58,7 @@ use App\Livewire\Backend\Lottery\Show;
 use App\Livewire\Backend\Lottery\EditLottery;
 //use App\Http\Controllers\LotteryController;
 
+use App\Livewire\Frontend\Casino\LuckySpinGame;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -154,6 +155,8 @@ Route::middleware(['auth','banned'])->group(function(){
     Route::get('/lottery/history', LotteryHistory::class)->name('lottery.history');
     Route::get('/lottery/live-draw', LiveDrawModal::class)->name('lottery.live-draw');
     Route::get('/lottery-active', ActivLotteries::class)->name('lottery_active');
+
+    Route::get('/lucky-spin', LuckySpinGame::class)->name('lucky_spin');
 
 });
 
