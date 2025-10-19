@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class SystemSetting extends Model
 {
     use HasFactory;
-    protected $guarded = [];
+    // protected $guarded = [];
+    protected $fillable = ['key', 'value'];
     public $timestamps = true;
 
     public static function getValue($key, $default = null)

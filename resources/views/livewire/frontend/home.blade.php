@@ -216,8 +216,8 @@
                         <div class="card-body">
                             <div class="product-thumbnail-side">
                                 <!-- Thumbnail -->
-                                <a class="product-thumbnail d-block" href="#">
-                                    <img src="{{asset('assets/frontend/img/core-img/g2.png')}}" alt="">
+                                <a class="product-thumbnail d-block" href="{{route('lucky_spin')}}">
+                                    <img src="{{asset('assets/frontend/img/core-img/lucky-spin.png')}}" alt="">
                                 </a>
                             </div>
                         </div>

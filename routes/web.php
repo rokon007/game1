@@ -56,6 +56,7 @@ use App\Livewire\Backend\Lottery\CreateLottery;
 use App\Livewire\Backend\Lottery\LotteryIndex;
 use App\Livewire\Backend\Lottery\Show;
 use App\Livewire\Backend\Lottery\EditLottery;
+use App\Livewire\Backend\Casino\SystemSettings;
 //use App\Http\Controllers\LotteryController;
 
 use App\Livewire\Frontend\Casino\LuckySpinGame;
@@ -110,6 +111,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::get('/lottery/{lottery}/edit', EditLottery::class)->name('lottery.edit');
     //WelcomeBonusSettings
     Route::get('/welcome-bonus-settings', WelcomeBonusSettings::class)->name('welcomeBonus-settings');
+
+    Route::get('/spin-settings', SystemSettings::class)->name('system_settings');
 
 });
 

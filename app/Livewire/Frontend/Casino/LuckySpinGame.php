@@ -3,6 +3,7 @@
 namespace App\Livewire\Frontend\Casino;
 
 use Livewire\Component;
+use Livewire\Attributes\On;
 use App\Models\LuckySpin;
 use App\Models\SystemPool;
 use App\Models\SystemSetting;
@@ -11,7 +12,7 @@ use App\Models\User;
 
 class LuckySpinGame extends Component
 {
-    public $betAmount = 100;
+    public $betAmount = 05;
     public $spinning = false;
     public $result = null;
     public $credit = 0;
@@ -39,13 +40,13 @@ class LuckySpinGame extends Component
 
     public function incrementBet()
     {
-        $this->betAmount += 100;
+        $this->betAmount += 5;
         $this->validate(['betAmount' => 'required|integer|min:1']);
     }
 
     public function decrementBet()
     {
-        $this->betAmount = max(100, $this->betAmount - 100);
+        $this->betAmount = max(100, $this->betAmount - 5);
         $this->validate(['betAmount' => 'required|integer|min:1']);
     }
 

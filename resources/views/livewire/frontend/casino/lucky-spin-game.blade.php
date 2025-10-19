@@ -90,13 +90,12 @@
                 transform-origin: center;
             }
 
-            /* Corrected label positions */
-            .label-1 { top: 10%; left: 70%; transform: rotate(30deg); }      /* LOSE */
-            .label-2 { top: 10%; left: 30%; transform: rotate(-30deg); }     /* WIN */
-            .label-3 { top: 50%; left: 10%; transform: rotate(-90deg); }     /* LOSE */
-            .label-4 { top: 50%; left: 80%; transform: rotate(90deg); }      /* JACKPOT */
-            .label-5 { top: 85%; left: 70%; transform: rotate(150deg); }     /* LOSE */
-            .label-6 { top: 85%; left: 30%; transform: rotate(-150deg); }    /* WIN */
+            .label-1 { top: 10%; left: 70%; transform: rotate(30deg); }
+            .label-2 { top: 10%; left: 30%; transform: rotate(-30deg); }
+            .label-3 { top: 50%; left: 10%; transform: rotate(-90deg); }
+            .label-4 { top: 50%; left: 80%; transform: rotate(90deg); }
+            .label-5 { top: 85%; left: 70%; transform: rotate(150deg); }
+            .label-6 { top: 85%; left: 30%; transform: rotate(-150deg); }
 
             /* Button Styles */
             .spin-btn {
@@ -121,15 +120,6 @@
                 transform: scale(0.95);
             }
 
-            .pool-display {
-                background: linear-gradient(135deg, #f1c40f, #f39c12);
-                color: #2c3e50;
-                border-radius: 50px;
-                padding: 12px 25px;
-                font-weight: bold;
-                box-shadow: 0 5px 15px rgba(241, 196, 15, 0.4);
-            }
-
             .credit-display {
                 background: linear-gradient(135deg, #3498db, #2980b9);
                 color: white;
@@ -145,6 +135,175 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
+            }
+
+            .sound-toggle {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 1000;
+                background: rgba(255,255,255,0.9);
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                cursor: pointer;
+                border: none;
+                font-size: 20px;
+                color: #2c3e50;
+            }
+
+            /* Reward Preview Styles */
+            .reward-preview-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.95);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.4s ease;
+            }
+
+            .reward-preview-overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .reward-preview-content {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 30px;
+                padding: 50px 40px;
+                text-align: center;
+                color: white;
+                max-width: 500px;
+                width: 90%;
+                box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+                transform: scale(0.7) rotateX(20deg);
+                transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+                position: relative;
+                overflow: hidden;
+            }
+
+            .reward-preview-overlay.active .reward-preview-content {
+                transform: scale(1) rotateX(0deg);
+            }
+
+            .reward-preview-content::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                left: -50%;
+                width: 200%;
+                height: 200%;
+                background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+                animation: shimmer 2s infinite;
+            }
+
+            @keyframes shimmer {
+                0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+                100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+            }
+
+            .reward-icon {
+                font-size: 80px;
+                margin-bottom: 20px;
+                animation: bounce 2s infinite;
+                filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+            }
+
+            @keyframes bounce {
+                0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                40% { transform: translateY(-30px); }
+                60% { transform: translateY(-15px); }
+            }
+
+            .reward-title {
+                font-size: 28px;
+                font-weight: bold;
+                margin-bottom: 15px;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                letter-spacing: 2px;
+            }
+
+            .reward-multiplier {
+                font-size: 72px;
+                font-weight: bold;
+                color: #f1c40f;
+                margin: 20px 0;
+                text-shadow: 0 0 30px rgba(241, 196, 15, 0.8), 0 0 60px rgba(241, 196, 15, 0.5);
+                animation: pulse 1.5s infinite;
+                position: relative;
+                z-index: 1;
+            }
+
+            @keyframes pulse {
+                0%, 100% {
+                    transform: scale(1);
+                    text-shadow: 0 0 30px rgba(241, 196, 15, 0.8), 0 0 60px rgba(241, 196, 15, 0.5);
+                }
+                50% {
+                    transform: scale(1.15);
+                    text-shadow: 0 0 40px rgba(241, 196, 15, 1), 0 0 80px rgba(241, 196, 15, 0.7);
+                }
+            }
+
+            .reward-amount {
+                font-size: 32px;
+                margin: 15px 0;
+                font-weight: bold;
+                color: #ffffff;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            }
+
+            .reward-subtitle {
+                font-size: 18px;
+                opacity: 0.9;
+                margin-top: 20px;
+                animation: fadeInOut 2s infinite;
+            }
+
+            @keyframes fadeInOut {
+                0%, 100% { opacity: 0.6; }
+                50% { opacity: 1; }
+            }
+
+            .countdown-timer {
+                font-size: 48px;
+                font-weight: bold;
+                color: #f1c40f;
+                margin-top: 30px;
+                text-shadow: 0 0 20px rgba(241, 196, 15, 0.8);
+                animation: countdownPulse 1s infinite;
+            }
+
+            @keyframes countdownPulse {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.2); opacity: 0.8; }
+            }
+
+            /* Sparkle Effects */
+            .sparkle {
+                position: absolute;
+                width: 4px;
+                height: 4px;
+                background: white;
+                border-radius: 50%;
+                animation: sparkleFloat 3s infinite;
+            }
+
+            @keyframes sparkleFloat {
+                0% { transform: translateY(0) scale(0); opacity: 0; }
+                50% { opacity: 1; }
+                100% { transform: translateY(-200px) scale(1); opacity: 0; }
             }
 
             .result-alert {
@@ -176,6 +335,38 @@
                 .segment-label {
                     font-size: 12px;
                 }
+
+                .sound-toggle {
+                    top: 10px;
+                    right: 10px;
+                    width: 40px;
+                    height: 40px;
+                    font-size: 16px;
+                }
+
+                .reward-preview-content {
+                    padding: 40px 25px;
+                }
+
+                .reward-icon {
+                    font-size: 60px;
+                }
+
+                .reward-title {
+                    font-size: 22px;
+                }
+
+                .reward-multiplier {
+                    font-size: 56px;
+                }
+
+                .reward-amount {
+                    font-size: 24px;
+                }
+
+                .countdown-timer {
+                    font-size: 36px;
+                }
             }
         </style>
     @endsection
@@ -189,32 +380,40 @@
     @endsection
 
     <div class="game-container">
+        <!-- Reward Preview Overlay -->
+        <div class="reward-preview-overlay" id="rewardPreviewOverlay">
+            <div class="reward-preview-content">
+                <!-- Sparkle effects -->
+                <div class="sparkle" style="top: 10%; left: 20%; animation-delay: 0s;"></div>
+                <div class="sparkle" style="top: 20%; left: 80%; animation-delay: 0.3s;"></div>
+                <div class="sparkle" style="top: 80%; left: 15%; animation-delay: 0.6s;"></div>
+                <div class="sparkle" style="top: 70%; left: 85%; animation-delay: 0.9s;"></div>
+                <div class="sparkle" style="top: 40%; left: 10%; animation-delay: 1.2s;"></div>
+                <div class="sparkle" style="top: 50%; left: 90%; animation-delay: 1.5s;"></div>
+
+                <div class="reward-icon">
+                    <i class="fas fa-gift"></i>
+                </div>
+                <h2 class="reward-title">POSSIBLE REWARD</h2>
+                <div class="reward-multiplier" id="previewMultiplier">?x</div>
+                <div class="reward-amount" id="previewAmount">? Credits</div>
+                <p class="reward-subtitle">✨ Spin to reveal your prize! ✨</p>
+                <div class="countdown-timer" id="countdownTimer">3</div>
+            </div>
+        </div>
+
+        <!-- Sound Toggle Button -->
+        <button class="sound-toggle" id="soundToggle">
+            <i class="fas fa-volume-up"></i>
+        </button>
+
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-lg-8 col-md-10">
-                    <div class="game-card p-4">
-                        <!-- Header -->
-                        <div class="text-center mb-4">
-                            <h1 class="fw-bold text-primary">
-                                <i class="fas fa-diamond me-2"></i>LUCKY SPIN
-                            </h1>
-                            <p class="text-muted">Test your luck and win big!</p>
-                        </div>
-
-                        <!-- Jackpot Pool -->
-                        <div class="text-center mb-4">
-                            <div class="pool-display d-inline-block">
-                                <i class="fas fa-crown me-2"></i>
-                                <strong>JACKPOT:</strong>
-                                <span id="poolAmount">{{ number_format($poolAmount) }}</span>
-                                <small class="ms-1">credits</small>
-                            </div>
-                        </div>
-
+                    <div class="game-card p-4 mt-4">
                         <!-- Wheel -->
                         <div class="wheel-container mb-4">
                             <div class="wheel" id="wheel">
-                                <!-- Corrected Segment labels with proper positioning -->
                                 <div class="segment-label label-1">LOSE</div>
                                 <div class="segment-label label-2">WIN</div>
                                 <div class="segment-label label-3">LOSE</div>
@@ -232,7 +431,7 @@
 
                         <!-- Bet Controls -->
                         <div class="bet-controls mb-4">
-                            <div class="text-center mb-3">
+                            <div class="text-center">
                                 <label class="form-label fw-bold fs-5">BET AMOUNT</label>
                             </div>
                             <div class="d-flex justify-content-center align-items-center gap-3">
@@ -249,7 +448,7 @@
                                            style="width: 150px; border-color: #3498db;"
                                            min="1"
                                            max="10000">
-                                    <small class="text-muted">Min: 1 - Max: 10,000</small>
+                                    <small class="text-muted">Min: 5 - Max: 1,000</small>
                                 </div>
 
                                 <button class="btn btn-outline-success"
@@ -262,7 +461,7 @@
 
                         <!-- Spin Button -->
                         <div class="text-center mb-4">
-                            <button wire:click="spin"
+                            <button id="spinButton"
                                     wire:loading.attr="disabled"
                                     class="spin-btn">
                                 <span wire:loading.remove>
@@ -275,22 +474,14 @@
                             </button>
                         </div>
 
-                        <!-- User Info -->
                         <div class="credit-display text-center mb-4">
                             <div class="row">
-                                <div class="col-6">
+                                <div class="col-12">
                                     <div class="mb-2">
                                         <i class="fas fa-wallet me-2"></i>
                                         <strong>YOUR CREDIT</strong>
                                     </div>
-                                    <h4 class="fw-bold text-white mb-0">{{ number_format($credit) }}</h4>
-                                </div>
-                                <div class="col-6">
-                                    <div class="mb-2">
-                                        <i class="fas fa-coins me-2"></i>
-                                        <strong>CURRENT BET</strong>
-                                    </div>
-                                    <h4 class="fw-bold text-white mb-0">{{ number_format($betAmount) }}</h4>
+                                    <h6 class="fw-bold text-white mb-0">{{ number_format($credit) }}</h6>
                                 </div>
                             </div>
                         </div>
@@ -304,14 +495,13 @@
                         @endif
 
                         <!-- Result Display -->
-                        @if($result)
+                        {{-- @if($result)
                             <div class="result-alert">
                                 <div class="alert
                                     @if($result === 'win') alert-success
                                     @elseif($result === 'jackpot') alert-warning
                                     @else alert-info @endif
                                     alert-dismissible fade show">
-
                                     <div class="text-center">
                                         @if($result === 'win')
                                             <h5 class="alert-heading">
@@ -329,18 +519,41 @@
                                             <h5 class="alert-heading">
                                                 <i class="fas fa-redo me-2"></i>BETTER LUCK NEXT TIME
                                             </h5>
-                                            <p class="mb-0">Keep trying! The jackpot is growing.</p>
+                                            <p class="mb-0">Keep trying!</p>
                                         @endif
                                     </div>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                 </div>
                             </div>
-                        @endif
+                        @endif --}}
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Hidden Audio Elements -->
+    <audio id="spinSound" preload="auto">
+        <source src="{{asset('sounds/spin/spinSound.mp3')}}" type="audio/mpeg">
+    </audio>
+    <audio id="winSound" preload="auto">
+        <source src="{{asset('sounds/spin/winSound.mp3')}}" type="audio/mpeg">
+    </audio>
+    <audio id="jackpotSound" preload="auto">
+        <source src="{{asset('sounds/spin/jackpotSound.mp3')}}" type="audio/mpeg">
+    </audio>
+    <audio id="loseSound" preload="auto">
+        <source src="{{asset('sounds/spin/loseSound.mp3')}}" type="audio/mpeg">
+    </audio>
+    <audio id="clickSound" preload="auto">
+        <source src="{{asset('sounds/spin/clickSound.mp3')}}" type="audio/mpeg">
+    </audio>
+    <audio id="tickSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-jump-coin-216.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="previewSound" preload="auto">
+        <source src="{{asset('sounds/spin/rewardPreview.mp3')}}" type="audio/mpeg">
+    </audio>
 
     @section('footer')
         <livewire:layout.frontend.footer />
@@ -350,112 +563,240 @@
         @include('livewire.layout.frontend.js')
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.all.min.js"></script>
         <script>
-            // Listen for Livewire event
+            // Sound Management
+            class SoundManager {
+                constructor() {
+                    this.sounds = {
+                        spin: document.getElementById('spinSound'),
+                        win: document.getElementById('winSound'),
+                        jackpot: document.getElementById('jackpotSound'),
+                        lose: document.getElementById('loseSound'),
+                        click: document.getElementById('clickSound'),
+                        tick: document.getElementById('tickSound'),
+                        preview: document.getElementById('previewSound')
+                    };
+                    this.enabled = true;
+                    this.init();
+                }
+
+                init() {
+                    Object.values(this.sounds).forEach(sound => {
+                        if (sound) sound.volume = 0.6;
+                    });
+                    if (this.sounds.spin) this.sounds.spin.volume = 0.4;
+                    if (this.sounds.tick) this.sounds.tick.volume = 0.3;
+                    if (this.sounds.preview) this.sounds.preview.volume = 0.7;
+
+                    const toggleBtn = document.getElementById('soundToggle');
+                    if (toggleBtn) {
+                        toggleBtn.addEventListener('click', () => this.toggle());
+                    }
+                    this.updateToggleIcon();
+                }
+
+                play(soundName) {
+                    if (!this.enabled || !this.sounds[soundName]) return;
+                    this.sounds[soundName].currentTime = 0;
+                    this.sounds[soundName].play().catch(e => console.log('Sound play failed:', e));
+                }
+
+                stop(soundName) {
+                    if (this.sounds[soundName]) {
+                        this.sounds[soundName].pause();
+                        this.sounds[soundName].currentTime = 0;
+                    }
+                }
+
+                toggle() {
+                    this.enabled = !this.enabled;
+                    this.updateToggleIcon();
+                    if (this.enabled) this.play('click');
+                }
+
+                updateToggleIcon() {
+                    const toggleBtn = document.getElementById('soundToggle');
+                    if (toggleBtn) {
+                        const icon = toggleBtn.querySelector('i');
+                        if (icon) {
+                            icon.className = this.enabled ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+                            toggleBtn.title = this.enabled ? 'Sound: ON' : 'Sound: OFF';
+                        }
+                    }
+                }
+            }
+
+            const soundManager = new SoundManager();
+
+            // Reward Preview Manager
+            class RewardPreviewManager {
+                constructor() {
+                    this.overlay = document.getElementById('rewardPreviewOverlay');
+                    this.multiplierEl = document.getElementById('previewMultiplier');
+                    this.amountEl = document.getElementById('previewAmount');
+                    this.countdownEl = document.getElementById('countdownTimer');
+                    this.isActive = false;
+                    this.countdownInterval = null;
+                }
+
+                show(betAmount) {
+                    if (this.isActive) return;
+                    this.isActive = true;
+
+                    // Generate exciting random multipliers
+                    const possibleMultipliers = [2, 3, 5, 10, 15, 20, 50, 100];
+                    const randomMultiplier = possibleMultipliers[Math.floor(Math.random() * possibleMultipliers.length)];
+                    const potentialWin = betAmount * randomMultiplier;
+
+                    // Update display
+                    this.multiplierEl.textContent = randomMultiplier + 'x';
+                    this.amountEl.textContent = potentialWin.toLocaleString() + ' Credits';
+
+                    // Show overlay
+                    this.overlay.classList.add('active');
+                    soundManager.play('preview');
+
+                    // Start countdown
+                    this.startCountdown();
+                }
+
+                hide() {
+                    this.isActive = false;
+                    this.overlay.classList.remove('active');
+                    if (this.countdownInterval) {
+                        clearInterval(this.countdownInterval);
+                        this.countdownInterval = null;
+                    }
+                }
+
+                startCountdown() {
+                    let count = 3;
+                    this.countdownEl.textContent = count;
+
+                    this.countdownInterval = setInterval(() => {
+                        count--;
+                        if (count > 0) {
+                            this.countdownEl.textContent = count;
+                            soundManager.play('tick');
+                        } else {
+                            this.countdownEl.textContent = 'GO!';
+                            soundManager.play('tick');
+                            clearInterval(this.countdownInterval);
+
+                            // Hide and trigger actual spin
+                            setTimeout(() => {
+                                this.hide();
+                                this.triggerSpin();
+                            }, 800);
+                        }
+                    }, 1000);
+                }
+
+                triggerSpin() {
+                    // Trigger Livewire spin method
+                    @this.call('spin');
+                }
+            }
+
+            const rewardPreview = new RewardPreviewManager();
+
+            // Intercept spin button click
+            document.addEventListener('DOMContentLoaded', () => {
+                const spinButton = document.getElementById('spinButton');
+                if (spinButton) {
+                    spinButton.addEventListener('click', function(e) {
+                        // Check if not loading and has credit
+                        const isLoading = this.hasAttribute('disabled');
+                        const betAmount = parseInt(document.querySelector('input[wire\\:model="betAmount"]').value) || 100;
+
+                        if (!isLoading) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            soundManager.play('click');
+                            rewardPreview.show(betAmount);
+                        }
+                    });
+                }
+            });
+
+            // Listen for Livewire spin-wheel event
             document.addEventListener('livewire:initialized', () => {
                 Livewire.on('spin-wheel', (event) => {
                     console.log('Spin wheel event received:', event);
-                    const data = event[0]; // Livewire v3 passes data as array
+                    const data = event[0];
+                    soundManager.play('spin');
                     startWheelSpin(data.angle, data);
                 });
             });
 
-            // Global function to start wheel spin
+            // Wheel spin function
             window.startWheelSpin = function(angle, spinData) {
-                console.log('Starting wheel spin with angle:', angle, 'Data:', spinData);
-
+                console.log('Starting wheel spin with angle:', angle);
                 const wheel = document.getElementById('wheel');
-                if (!wheel) {
-                    console.error('Wheel element not found!');
-                    return;
-                }
+                if (!wheel) return;
 
-                // Reset wheel position
                 wheel.style.transition = 'none';
                 wheel.style.transform = 'rotate(0deg)';
+                void wheel.offsetHeight;
 
-                // Force reflow
-                wheel.offsetHeight;
-
-                // Calculate total rotation (4 full spins + target angle)
                 const fullSpins = 4 * 360;
                 const targetRotation = fullSpins + (360 - angle);
 
-                console.log('Target rotation:', targetRotation);
-
-                // Apply animation
                 setTimeout(() => {
                     wheel.style.transition = 'transform 4s cubic-bezier(0.2, 0.8, 0.3, 1)';
                     wheel.style.transform = `rotate(${targetRotation}deg)`;
-                }, 50);
+                }, 100);
 
-                // Update pool amount with animation
-                updatePoolAmount(spinData.pool_after);
+                playTickSounds();
 
-                // Show result after animation
                 setTimeout(() => {
+                    soundManager.stop('spin');
+                    if (spinData.result === 'jackpot') soundManager.play('jackpot');
+                    else if (spinData.result === 'win') soundManager.play('win');
+                    else soundManager.play('lose');
                     showResultAlert(spinData);
-                }, 4200);
+                }, 4500);
             };
 
-            // Update pool amount with animation
-            function updatePoolAmount(newAmount) {
-                const poolElement = document.getElementById('poolAmount');
-                if (poolElement) {
-                    const currentAmount = parseInt(poolElement.textContent.replace(/,/g, '')) || 0;
-                    animateValue(poolElement, currentAmount, newAmount, 2000);
-                }
-            }
-
-            // Animate number value
-            function animateValue(element, start, end, duration) {
-                let startTimestamp = null;
-                const step = (timestamp) => {
-                    if (!startTimestamp) startTimestamp = timestamp;
-                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                    const value = Math.floor(progress * (end - start) + start);
-                    element.textContent = value.toLocaleString();
-                    if (progress < 1) {
-                        window.requestAnimationFrame(step);
+            function playTickSounds() {
+                let tickCount = 0;
+                const maxTicks = 8;
+                const tickTimer = setInterval(() => {
+                    if (tickCount < maxTicks) {
+                        soundManager.play('tick');
+                        tickCount++;
+                    } else {
+                        clearInterval(tickTimer);
                     }
-                };
-                window.requestAnimationFrame(step);
+                }, 500);
             }
 
-            // Show result alert
             function showResultAlert(data) {
                 let title, html, icon;
-
                 if (data.result === 'jackpot') {
                     title = '🎉 JACKPOT! 🎉';
                     icon = 'success';
-                    html = `
-                        <div class="text-center">
-                            <h4 class="text-warning fw-bold">CONGRATULATIONS!</h4>
-                            <p>You hit the JACKPOT!</p>
-                            <h2 class="text-success fw-bold my-3">${data.reward.toLocaleString()} CREDITS</h2>
-                            <p class="text-muted">You are our lucky winner!</p>
-                        </div>
-                    `;
+                    html = `<div class="text-center">
+                        <h4 class="text-warning fw-bold">CONGRATULATIONS!</h4>
+                        <p>You hit the JACKPOT!</p>
+                        <h2 class="text-success fw-bold my-3">${data.reward.toLocaleString()} CREDITS</h2>
+                        <p class="text-muted">You are our lucky winner!</p>
+                    </div>`;
                 } else if (data.result === 'win') {
                     title = '🎊 YOU WON!';
                     icon = 'success';
-                    html = `
-                        <div class="text-center">
-                            <h5 class="text-success fw-bold">Congratulations!</h5>
-                            <p>You won:</p>
-                            <h3 class="text-success fw-bold my-2">${data.reward.toLocaleString()} CREDITS</h3>
-                            <p class="text-muted">Great spin!</p>
-                        </div>
-                    `;
+                    html = `<div class="text-center">
+                        <h5 class="text-success fw-bold">Congratulations!</h5>
+                        <p>You won:</p>
+                        <h3 class="text-success fw-bold my-2">${data.reward.toLocaleString()} CREDITS</h3>
+                        <p class="text-muted">Great spin!</p>
+                    </div>`;
                 } else {
                     title = '😢 TRY AGAIN';
                     icon = 'info';
-                    html = `
-                        <div class="text-center">
-                            <p>Better luck next time!</p>
-                            <p class="text-muted">The jackpot is still growing...</p>
-                        </div>
-                    `;
+                    html = `<div class="text-center">
+                        <p>Better luck next time!</p>
+                        <p class="text-muted">Keep spinning!</p>
+                    </div>`;
                 }
 
                 Swal.fire({
@@ -463,23 +804,21 @@
                     html: html,
                     icon: icon,
                     confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'SPIN AGAIN'
+                    confirmButtonText: 'SPIN AGAIN',
+                    allowOutsideClick: false
                 });
             }
 
-            // Test function to verify wheel works
-            function testWheel() {
-                const testAngle = 180; // Jackpot segment
-                window.startWheelSpin(testAngle, {
-                    result: 'jackpot',
-                    reward: 50000,
-                    pool_before: 50000,
-                    pool_after: 0
-                });
-            }
+            // Play click sound for buttons
+            document.addEventListener('click', function(e) {
+                const button = e.target.closest('button');
+                if (button && button.id !== 'soundToggle' && button.id !== 'spinButton') {
+                    soundManager.play('click');
+                }
+            });
 
             console.log('Lucky Spin Game JavaScript loaded successfully');
-            console.log('Test function available: testWheel()');
+            console.log('Reward Preview System ready!');
         </script>
     @endsection
 </div>
