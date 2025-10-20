@@ -104,9 +104,10 @@ class LuckySpinGame extends Component
             });
 
             if (count($validMultipliers) > 0) {
-                // Generate multiplier using another random seed
-                $multiplierSeed = rand(0, count($validMultipliers) - 1);
-                $multiplier = $validMultipliers[array_values($validMultipliers)[$multiplierSeed]];
+                // FIX: Properly get random multiplier from valid multipliers
+                $validMultipliersArray = array_values($validMultipliers);
+                $randomIndex = rand(0, count($validMultipliersArray) - 1);
+                $multiplier = $validMultipliersArray[$randomIndex];
                 $reward = (int) floor($this->betAmount * $multiplier);
 
                 if ($reward > $pool->total_collected) {
@@ -171,8 +172,19 @@ class LuckySpinGame extends Component
 
         \DB::beginTransaction();
         try {
+            // Lock the pool and user for update
             $pool = SystemPool::lockForUpdate()->first();
+            $user = User::lockForUpdate()->find($user->id);
+
             $poolBefore = $pool->total_collected;
+
+            // Check credit again after lock (to prevent race condition)
+            if ($user->credit < $this->betAmount) {
+                \DB::rollBack();
+                session()->flash('error', 'Insufficient balance.');
+                $this->spinning = false;
+                return;
+            }
 
             // Debit user and create transaction
             $user->decrement('credit', $this->betAmount);
@@ -198,6 +210,7 @@ class LuckySpinGame extends Component
             }
 
             $adminCommissionPercent = (int) SystemSetting::getValue('admin_commission', 10);
+            $jackpotLimit = (int) SystemSetting::getValue('jackpot_limit', 100000);
 
             // Use pre-calculated results if available
             $result = $this->preCalculatedResult ?? 'lose';
@@ -205,20 +218,40 @@ class LuckySpinGame extends Component
             $reward = $this->preCalculatedReward ?? 0;
             $adminCommission = 0;
 
-            // Apply the pre-calculated result
+            // CRITICAL: Check if jackpot is still available (only one user can win)
             if ($result === 'jackpot') {
-                // Calculate admin commission
-                $adminCommission = (int) floor($pool->total_collected * ($adminCommissionPercent / 100));
+                // Re-check if pool still qualifies for jackpot after lock
+                if ($pool->total_collected >= $jackpotLimit) {
+                    // Calculate admin commission
+                    $adminCommission = (int) floor($pool->total_collected * ($adminCommissionPercent / 100));
 
-                // Recalculate reward in case pool changed
-                $reward = $pool->total_collected - $adminCommission;
-                $multiplier = $reward > 0 ? round($reward / $this->betAmount, 2) : 0;
+                    // Recalculate reward based on current pool
+                    $reward = $pool->total_collected - $adminCommission;
+                    $multiplier = $reward > 0 ? round($reward / $this->betAmount, 2) : 0;
 
-                \Log::info("Jackpot won! Pool: {$pool->total_collected}, Commission: {$adminCommission}, Reward: {$reward}");
+                    \Log::info("Jackpot won by user {$user->id}! Pool: {$pool->total_collected}, Commission: {$adminCommission}, Reward: {$reward}");
 
-                // Reset pool to zero after jackpot
-                $pool->total_collected = 0;
-                $pool->last_jackpot_at = now();
+                    // Reset pool to zero after jackpot (this prevents others from winning)
+                    $pool->total_collected = 0;
+                    $pool->last_jackpot_at = now();
+                } else {
+                    // Pool was already won by someone else, convert to regular win or lose
+                    \Log::info("Jackpot already claimed! Converting to regular spin for user {$user->id}");
+
+                    // Give them a consolation win if pool has enough
+                    if ($pool->total_collected >= ($this->betAmount * 2)) {
+                        $result = 'win';
+                        $multiplier = 2;
+                        $reward = $this->betAmount * 2;
+                        $pool->total_collected -= $reward;
+                    } else {
+                        // Convert to lose
+                        $result = 'lose';
+                        $multiplier = 0;
+                        $reward = 0;
+                        $pool->total_collected += $this->betAmount;
+                    }
+                }
 
             } else if ($result === 'win') {
                 // Use pre-calculated reward and multiplier
