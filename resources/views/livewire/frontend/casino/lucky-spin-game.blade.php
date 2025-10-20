@@ -398,7 +398,7 @@
                 <div class="reward-multiplier" id="previewMultiplier">?x</div>
                 <div class="reward-amount" id="previewAmount">? Credits</div>
                 <p class="reward-subtitle">✨ Spin to reveal your prize! ✨</p>
-                <div class="countdown-timer" id="countdownTimer">3</div>
+                <div class="countdown-timer" id="countdownTimer">1</div>
             </div>
         </div>
 
@@ -448,7 +448,7 @@
                                            style="width: 150px; border-color: #3498db;"
                                            min="1"
                                            max="10000">
-                                    <small class="text-muted">Min: 5 - Max: 1,000</small>
+                                    <small class="text-muted">Min: 1 - Max: 10,000</small>
                                 </div>
 
                                 <button class="btn btn-outline-success"
@@ -462,12 +462,12 @@
                         <!-- Spin Button -->
                         <div class="text-center mb-4">
                             <button id="spinButton"
-                                    wire:loading.attr="disabled"
+                                    type="button"
                                     class="spin-btn">
-                                <span wire:loading.remove>
+                                <span class="spin-text">
                                     <i class="fas fa-play me-2"></i>SPIN NOW
                                 </span>
-                                <span wire:loading>
+                                <span class="spinning-text" style="display: none;">
                                     <div class="spinner-border spinner-border-sm me-2" role="status"></div>
                                     SPINNING...
                                 </span>
@@ -638,17 +638,19 @@
                     this.countdownInterval = null;
                 }
 
-                show(betAmount) {
+                async show(betAmount) {
                     if (this.isActive) return;
                     this.isActive = true;
 
-                    // Generate exciting random multipliers
-                    const possibleMultipliers = [2, 3, 5, 10, 15, 20, 50, 100];
-                    const randomMultiplier = possibleMultipliers[Math.floor(Math.random() * possibleMultipliers.length)];
-                    const potentialWin = betAmount * randomMultiplier;
+                    // Get preview result from backend
+                    const previewData = await @this.call('previewResult');
+                    console.log('Preview data:', previewData);
+
+                    const displayMultiplier = previewData.multiplier;
+                    const potentialWin = betAmount * displayMultiplier;
 
                     // Update display
-                    this.multiplierEl.textContent = randomMultiplier + 'x';
+                    this.multiplierEl.textContent = displayMultiplier + 'x';
                     this.amountEl.textContent = potentialWin.toLocaleString() + ' Credits';
 
                     // Show overlay
@@ -669,7 +671,7 @@
                 }
 
                 startCountdown() {
-                    let count = 3;
+                    let count = 1;
                     this.countdownEl.textContent = count;
 
                     this.countdownInterval = setInterval(() => {
@@ -693,7 +695,33 @@
 
                 triggerSpin() {
                     // Trigger Livewire spin method
-                    @this.call('spin');
+                    console.log('Triggering actual spin...');
+
+                    // Show loading state
+                    const spinButton = document.getElementById('spinButton');
+                    if (spinButton) {
+                        spinButton.disabled = true;
+                        spinButton.querySelector('.spin-text').style.display = 'none';
+                        spinButton.querySelector('.spinning-text').style.display = 'inline';
+                    }
+
+                    @this.call('spin').then(() => {
+                        console.log('Spin completed');
+                        // Reset button state
+                        if (spinButton) {
+                            spinButton.disabled = false;
+                            spinButton.querySelector('.spin-text').style.display = 'inline';
+                            spinButton.querySelector('.spinning-text').style.display = 'none';
+                        }
+                    }).catch((error) => {
+                        console.error('Spin error:', error);
+                        // Reset button state on error
+                        if (spinButton) {
+                            spinButton.disabled = false;
+                            spinButton.querySelector('.spin-text').style.display = 'inline';
+                            spinButton.querySelector('.spinning-text').style.display = 'none';
+                        }
+                    });
                 }
             }
 
@@ -703,17 +731,17 @@
             document.addEventListener('DOMContentLoaded', () => {
                 const spinButton = document.getElementById('spinButton');
                 if (spinButton) {
-                    spinButton.addEventListener('click', function(e) {
-                        // Check if not loading and has credit
+                    spinButton.addEventListener('click', async function(e) {
+                        e.preventDefault();
+
+                        // Check if not loading
                         const isLoading = this.hasAttribute('disabled');
+                        if (isLoading) return;
+
                         const betAmount = parseInt(document.querySelector('input[wire\\:model="betAmount"]').value) || 100;
 
-                        if (!isLoading) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            soundManager.play('click');
-                            rewardPreview.show(betAmount);
-                        }
+                        soundManager.play('click');
+                        await rewardPreview.show(betAmount);
                     });
                 }
             });
@@ -723,6 +751,7 @@
                 Livewire.on('spin-wheel', (event) => {
                     console.log('Spin wheel event received:', event);
                     const data = event[0];
+
                     soundManager.play('spin');
                     startWheelSpin(data.angle, data);
                 });
@@ -772,6 +801,10 @@
 
             function showResultAlert(data) {
                 let title, html, icon;
+
+                // Use actual multiplier from data
+                const displayMultiplier = data.multiplier || 0;
+
                 if (data.result === 'jackpot') {
                     title = '🎉 JACKPOT! 🎉';
                     icon = 'success';
@@ -779,34 +812,39 @@
                         <h4 class="text-warning fw-bold">CONGRATULATIONS!</h4>
                         <p>You hit the JACKPOT!</p>
                         <h2 class="text-success fw-bold my-3">${data.reward.toLocaleString()} CREDITS</h2>
-                        <p class="text-muted">You are our lucky winner!</p>
+                        ${displayMultiplier > 0 ? `<p class="text-muted">Amazing ${displayMultiplier.toFixed(1)}x multiplier!</p>` : ''}
+                        <p class="text-muted">You are our lucky winner! 🏆</p>
                     </div>`;
+
+                        Swal.fire({
+                        title: title,
+                        html: html,
+                        icon: icon,
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'SPIN AGAIN',
+                        allowOutsideClick: false
+                    });
                 } else if (data.result === 'win') {
                     title = '🎊 YOU WON!';
                     icon = 'success';
                     html = `<div class="text-center">
                         <h5 class="text-success fw-bold">Congratulations!</h5>
-                        <p>You won:</p>
+                        <p>Just as predicted in the preview!</p>
                         <h3 class="text-success fw-bold my-2">${data.reward.toLocaleString()} CREDITS</h3>
-                        <p class="text-muted">Great spin!</p>
+                        <p class="text-info fw-bold">Multiplier: ${displayMultiplier}x ✨</p>
+                        <p class="text-muted">Great spin! Keep going!</p>
                     </div>`;
-                } else {
-                    title = '😢 TRY AGAIN';
-                    icon = 'info';
-                    html = `<div class="text-center">
-                        <p>Better luck next time!</p>
-                        <p class="text-muted">Keep spinning!</p>
-                    </div>`;
-                }
 
-                Swal.fire({
-                    title: title,
-                    html: html,
-                    icon: icon,
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'SPIN AGAIN',
-                    allowOutsideClick: false
-                });
+                        Swal.fire({
+                        title: title,
+                        html: html,
+                        icon: icon,
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'SPIN AGAIN',
+                        allowOutsideClick: false
+                    });
+
+                }
             }
 
             // Play click sound for buttons
