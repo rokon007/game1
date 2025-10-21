@@ -25,12 +25,18 @@ class LuckySpinGame extends Component
     public $preCalculatedMultiplier = null;
     public $preCalculatedReward = null;
 
-    protected $rules = [
-        'betAmount' => 'required|integer|min:1'
-    ];
+    // protected $rules = [
+    //     'betAmount' => 'required|integer|min:1'
+    // ];
+
+    public $minAmaunt, $maxAmaunt;
 
     public function mount()
     {
+        $this->minAmaunt = SystemSetting::getValue('min_bet', 10);
+        $this->maxAmaunt = SystemSetting::getValue('max_bet', 10000);
+        $this->betAmount= $this->minAmaunt;
+
         if (!SystemPool::first()) {
             SystemPool::create(['total_collected' => 0]);
         }
@@ -42,16 +48,23 @@ class LuckySpinGame extends Component
         $this->updatePoolAmount();
     }
 
+    protected function rules()
+    {
+        return [
+            'betAmount' => 'required|integer|min:' . $this->minAmaunt,
+        ];
+    }
+
     public function incrementBet()
     {
-        $this->betAmount += 100;
-        $this->validate(['betAmount' => 'required|integer|min:1']);
+        $this->betAmount += $this->minAmaunt;
+        $this->validate(['betAmount' => 'required|integer|min:'. $this->minAmaunt,]);
     }
 
     public function decrementBet()
     {
-        $this->betAmount = max(100, $this->betAmount - 100);
-        $this->validate(['betAmount' => 'required|integer|min:1']);
+        $this->betAmount = max($this->minAmaunt, $this->betAmount - $this->minAmaunt);
+        $this->validate(['betAmount' => 'required|integer|min:'. $this->minAmaunt,]);
     }
 
     // Pre-calculate what the result will be (called from frontend)

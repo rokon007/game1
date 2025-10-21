@@ -8,6 +8,8 @@ use App\Models\Transaction;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\CreditTransferred;
+use App\Models\SystemPool;
+use App\Models\SystemSetting;
 use App\Events\WinnerAnnouncedEvent;
 
 class Dashboard extends Component
@@ -20,12 +22,28 @@ class Dashboard extends Component
     public $transactionSuccess=false;
     public $rechargeUser_id;
     public $totalUsers;
+    public $poolAmount = 0;
+    public $jackpotLimit=0;
+    public $progressPercent;
 
     public function mount()
     {
         $this->totalUsers = User::count();
         $this->getCredit();
         $this->rechargeUser_id=auth()->user()->id;
+        $this->updatePoolAmount();
+    }
+
+    public function updatePoolAmount()
+    {
+        $pool = SystemPool::first();
+        $this->poolAmount = $pool ? $pool->total_collected : 0;
+        $this->jackpotLimit = SystemSetting::getValue('jackpot_limit', 100000);
+
+        // progress percentage হিসাব
+        $this->progressPercent = $this->jackpotLimit > 0
+            ? min(100, ($this->poolAmount / $this->jackpotLimit) * 100)
+            : 0;
     }
 
     public function testClick()

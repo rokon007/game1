@@ -33,7 +33,7 @@
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-2 row-cols-xl-4">
             <!-- Balance Card -->
             <div class="col">
-                <div class="card radius-10 bg-primary bg-gradient">
+                <div wire:poll.500ms="getCredit" class="card radius-10 bg-primary bg-gradient">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
                             <div class="">
@@ -49,6 +49,29 @@
                                 <i class="bi bi-plus-circle me-1"></i> Add Money
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pool Amount Card -->
+            <div class="col">
+                <div wire:poll.500ms="updatePoolAmount" class="card radius-10 bg-warning bg-gradient">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div>
+                                <p class="mb-1 text-black">Pool Amount</p>
+                                <h4 class="mb-0 text-black">{{ number_format($poolAmount) }}</h4>
+                            </div>
+                            <div class="ms-auto fs-2 text-black">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height:4px;">
+                            <div class="progress-bar bg-black" role="progressbar"
+                                style="width: {{ $progressPercent }}%;">
+                            </div>
+                        </div>
+                        <small class="text-black">{{ number_format($progressPercent, 2) }}% of Jackpot Limit ({{ number_format($jackpotLimit) }})</small>
                     </div>
                 </div>
             </div>
@@ -112,7 +135,9 @@
                     </div>
                 </div>
             </div>
-        </div>
+
+    </div>
+
 
         <!-- Recharge Modal -->
         @if ($rechargeModal)

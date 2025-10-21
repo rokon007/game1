@@ -56,7 +56,7 @@
                 top: -20px;
                 left: 50%;
                 transform: translateX(-50%);
-                color: #e74c3c;
+                color: #2e0bf7;
                 font-size: 60px;
                 z-index: 100;
                 filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3));
@@ -448,7 +448,7 @@
                                            style="width: 150px; border-color: #3498db;"
                                            min="1"
                                            max="10000">
-                                    <small class="text-muted">Min: 1 - Max: 10,000</small>
+                                    <small class="text-muted">Min: {{$minAmaunt}} - Max: {{$maxAmaunt}}</small>
                                 </div>
 
                                 <button class="btn btn-outline-success"
