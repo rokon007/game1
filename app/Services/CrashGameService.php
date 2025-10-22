@@ -14,7 +14,7 @@ class CrashGameService
     private const HOUSE_EDGE = 0.05;
 
     // Maximum multiplier
-    private const MAX_MULTIPLIER = 10.00;
+    private const MAX_MULTIPLIER = 100.00;
 
     // Minimum multiplier
     private const MIN_MULTIPLIER = 1.01;

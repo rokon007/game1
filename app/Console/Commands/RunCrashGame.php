@@ -91,7 +91,7 @@ class RunCrashGame extends Command
             }
 
             // Small delay for realistic speed
-            usleep(10000); // 0.1 second
+            usleep(100000); // 0.1 second
         }
 
         // Crash the game
