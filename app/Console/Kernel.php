@@ -25,6 +25,10 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping(5); // Prevent overlapping for up to 5 minutes
 
         $schedule->command('hajari-games:cancel-old')->everyMinute();
+
+        $schedule->command('crash:cleanup --minutes=30 --quiet')
+             ->everyMinute()
+             ->withoutOverlapping();
     }
 
     protected function commands()

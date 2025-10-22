@@ -113,6 +113,12 @@ new class extends Component
                 <div class="menu-title">Spin Settings</div>
             </a>
         </li>
+        <li>
+            <a href="{{ route('admin.crash_game_dashboard') }}">
+                <div class="parent-icon"><i class="bi bi-gear-fill"></i></div>
+                <div class="menu-title">Crash Game Dashboard</div>
+            </a>
+        </li>
 
         <li>
             <a href="{{ route('admin.rifle_request_management') }}">

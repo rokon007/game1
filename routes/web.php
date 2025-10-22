@@ -57,9 +57,11 @@ use App\Livewire\Backend\Lottery\LotteryIndex;
 use App\Livewire\Backend\Lottery\Show;
 use App\Livewire\Backend\Lottery\EditLottery;
 use App\Livewire\Backend\Casino\SystemSettings;
+use App\Livewire\Backend\CrashGame\CrashGameDashboard;
 //use App\Http\Controllers\LotteryController;
 
 use App\Livewire\Frontend\Casino\LuckySpinGame;
+use App\Livewire\Frontend\CrashGame\CrashGameComponent;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -113,6 +115,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
     Route::get('/welcome-bonus-settings', WelcomeBonusSettings::class)->name('welcomeBonus-settings');
 
     Route::get('/spin-settings', SystemSettings::class)->name('system_settings');
+    Route::get('/crash-game-dashboard', CrashGameDashboard::class)->name('crash_game_dashboard');
 
 });
 
@@ -160,6 +163,7 @@ Route::middleware(['auth','banned'])->group(function(){
     Route::get('/lottery-active', ActivLotteries::class)->name('lottery_active');
 
     Route::get('/lucky-spin', LuckySpinGame::class)->name('lucky_spin');
+    Route::get('/crash-game', CrashGameComponent::class)->name('crash_game');
 
 });
 

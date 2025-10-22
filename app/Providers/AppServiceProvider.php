@@ -11,6 +11,7 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Carbon\Carbon;
+use App\Services\CrashGameService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,6 +22,11 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(HajariGameService::class, function ($app) {
             return new HajariGameService();
+        });
+
+        // Register CrashGameService as singleton
+        $this->app->singleton(CrashGameService::class, function ($app) {
+            return new CrashGameService();
         });
     }
 

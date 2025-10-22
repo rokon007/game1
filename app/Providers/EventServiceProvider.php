@@ -26,6 +26,12 @@ class EventServiceProvider extends ServiceProvider
          Logout::class => [
             HandleUserLogout::class,
         ],
+        \App\Events\CrashGameStarted::class => [
+            \App\Listeners\SendCrashGameNotification::class,
+        ],
+        \App\Events\CrashGameCrashed::class => [
+            \App\Listeners\SendCrashGameNotification::class,
+        ],
     ];
 
 

@@ -203,4 +203,41 @@ class User extends Authenticatable implements MustVerifyEmail
         ]);
     }
 
+    /**
+     * Get all crash bets for this user
+     */
+    public function crashBets()
+    {
+        return $this->hasMany(\App\Models\CrashBet::class);
+    }
+
+    /**
+     * Get active crash bets
+     */
+    public function activeCrashBets()
+    {
+        return $this->hasMany(\App\Models\CrashBet::class)
+            ->whereIn('status', ['pending', 'playing']);
+    }
+
+    /**
+     * Get total crash game winnings
+     */
+    public function getTotalCrashWinningsAttribute()
+    {
+        return $this->crashBets()
+            ->where('status', 'won')
+            ->sum('profit');
+    }
+
+    /**
+     * Get total crash game losses
+     */
+    public function getTotalCrashLossesAttribute()
+    {
+        return abs($this->crashBets()
+            ->where('status', 'lost')
+            ->sum('profit'));
+    }
+
 }
