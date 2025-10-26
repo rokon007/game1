@@ -14,12 +14,16 @@ class CrashGameComponent extends Component
 {
     public ?CrashGame $currentGame = null;
     public ?CrashBet $userBet = null;
-    public float $betAmount = 10;
+    public float $betAmount = 5;
     public float $currentMultiplier = 1.00;
     public string $gameStatus = 'waiting';
     public array $recentGames = [];
     public string $errorMessage = '';
     public string $successMessage = '';
+    public int $waitingPlayerCount = 0;
+    public int $runningPlayerCount = 0;
+    public bool $isFirstLoad = true;
+    public  $srartWCount = true;
 
     // Countdown timestamp for JavaScript
     public string $countdownTimestamp = '';
@@ -36,6 +40,61 @@ class CrashGameComponent extends Component
         $this->loadCurrentGame();
         $this->loadRecentGames();
         $this->updateCountdownTimestamp();
+        // শুধু প্রথম লোডে waiting player count generate করুন
+        if ($this->isFirstLoad) {
+            $this->waitingPlayerCount = rand(1025, 10712);
+            $this->isFirstLoad = false;
+        }
+    }
+
+    /**
+     * Generate random player counts
+     */
+    public function generatePlayerCounts(): void
+    {
+        //dd($this->srartWCount);
+        // if($this->srartWCount){
+        //     $this->waitingPlayerCount = rand(1025, 10712);
+        // }
+
+        if($this->gameStatus !== 'waiting'){
+            $this->waitingPlayerCount = rand(1025, 10712);
+        }
+    }
+
+    /**
+     * Increase waiting player count
+     */
+    #[On('increaseWaitingPlayers')]
+    public function increaseWaitingPlayers(): void
+    {
+        if ($this->gameStatus === 'waiting') {
+            $this->srartWCount=false;
+            $increase = rand(50, 200); // কম রেঞ্জ দিয়ে ধীরে ধীরে বাড়ানো
+            $this->waitingPlayerCount += $increase;
+        }
+        dd($this->srartWCount);
+    }
+
+    /**
+     * Decrease running player count
+     */
+    #[On('decreaseRunningPlayers')]
+    public function decreaseRunningPlayers(): void
+    {
+        if ($this->gameStatus === 'running' && $this->runningPlayerCount > 50) {
+            $decrease = rand(5, 250);
+            $this->runningPlayerCount = max(50, $this->runningPlayerCount - $decrease);
+        }
+    }
+
+    /**
+     * Reset player counts for new game
+     */
+    #[On('resetPlayerCounts')]
+    public function resetPlayerCounts(): void
+    {
+        $this->generatePlayerCounts();
     }
 
     /**
@@ -44,6 +103,26 @@ class CrashGameComponent extends Component
     public function updateCountdownTimestamp(): void
     {
         $this->countdownTimestamp = now()->addSeconds(10)->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * Increase bet amount by 5
+     */
+    public function increaseBetAmount(): void
+    {
+        $this->betAmount += 5;
+    }
+
+    /**
+     * Decrease bet amount by 5
+     */
+    public function decreaseBetAmount(): void
+    {
+        if ($this->betAmount > 5) {
+            $this->betAmount -= 5;
+        } else {
+            $this->betAmount = 1;
+        }
     }
 
     /**
@@ -118,9 +197,6 @@ class CrashGameComponent extends Component
         }
     }
 
-    /**
-     * Poll game data from cache
-     */
     public function pollGameData(): void
     {
         $gameData = cache()->get('crash_game_current');
@@ -131,14 +207,26 @@ class CrashGameComponent extends Component
             $this->gameStatus = $gameData['status'];
 
             // Update countdown timestamp when game enters waiting state
-            if ($this->gameStatus === 'waiting' && $previousStatus !== 'waiting') {
-                $this->updateCountdownTimestamp();
-                $this->dispatch('countdownShouldStart');
+            // if ($this->gameStatus === 'waiting' && $previousStatus !== 'waiting') {
+
+            //         $this->generatePlayerCounts();
+            //         $this->dispatch('startWaitingIncrease');
+            //         $this->srartWCount=false;
+
+            // }
+
+
+
+            // Start running simulation when game starts
+            if ($this->gameStatus === 'running' && $previousStatus !== 'running') {
+                $this->runningPlayerCount = $this->waitingPlayerCount;
+                $this->dispatch('startRunningDecrease');
             }
 
             // Dispatch event to frontend if crashed
             if ($gameData['status'] === 'crashed') {
                 $this->dispatch('gameCrashed', crashPoint: $gameData['crash_point']);
+                $this->srartWCount=true;
             }
         }
 
@@ -151,6 +239,11 @@ class CrashGameComponent extends Component
      */
     public function refreshGameState(): void
     {
+         if ($this->gameStatus === 'waiting'){
+                $this->srartWCount=false;
+                $increase = rand(50, 200); // কম রেঞ্জ দিয়ে ধীরে ধীরে বাড়ানো
+                $this->waitingPlayerCount += $increase;
+             }
         $this->pollGameData();
     }
 
@@ -185,7 +278,7 @@ class CrashGameComponent extends Component
     {
         $this->recentGames = CrashGame::where('status', 'crashed')
             ->latest()
-            ->limit(10)
+            ->limit(5)
             ->get()
             ->map(function($game) {
                 return [

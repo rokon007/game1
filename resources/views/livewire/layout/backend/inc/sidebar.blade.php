@@ -121,6 +121,19 @@ new class extends Component
         </li>
 
         <li>
+            <a href="{{ route('admin.crash_game_settings') }}">
+                <div class="parent-icon"><i class="bi bi-gear-fill"></i></div>
+                <div class="menu-title">Crash Game Settings</div>
+            </a>
+        </li>
+        <li>
+            <a href="{{ route('admin.crash_game_status') }}">
+                <div class="parent-icon"><i class="bi bi-gear-fill"></i></div>
+                <div class="menu-title">Crash Game Status</div>
+            </a>
+        </li>
+
+        <li>
             <a href="{{ route('admin.rifle_request_management') }}">
                 <div class="parent-icon"><i class="bi bi-card-checklist"></i></div>
                 <div class="menu-title">Refill Requests</div>

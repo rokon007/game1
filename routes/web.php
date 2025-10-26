@@ -58,6 +58,8 @@ use App\Livewire\Backend\Lottery\Show;
 use App\Livewire\Backend\Lottery\EditLottery;
 use App\Livewire\Backend\Casino\SystemSettings;
 use App\Livewire\Backend\CrashGame\CrashGameDashboard;
+use App\Livewire\Backend\CrashGame\CrashGameSettings;
+use App\Livewire\Backend\CrashGame\CrashGameStatus;
 //use App\Http\Controllers\LotteryController;
 
 use App\Livewire\Frontend\Casino\LuckySpinGame;
@@ -116,6 +118,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'admin']
 
     Route::get('/spin-settings', SystemSettings::class)->name('system_settings');
     Route::get('/crash-game-dashboard', CrashGameDashboard::class)->name('crash_game_dashboard');
+    Route::get('/crash-game/settings', CrashGameSettings::class)->name('crash_game_settings');
+    Route::get('/crash-game/status', CrashGameStatus::class)->name('crash_game_status');
 
 });
 
@@ -173,5 +177,16 @@ Route::get('/user-profile', ProfileComponent::class)->name('userProfile');
 Route::view('profile', 'profile')
     ->middleware(['auth'])
     ->name('profile');
+
+Route::get('/logs', function () {
+    $logFile = storage_path('logs/crash-game-' . date('Y-m-d') . '.log');
+
+    if (!file_exists($logFile)) {
+        return response('No log file found for today', 404);
+    }
+
+    return response(file_get_contents($logFile))
+        ->header('Content-Type', 'text/plain');
+})->name('logs')->middleware('auth');
 
 require __DIR__.'/auth.php';

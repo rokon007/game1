@@ -1,47 +1,124 @@
 <?php
+// app/Services/CrashGameService.php
 
 namespace App\Services;
 
 use App\Models\CrashGame;
 use App\Models\CrashBet;
 use App\Models\User;
+use App\Models\CrashGameSetting;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
 class CrashGameService
 {
-    // House edge percentage (5% = 0.05)
-    private const HOUSE_EDGE = 0.05;
+    private $settings;
+    private $lastSettingsHash;
 
-    // Maximum multiplier
-    private const MAX_MULTIPLIER = 100.00;
+    public function __construct()
+    {
+        $this->loadSettings();
+    }
 
-    // Minimum multiplier
-    private const MIN_MULTIPLIER = 1.01;
+    private function loadSettings(): void
+    {
+        $this->settings = CrashGameSetting::first();
+        if (!$this->settings) {
+            // Create default settings if not exists
+            $this->settings = CrashGameSetting::create([]);
+        }
+
+        // Store settings hash for change detection
+        $this->lastSettingsHash = $this->getSettingsHash();
+    }
+
+    /**
+     * Check if settings have changed and reload if needed
+     */
+    public function checkAndReloadSettings(): bool
+    {
+        $currentHash = $this->getSettingsHash();
+
+        if ($currentHash !== $this->lastSettingsHash) {
+            $this->loadSettings();
+            return true; // Settings were reloaded
+        }
+
+        return false; // No changes
+    }
+
+    /**
+     * Generate a unique hash for current settings
+     */
+    private function getSettingsHash(): string
+    {
+        if (!$this->settings) {
+            return '';
+        }
+
+        $settingsData = [
+            'house_edge' => $this->settings->house_edge,
+            'min_multiplier' => $this->settings->min_multiplier,
+            'max_multiplier' => $this->settings->max_multiplier,
+            'bet_waiting_time' => $this->settings->bet_waiting_time,
+            'min_bet_amount' => $this->settings->min_bet_amount,
+            'max_bet_amount' => $this->settings->max_bet_amount,
+            'is_active' => $this->settings->is_active,
+            'multiplier_increment' => $this->settings->multiplier_increment,
+            'multiplier_interval_ms' => $this->settings->multiplier_interval_ms,
+            'max_speed_multiplier' => $this->settings->max_speed_multiplier,
+            'enable_auto_acceleration' => $this->settings->enable_auto_acceleration,
+            'speed_profile' => $this->settings->speed_profile,
+            'updated_at' => $this->settings->updated_at->timestamp,
+        ];
+
+        return md5(serialize($settingsData));
+    }
+
+
+    private function getHouseEdge(): float
+    {
+        return (float) $this->settings->house_edge;
+    }
+
+    private function getMinMultiplier(): float
+    {
+        return (float) $this->settings->min_multiplier;
+    }
+
+    private function getMaxMultiplier(): float
+    {
+        return (float) $this->settings->max_multiplier;
+    }
+
+    public function getBetWaitingTime(): int
+    {
+        return (int) $this->settings->bet_waiting_time;
+    }
+
+    public function isGameActive(): bool
+    {
+        return (bool) $this->settings->is_active;
+    }
 
     /**
      * Generate crash point with house edge consideration
      */
     public function generateCrashPoint(): float
     {
-        // Provably fair algorithm with house edge
-        // এই algorithm ensure করে যে long-term এ house edge maintain হবে
-
         $random = $this->getSecureRandomFloat();
+        $houseEdge = $this->getHouseEdge();
+        $adjustedRandom = $random * (1 - $houseEdge);
 
-        // House edge adjust করা
-        $adjustedRandom = $random * (1 - self::HOUSE_EDGE);
-
-        // Exponential distribution for crash point
-        // এটি ensure করে যে বেশিরভাগ সময় কম multiplier আসবে
         if ($adjustedRandom <= 0) {
-            return self::MIN_MULTIPLIER;
+            return $this->getMinMultiplier();
         }
 
         $crashPoint = (1 / $adjustedRandom);
-
-        // Clamp between min and max
-        $crashPoint = max(self::MIN_MULTIPLIER, min(self::MAX_MULTIPLIER, $crashPoint));
+        $crashPoint = max(
+            $this->getMinMultiplier(),
+            min($this->getMaxMultiplier(), $crashPoint)
+        );
 
         return round($crashPoint, 2);
     }
@@ -51,6 +128,10 @@ class CrashGameService
      */
     public function createGame(): CrashGame
     {
+        if (!$this->isGameActive()) {
+            throw new Exception('Crash game is currently inactive');
+        }
+
         $crashPoint = $this->generateCrashPoint();
         $gameHash = hash('sha256', uniqid('crash_', true) . microtime(true));
 
@@ -59,6 +140,16 @@ class CrashGameService
             'crash_point' => $crashPoint,
             'status' => 'pending',
         ]);
+    }
+
+    /**
+     * Get current active game
+     */
+    public function getCurrentGame(): ?CrashGame
+    {
+        return CrashGame::whereIn('status', ['pending', 'running'])
+            ->latest()
+            ->first();
     }
 
     /**
@@ -77,16 +168,60 @@ class CrashGameService
     }
 
     /**
+     * Start bets when game starts
+     */
+    public function startBets(CrashGame $game): void
+    {
+        $game->bets()
+            ->where('status', 'pending')
+            ->update(['status' => 'playing']);
+    }
+
+    /**
+     * Crash the game
+     */
+    public function crashGame(CrashGame $game): bool
+    {
+        if ($game->status !== 'running') {
+            return false;
+        }
+
+        return DB::transaction(function () use ($game) {
+            // Update game status
+            $game->update([
+                'status' => 'crashed',
+                'crashed_at' => now(),
+            ]);
+
+            // Mark all pending/playing bets as lost
+            $game->activeBets()->update([
+                'status' => 'lost',
+                'profit' => DB::raw('-bet_amount'),
+            ]);
+
+            return true;
+        });
+    }
+
+    /**
      * Place a bet
      */
     public function placeBet(User $user, CrashGame $game, float $betAmount): CrashBet
     {
+        if (!$this->isGameActive()) {
+            throw new Exception('Crash game is currently inactive');
+        }
+
         if ($game->status !== 'pending') {
             throw new Exception('Game has already started');
         }
 
-        if ($betAmount <= 0) {
-            throw new Exception('Bet amount must be greater than 0');
+        if ($betAmount < $this->settings->min_bet_amount) {
+            throw new Exception("Minimum bet amount is ৳{$this->settings->min_bet_amount}");
+        }
+
+        if ($betAmount > $this->settings->max_bet_amount) {
+            throw new Exception("Maximum bet amount is ৳{$this->settings->max_bet_amount}");
         }
 
         if ($user->credit < $betAmount) {
@@ -150,52 +285,6 @@ class CrashGameService
     }
 
     /**
-     * Crash the game
-     */
-    public function crashGame(CrashGame $game): bool
-    {
-        if ($game->status !== 'running') {
-            return false;
-        }
-
-        return DB::transaction(function () use ($game) {
-            // Update game status
-            $game->update([
-                'status' => 'crashed',
-                'crashed_at' => now(),
-            ]);
-
-            // Mark all pending/playing bets as lost
-            $game->activeBets()->update([
-                'status' => 'lost',
-                'profit' => DB::raw('-bet_amount'),
-            ]);
-
-            return true;
-        });
-    }
-
-    /**
-     * Start bets when game starts
-     */
-    public function startBets(CrashGame $game): void
-    {
-        $game->bets()
-            ->where('status', 'pending')
-            ->update(['status' => 'playing']);
-    }
-
-    /**
-     * Get current active game
-     */
-    public function getCurrentGame(): ?CrashGame
-    {
-        return CrashGame::whereIn('status', ['pending', 'running'])
-            ->latest()
-            ->first();
-    }
-
-    /**
      * Get secure random float between 0 and 1
      */
     private function getSecureRandomFloat(): float
@@ -219,5 +308,13 @@ class CrashGameService
         $totalPayouts = $game->total_payout;
 
         return $totalBets - $totalPayouts;
+    }
+
+    /**
+     * Get current settings
+     */
+    public function getSettings(): CrashGameSetting
+    {
+        return $this->settings;
     }
 }

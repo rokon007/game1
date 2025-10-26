@@ -1,4 +1,4 @@
-<div wire:poll.100ms="refreshGameState">
+<div>
     @section('meta_description')
         <meta name="description" content="Housieblitz - Crash Game">
     @endsection
@@ -12,6 +12,77 @@
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
         <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.min.css" rel="stylesheet">
         <style>
+            /* আপনার existing CSS স্টাইলগুলি এখানে রাখুন */
+            .bet-input-group {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                background: #f8f9fa;
+                border: 2px solid #e9ecef;
+                border-radius: 12px;
+                padding: 8px;
+                transition: all 0.3s ease;
+            }
+
+            .bet-input-group:focus-within {
+                border-color: #007bff;
+                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            }
+
+            .bet-input-group.disabled {
+                background: #e9ecef;
+                opacity: 0.7;
+            }
+
+            .bet-control-btn {
+                width: 44px;
+                height: 44px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 1.2rem;
+                border: 2px solid #007bff;
+                background: white;
+                color: #007bff;
+                transition: all 0.2s ease;
+                flex-shrink: 0;
+            }
+
+            .bet-control-btn:not(:disabled):hover {
+                background: #007bff;
+                color: white;
+                transform: translateY(-1px);
+            }
+
+            .bet-control-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                border-color: #6c757d;
+                color: #6c757d;
+            }
+
+            .bet-input {
+                flex: 1;
+                border: none;
+                background: transparent;
+                font-size: 1.1rem;
+                font-weight: 600;
+                text-align: center;
+                padding: 0;
+                min-width: 0;
+            }
+
+            .bet-input:focus {
+                outline: none;
+                box-shadow: none;
+            }
+
+            .bet-input:disabled {
+                background: transparent;
+            }
+
             .crash-game-display {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 min-height: 400px;
@@ -59,7 +130,6 @@
                 border: 1px solid rgba(255, 255, 255, 0.2);
             }
 
-            /* Countdown Styles */
             .countdown-container {
                 background: rgba(255, 255, 255, 0.1);
                 backdrop-filter: blur(10px);
@@ -96,7 +166,6 @@
                 transition: width 1s linear;
             }
 
-            /* Mobile Responsive */
             @media (max-width: 768px) {
                 .multiplier-display {
                     font-size: 4rem;
@@ -115,6 +184,17 @@
                 }
             }
 
+            .bet-input-group {
+                    gap: 8px;
+                    padding: 6px;
+                }
+
+                .bet-control-btn {
+                    width: 40px;
+                    height: 40px;
+                    font-size: 1.1rem;
+                }
+
             @media (max-width: 576px) {
                 .multiplier-display {
                     font-size: 3rem;
@@ -122,6 +202,11 @@
 
                 .countdown-timer {
                     font-size: 2.5rem;
+                }
+                .bet-control-btn {
+                    width: 36px;
+                    height: 36px;
+                    font-size: 1rem;
                 }
             }
             .opacity-75 {
@@ -147,14 +232,7 @@
             </div>
         @endif
 
-        {{-- @if($successMessage)
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle me-2"></i>{{ $successMessage }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif --}}
-
-        <div class="row g-3 g-md-4 mt-4">
+        <div wire:poll.100ms="refreshGameState" class="row g-3 g-md-4 mt-4">
             <!-- Main Game Area -->
             <div class="col-lg-8">
                 <div class="card shadow-lg border-0">
@@ -164,8 +242,6 @@
                             <div class="text-center text-white position-relative z-1 w-100 px-3">
                                 @if($gameStatus === 'waiting')
                                     <div class="countdown-container">
-                                        {{-- <div class="countdown-timer" id="countdown-timer">10</div>
-                                        <h4 class="fw-bold mb-2">GET READY!</h4> --}}
                                         <img src="{{asset('assets/frontend/img/numbers.gif')}}">
                                         <p class="fs-5 opacity-75 mb-3">Next round starting in</p>
 
@@ -174,14 +250,13 @@
                                             <div class="progress-fill" id="countdown-progress"></div>
                                         </div>
 
-                                        @if($currentGame && $currentGame->activeBets->count() > 0)
-                                            <div class="mt-3">
-                                                <span class="badge bg-warning text-dark fs-6">
-                                                    <i class="fas fa-users me-1"></i>
-                                                    {{ $currentGame->activeBets->count() }} players have bet
-                                                </span>
-                                            </div>
-                                        @endif
+                                        <!-- Waiting player count -->
+                                        <div class="mt-3">
+                                            <span class="badge bg-warning text-dark fs-6">
+                                                <i class="fas fa-users me-1"></i>
+                                                <span id="waiting-player-count">{{ number_format($waitingPlayerCount) }}</span> players have bet
+                                            </span>
+                                        </div>
                                     </div>
                                 @elseif($gameStatus === 'running')
                                     <div>
@@ -190,7 +265,8 @@
                                         </div>
                                         <img src="{{asset('assets/frontend/img/rocket.gif')}}">
                                         <p class="fs-4 mt-3 opacity-75">
-                                            <i class="fas fa-rocket me-2"></i>Game in progress...
+                                            <i class="fas fa-rocket me-2"></i>
+                                            <span id="running-player-count">{{ number_format($runningPlayerCount) }}</span> players remaining
                                         </p>
                                     </div>
                                 @elseif($gameStatus === 'crashed')
@@ -198,9 +274,6 @@
                                         <img src="{{asset('assets/frontend/img/crashed.gif')}}">
                                         <i class="fas fa-bomb fa-4x mb-3 text-danger"></i>
                                         <h2 class="display-4 fw-bold text-danger mb-3">CRASHED!</h2>
-                                        <p class="fs-2">
-                                            Crashed at {{ number_format($currentGame->crash_point ?? 0, 2) }}x
-                                        </p>
                                     </div>
                                 @endif
                             </div>
@@ -240,15 +313,34 @@
                                             (Balance: ৳{{ number_format(auth()->user()->credit, 2) }})
                                         </span>
                                     </label>
-                                    <input
-                                        type="number"
-                                        wire:model="betAmount"
-                                        step="0.01"
-                                        min="1"
-                                        class="form-control form-control-lg"
-                                        placeholder="Enter bet amount"
-                                        @if($userBet || $gameStatus === 'running') disabled @endif
-                                    >
+                                    <!-- Professional Bet Amount Controls -->
+                                    <div class="bet-input-group @if($userBet || $gameStatus === 'running') disabled @endif">
+                                        <button
+                                            class="bet-control-btn"
+                                            wire:click="decreaseBetAmount"
+                                            @if($userBet || $gameStatus === 'running') disabled @endif
+                                        >
+                                            -
+                                        </button>
+
+                                        <input
+                                            type="number"
+                                            wire:model="betAmount"
+                                            step="0.01"
+                                            min="1"
+                                            class="form-control bet-input"
+                                            placeholder="Enter bet amount"
+                                            @if($userBet || $gameStatus === 'running') disabled @endif
+                                        >
+
+                                        <button
+                                            class="bet-control-btn"
+                                            wire:click="increaseBetAmount"
+                                            @if($userBet || $gameStatus === 'running') disabled @endif
+                                        >
+                                            +
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div class="col-12">
@@ -265,7 +357,7 @@
                                             class="btn btn-warning btn-lg w-100 fw-bold py-3 pulse-button"
                                         >
                                             <i class="fas fa-hand-holding-usd me-2"></i>
-                                            Cashout ({{ number_format($currentMultiplier, 2) }}x)
+                                            Cashout ৳{{ number_format($userBet->bet_amount * $currentMultiplier, 2) }}
                                         </button>
                                     @else
                                         <button
@@ -301,51 +393,22 @@
                         @endauth
                     </div>
                 </div>
-
-                <!-- Game Statistics -->
-                {{-- @if($currentGame)
-                    <div class="card shadow-sm border-0 mt-3 mt-md-4">
-                        <div class="card-body">
-                            <h5 class="card-title mb-3">
-                                <i class="fas fa-chart-line me-2"></i>Round Statistics
-                            </h5>
-                            <div class="row text-center">
-                                <div class="col-4">
-                                    <div class="border-end">
-                                        <small class="text-muted d-block">Total Bet</small>
-                                        <h5 class="mb-0">৳{{ number_format($currentGame->total_bet_amount, 2) }}</h5>
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <div class="border-end">
-                                        <small class="text-muted d-block">Players</small>
-                                        <h5 class="mb-0">{{ $currentGame->bets->count() }}</h5>
-                                    </div>
-                                </div>
-                                <div class="col-4">
-                                    <small class="text-muted d-block">Game ID</small>
-                                    <h5 class="mb-0">#{{ $currentGame->id }}</h5>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif --}}
             </div>
 
             <!-- Sidebar -->
-            {{-- <div class="col-lg-4">
+            <div class="col-lg-4 mb-4">
                 <!-- Recent Games -->
                 <div class="card shadow-lg border-0 mb-3 mb-md-4">
                     <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">
+                        <h6 class="mb-0 text-white">
                             <i class="fas fa-history me-2"></i>Recent Results
-                        </h5>
+                        </h6>
                     </div>
                     <div class="card-body p-2">
                         @forelse($recentGames as $game)
                             <div class="recent-game-card p-2 mb-2 rounded {{ $game['crash_point'] >= 2 ? 'bg-success bg-opacity-10 border-success' : 'bg-danger bg-opacity-10 border-danger' }} border">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fw-bold fs-5 {{ $game['crash_point'] >= 2 ? 'text-success' : 'text-danger' }}">
+                                    <span class="fw-bold fs-5 {{ $game['crash_point'] >= 2 ? 'text-white' : 'text-dark' }}">
                                         <i class="fas fa-chart-line me-1"></i>
                                         {{ number_format($game['crash_point'], 2) }}x
                                     </span>
@@ -363,38 +426,10 @@
                     </div>
                 </div>
 
-                <!-- Active Players -->
-                @if($currentGame && ($gameStatus === 'waiting' || $gameStatus === 'running'))
-                    <div class="card shadow-lg border-0">
-                        <div class="card-header bg-info text-white">
-                            <h5 class="mb-0">
-                                <i class="fas fa-users me-2"></i>Active Players
-                            </h5>
-                        </div>
-                        <div class="card-body p-2" style="max-height: 300px; overflow-y: auto;">
-                            @forelse($currentGame->activeBets()->with('user')->latest()->limit(20)->get() as $bet)
-                                <div class="d-flex justify-content-between align-items-center p-2 mb-2 bg-light rounded">
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <span class="fw-semibold small text-truncate" style="max-width: 120px;">{{ $bet->user->name }}</span>
-                                    </div>
-                                    <span class="badge bg-success">৳{{ number_format($bet->bet_amount, 2) }}</span>
-                                </div>
-                            @empty
-                                <div class="text-center py-3 text-muted">
-                                    <p class="mb-0 small">No active players</p>
-                                </div>
-                            @endforelse
-                        </div>
-                    </div>
-                @endif
-
                 <!-- Game Rules -->
-                <div class="card shadow-sm border-0 mt-3 mt-md-4">
+                <div class="card shadow-sm border-0 mt-3 mt-md-4 mb-4">
                     <div class="card-header bg-dark text-white">
-                        <h6 class="mb-0">
+                        <h6 class="mb-0 text-white">
                             <i class="fas fa-info-circle me-2"></i>How to Play
                         </h6>
                     </div>
@@ -407,7 +442,7 @@
                         </ol>
                     </div>
                 </div>
-            </div> --}}
+            </div>
         </div>
     </div>
 
@@ -420,91 +455,185 @@
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.all.min.js"></script>
 
         <script>
-            // Simple and reliable countdown implementation
-            class CountdownTimer {
-                constructor() {
-                    this.interval = null;
-                    this.endTime = null;
-                    this.isRunning = false;
-                }
-
-                start(duration = 10) {
-                    this.stop();
-
-                    const countdownElement = document.getElementById('countdown-timer');
-                    const progressElement = document.getElementById('countdown-progress');
-
-                    if (!countdownElement || !progressElement) {
-                        console.error('Countdown elements not found');
-                        return;
-                    }
-
-                    this.endTime = Date.now() + (duration * 1000);
-                    this.isRunning = true;
-
-                    // Initial update
-                    this.updateDisplay(countdownElement, progressElement, duration);
-
-                    this.interval = setInterval(() => {
-                        const now = Date.now();
-                        const timeLeft = Math.max(0, this.endTime - now);
-                        const secondsLeft = Math.ceil(timeLeft / 1000);
-
-                        this.updateDisplay(countdownElement, progressElement, secondsLeft);
-
-                        if (timeLeft <= 0) {
-                            this.stop();
-                            countdownElement.textContent = '0';
-                            progressElement.style.width = '0%';
-                        }
-                    }, 100);
-                }
-
-                updateDisplay(countdownElement, progressElement, secondsLeft) {
-                    if (countdownElement) {
-                        countdownElement.textContent = secondsLeft;
-                    }
-                    if (progressElement) {
-                        const progressPercent = (secondsLeft / 10) * 100;
-                        progressElement.style.width = progressPercent + '%';
-                    }
-                }
-
-                stop() {
-                    if (this.interval) {
-                        clearInterval(this.interval);
-                        this.interval = null;
-                    }
-                    this.isRunning = false;
-                }
-            }
-
-            // Create global countdown instance
-            const countdownTimer = new CountdownTimer();
-
-            // Initialize when page loads
+            // সরাসরি Livewire event listeners যোগ করুন
             document.addEventListener('DOMContentLoaded', function() {
-                // Start countdown immediately if in waiting state
-                @if($gameStatus === 'waiting')
-                    setTimeout(() => {
-                        countdownTimer.start(10);
-                    }, 500);
-                @endif
+                console.log('DOM loaded - initializing game');
 
-                // Listen for Livewire events
-                Livewire.on('countdownShouldStart', () => {
-                    console.log('Countdown should start event received');
-                    setTimeout(() => {
-                        countdownTimer.start(10);
-                    }, 500);
+                // সরাসরি PlayerCountManager ক্লাস ডিফাইন করুন
+                class PlayerCountManager {
+                    constructor() {
+                        this.waitingInterval = null;
+                        this.runningInterval = null;
+                    }
+
+                    startWaitingIncrease() {
+                        console.log('Starting waiting increase');
+                        this.stopAll();
+                        this.waitingInterval = setInterval(() => {
+                            @this.call('increaseWaitingPlayers');
+                        }, 800);
+                    }
+
+                    startRunningDecrease() {
+                        console.log('Starting running decrease');
+                        this.stopAll();
+                        this.runningInterval = setInterval(() => {
+                            @this.call('decreaseRunningPlayers');
+                        }, 600);
+                    }
+
+                    stopAll() {
+                        if (this.waitingInterval) {
+                            clearInterval(this.waitingInterval);
+                            this.waitingInterval = null;
+                        }
+                        if (this.runningInterval) {
+                            clearInterval(this.runningInterval);
+                            this.runningInterval = null;
+                        }
+                    }
+                }
+
+                // Global instance তৈরি করুন
+                window.playerManager = new PlayerCountManager();
+
+                // Countdown Timer ক্লাস
+                class CountdownTimer {
+                    constructor() {
+                        this.interval = null;
+                        this.endTime = null;
+                        this.isRunning = false;
+                    }
+
+                    start(duration = 10) {
+                        this.stop();
+                        const progressElement = document.getElementById('countdown-progress');
+                        if (!progressElement) return;
+
+                        this.endTime = Date.now() + (duration * 1000);
+                        this.isRunning = true;
+
+                        this.updateDisplay(progressElement, duration);
+                        this.interval = setInterval(() => {
+                            const now = Date.now();
+                            const timeLeft = Math.max(0, this.endTime - now);
+                            const secondsLeft = Math.ceil(timeLeft / 1000);
+                            this.updateDisplay(progressElement, secondsLeft);
+
+                            if (timeLeft <= 0) {
+                                this.stop();
+                                progressElement.style.width = '0%';
+                            }
+                        }, 100);
+                    }
+
+                    updateDisplay(progressElement, secondsLeft) {
+                        if (progressElement) {
+                            const progressPercent = (secondsLeft / 10) * 100;
+                            progressElement.style.width = progressPercent + '%';
+                        }
+                    }
+
+                    stop() {
+                        if (this.interval) {
+                            clearInterval(this.interval);
+                            this.interval = null;
+                        }
+                        this.isRunning = false;
+                    }
+                }
+
+                window.countdownTimer = new CountdownTimer();
+
+                // Multiplier animation functions
+                window.gameInterval = null;
+                window.currentMult = 1.00;
+
+                window.startMultiplierAnimation = function(targetMult) {
+                    if (window.gameInterval) clearInterval(window.gameInterval);
+
+                    window.currentMult = 1.00;
+                    window.gameInterval = setInterval(() => {
+                        window.currentMult += 0.01;
+                        const displayElement = document.getElementById('multiplier-display');
+                        if (displayElement) {
+                            displayElement.textContent = window.currentMult.toFixed(2) + 'x';
+                        }
+
+                        if (window.currentMult >= targetMult) {
+                            window.stopMultiplierAnimation();
+                        }
+                    }, 50);
+                }
+
+                window.stopMultiplierAnimation = function() {
+                    if (window.gameInterval) {
+                        clearInterval(window.gameInterval);
+                        window.gameInterval = null;
+                    }
+                }
+
+                window.showCrashAlert = function(crashPoint) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'CRASHED!',
+                        text: 'Crashed at ' + crashPoint.toFixed(2) + 'x',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                }
+
+                // সরাসরি Livewire event listeners
+                Livewire.on('startWaitingIncrease', () => {
+                    console.log('Livewire event: startWaitingIncrease');
+                    if (window.playerManager) {
+                        window.playerManager.startWaitingIncrease();
+                    }
+                });
+
+                Livewire.on('startRunningDecrease', () => {
+                    console.log('Livewire event: startRunningDecrease');
+                    if (window.playerManager) {
+                        window.playerManager.startRunningDecrease();
+                    }
                 });
 
                 Livewire.on('gameCrashed', (data) => {
-                    countdownTimer.stop();
-                    showCrashAlert(data.crashPoint);
+                    console.log('Livewire event: gameCrashed');
+                    if (window.playerManager) {
+                        window.playerManager.stopAll();
+                    }
+                    if (window.countdownTimer) {
+                        window.countdownTimer.stop();
+                    }
+                    // Reset player counts
+                    setTimeout(() => {
+                        @this.call('resetPlayerCounts');
+                    }, 1000);
+                    window.showCrashAlert(data.crashPoint);
+                });
+
+                Livewire.on('countdownShouldStart', () => {
+                    console.log('Livewire event: countdownShouldStart');
+                    if (window.playerManager) {
+                        window.playerManager.stopAll();
+                    }
+                    // Reset player counts
+                    @this.call('resetPlayerCounts');
+                    setTimeout(() => {
+                        if (window.playerManager) {
+                            window.playerManager.startWaitingIncrease();
+                        }
+                    }, 500);
+                    setTimeout(() => {
+                        if (window.countdownTimer) {
+                            window.countdownTimer.start(10);
+                        }
+                    }, 500);
                 });
 
                 Livewire.on('betPlaced', () => {
+                    console.log('Livewire event: betPlaced');
                     Swal.fire({
                         icon: 'success',
                         title: 'Bet Successful!',
@@ -515,6 +644,7 @@
                 });
 
                 Livewire.on('cashedOut', () => {
+                    console.log('Livewire event: cashedOut');
                     Swal.fire({
                         icon: 'success',
                         title: 'Cashout Successful!',
@@ -523,51 +653,254 @@
                         showConfirmButton: false
                     });
                 });
+
+                // Initialize based on current state
+                @if($gameStatus === 'waiting')
+                    console.log('Initializing waiting state');
+                    setTimeout(() => {
+                        if (window.playerManager) {
+                            window.playerManager.startWaitingIncrease();
+                        }
+                        if (window.countdownTimer) {
+                            window.countdownTimer.start(10);
+                        }
+                    }, 1000);
+                @endif
+
+                @if($gameStatus === 'running')
+                    console.log('Initializing running state');
+                    setTimeout(() => {
+                        if (window.playerManager) {
+                            window.playerManager.startRunningDecrease();
+                        }
+                    }, 1000);
+                @endif
             });
-
-            // Multiplier animation functions
-            let gameInterval = null;
-            let currentMult = 1.00;
-
-            function startMultiplierAnimation(targetMult) {
-                if (gameInterval) clearInterval(gameInterval);
-
-                currentMult = 1.00;
-                gameInterval = setInterval(() => {
-                    currentMult += 0.01;
-                    const displayElement = document.getElementById('multiplier-display');
-                    if (displayElement) {
-                        displayElement.textContent = currentMult.toFixed(2) + 'x';
-                    }
-
-                    if (currentMult >= targetMult) {
-                        stopMultiplierAnimation();
-                    }
-                }, 50);
-            }
-
-            function stopMultiplierAnimation() {
-                if (gameInterval) {
-                    clearInterval(gameInterval);
-                    gameInterval = null;
-                }
-            }
-
-            function showCrashAlert(crashPoint) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'CRASHED!',
-                    text: 'Crashed at ' + crashPoint.toFixed(2) + 'x',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-            }
 
             // Cleanup
             window.addEventListener('beforeunload', function() {
-                countdownTimer.stop();
-                stopMultiplierAnimation();
+                if (window.countdownTimer) {
+                    window.countdownTimer.stop();
+                }
+                if (window.playerManager) {
+                    window.playerManager.stopAll();
+                }
+                if (window.gameInterval) {
+                    clearInterval(window.gameInterval);
+                }
             });
         </script>
     @endsection
+
+    {{-- @section('JS')
+        @include('livewire.layout.frontend.js')
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.all.min.js"></script>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('DOM loaded - initializing game');
+
+                // PlayerCountManager ক্লাস
+                class PlayerCountManager {
+                    constructor() {
+                        this.waitingInterval = null;
+                        this.runningInterval = null;
+                    }
+
+                    startWaitingIncrease() {
+                        console.log('Starting waiting increase');
+                        this.stopAll();
+                        this.waitingInterval = setInterval(() => {
+                            @this.call('increaseWaitingPlayers');
+                        }, 1000); // 1 second interval
+                    }
+
+                    startRunningDecrease() {
+                        console.log('Starting running decrease');
+                        this.stopAll();
+                        this.runningInterval = setInterval(() => {
+                            @this.call('decreaseRunningPlayers');
+                        }, 800); // 0.8 second interval
+                    }
+
+                    stopAll() {
+                        if (this.waitingInterval) {
+                            clearInterval(this.waitingInterval);
+                            this.waitingInterval = null;
+                        }
+                        if (this.runningInterval) {
+                            clearInterval(this.runningInterval);
+                            this.runningInterval = null;
+                        }
+                    }
+                }
+
+                window.playerManager = new PlayerCountManager();
+                window.countdownTimer = new CountdownTimer();
+
+                // Countdown Timer ক্লাস
+                class CountdownTimer {
+                    constructor() {
+                        this.interval = null;
+                        this.endTime = null;
+                        this.isRunning = false;
+                    }
+
+                    start(duration = 10) {
+                        this.stop();
+                        const progressElement = document.getElementById('countdown-progress');
+                        if (!progressElement) return;
+
+                        this.endTime = Date.now() + (duration * 1000);
+                        this.isRunning = true;
+
+                        this.updateDisplay(progressElement, duration);
+                        this.interval = setInterval(() => {
+                            const now = Date.now();
+                            const timeLeft = Math.max(0, this.endTime - now);
+                            const secondsLeft = Math.ceil(timeLeft / 1000);
+                            this.updateDisplay(progressElement, secondsLeft);
+
+                            if (timeLeft <= 0) {
+                                this.stop();
+                                progressElement.style.width = '0%';
+                            }
+                        }, 100);
+                    }
+
+                    updateDisplay(progressElement, secondsLeft) {
+                        if (progressElement) {
+                            const progressPercent = (secondsLeft / 10) * 100;
+                            progressElement.style.width = progressPercent + '%';
+                        }
+                    }
+
+                    stop() {
+                        if (this.interval) {
+                            clearInterval(this.interval);
+                            this.interval = null;
+                        }
+                        this.isRunning = false;
+                    }
+                }
+
+                window.countdownTimer = new CountdownTimer();
+
+                // Livewire event listeners
+                Livewire.on('startWaitingIncrease', () => {
+                    console.log('Livewire event: startWaitingIncrease');
+                    if (window.playerManager) {
+                        window.playerManager.startWaitingIncrease();
+                    }
+                });
+
+                Livewire.on('startRunningDecrease', () => {
+                    console.log('Livewire event: startRunningDecrease');
+                    if (window.playerManager) {
+                        window.playerManager.startRunningDecrease();
+                    }
+                });
+
+                Livewire.on('gameCrashed', (data) => {
+                    console.log('Livewire event: gameCrashed');
+                    if (window.playerManager) {
+                        window.playerManager.stopAll();
+                    }
+                    if (window.countdownTimer) {
+                        window.countdownTimer.stop();
+                    }
+                    // Game crashed হলে শুধু running player count reset করুন
+                    setTimeout(() => {
+                        @this.set('runningPlayerCount', 0);
+                    }, 1000);
+
+                    // SweetAlert show
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'CRASHED!',
+                        text: 'Crashed at ' + data.crashPoint.toFixed(2) + 'x',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                });
+
+                Livewire.on('countdownShouldStart', () => {
+                    console.log('Livewire event: countdownShouldStart');
+                    if (window.playerManager) {
+                        window.playerManager.stopAll();
+                    }
+                    // শুধু running player count reset করুন
+                    @this.set('runningPlayerCount', 0);
+
+                    // Waiting increase শুরু করুন
+                    setTimeout(() => {
+                        if (window.playerManager) {
+                            window.playerManager.startWaitingIncrease();
+                        }
+                    }, 500);
+
+                    // Countdown শুরু করুন
+                    setTimeout(() => {
+                        if (window.countdownTimer) {
+                            window.countdownTimer.start(10);
+                        }
+                    }, 500);
+                });
+
+                Livewire.on('betPlaced', () => {
+                    console.log('Livewire event: betPlaced');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Bet Successful!',
+                        text: 'Your bet has been recorded',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                });
+
+                Livewire.on('cashedOut', () => {
+                    console.log('Livewire event: cashedOut');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Cashout Successful!',
+                        text: 'You won!',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                });
+
+                // Initialize based on current state
+                @if($gameStatus === 'waiting')
+                    console.log('Initializing waiting state');
+                    setTimeout(() => {
+                        if (window.playerManager) {
+                            window.playerManager.startWaitingIncrease();
+                        }
+                        if (window.countdownTimer) {
+                            window.countdownTimer.start(10);
+                        }
+                    }, 1000);
+                @endif
+
+                @if($gameStatus === 'running')
+                    console.log('Initializing running state');
+                    setTimeout(() => {
+                        if (window.playerManager) {
+                            window.playerManager.startRunningDecrease();
+                        }
+                    }, 1000);
+                @endif
+            });
+
+            // Cleanup
+            window.addEventListener('beforeunload', function() {
+                if (window.countdownTimer) {
+                    window.countdownTimer.stop();
+                }
+                if (window.playerManager) {
+                    window.playerManager.stopAll();
+                }
+            });
+        </script>
+    @endsection --}}
 </div>
