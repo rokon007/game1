@@ -210,16 +210,26 @@ class RunCrashGame extends Command
             $game = $this->gameService->createGame();
             $this->info("New game created: #{$game->id} - Crash Point: {$game->crash_point}x");
 
-            // Broadcast waiting state immediately
-            $this->broadcastGameUpdate($game, 1.00, 'waiting');
-
-            // Wait for bets (strictly follow waiting time)
+            // CRITICAL: Store exact waiting start time in cache
+            $waitingStartTime = microtime(true);
             $waitingTime = $this->gameService->getBetWaitingTime();
+
+            cache()->put('crash_game_waiting_start', $waitingStartTime, 60);
+            cache()->put('crash_game_waiting_duration', $waitingTime, 60);
+            cache()->put('crash_game_waiting_end', $waitingStartTime + $waitingTime, 60);
+
+            // Broadcast waiting state immediately with countdown info
+            $this->broadcastGameUpdate($game, 1.00, 'waiting', [
+                'waiting_start' => $waitingStartTime,
+                'waiting_duration' => $waitingTime,
+                'waiting_end' => $waitingStartTime + $waitingTime
+            ]);
+
             $this->info("Waiting for bets for {$waitingTime} seconds...");
+            $this->info("Waiting will end at: " . date('H:i:s', (int)($waitingStartTime + $waitingTime)));
 
             // Precise waiting with stop signal check
-            $waitStart = microtime(true);
-            $targetEndTime = $waitStart + $waitingTime;
+            $targetEndTime = $waitingStartTime + $waitingTime;
 
             while (microtime(true) < $targetEndTime) {
                 if (Cache::get('crash_game_stop')) {
@@ -229,12 +239,18 @@ class RunCrashGame extends Command
 
                 $remainingTime = $targetEndTime - microtime(true);
                 if ($remainingTime > 0) {
-                    usleep(min(500000, $remainingTime * 1000000)); // Sleep in 0.5s chunks or remaining time
+                    // Sleep in small chunks (100ms) for better responsiveness
+                    usleep(min(100000, $remainingTime * 1000000));
                 }
             }
 
-            $actualWaitTime = microtime(true) - $waitStart;
-            $this->info("Actual waiting time: " . round($actualWaitTime, 2) . " seconds");
+            $actualWaitTime = microtime(true) - $waitingStartTime;
+            $this->info("Actual waiting time: " . round($actualWaitTime, 3) . " seconds");
+
+            // Clear waiting cache
+            cache()->forget('crash_game_waiting_start');
+            cache()->forget('crash_game_waiting_duration');
+            cache()->forget('crash_game_waiting_end');
         }
 
         // Start the game if it's pending
@@ -320,19 +336,42 @@ class RunCrashGame extends Command
             // Calculate house profit
             $houseProfit = $this->gameService->calculateHouseProfit($game);
             $this->info("House Profit: ৳{$houseProfit}");
+
+            // IMPORTANT: Clear any stale waiting cache before next cycle
+            cache()->forget('crash_game_waiting_start');
+            cache()->forget('crash_game_waiting_duration');
+            cache()->forget('crash_game_waiting_end');
         }
     }
 
 
-    private function broadcastGameUpdate(CrashGame $game, float $multiplier, string $status): void
+    // private function broadcastGameUpdate(CrashGame $game, float $multiplier, string $status): void
+    // {
+    //     cache()->put('crash_game_current', [
+    //         'game_id' => $game->id,
+    //         'multiplier' => round($multiplier, 2),
+    //         'status' => $status,
+    //         'crash_point' => $game->crash_point,
+    //         'updated_at' => now()->timestamp,
+    //     ], 60);
+    // }
+
+    private function broadcastGameUpdate(CrashGame $game, float $multiplier, string $status, array $extra = []): void
     {
-        cache()->put('crash_game_current', [
+        $data = [
             'game_id' => $game->id,
             'multiplier' => round($multiplier, 2),
             'status' => $status,
             'crash_point' => $game->crash_point,
             'updated_at' => now()->timestamp,
-        ], 60);
+        ];
+
+        // Merge extra data (like waiting times)
+        $data = array_merge($data, $extra);
+
+        cache()->put('crash_game_current', $data, 60);
+
+        $this->info("Broadcasted: Status={$status}, Multiplier={$multiplier}");
     }
 
     private function cleanup(): void

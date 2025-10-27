@@ -485,7 +485,7 @@
         <!-- Main Content - Game Display and Controls Together -->
         <div class="mobile-main-content mt-4">
             <!-- Game Display -->
-            <div wire:poll.500ms="refreshGameState" class="mobile-game-display-wrapper">
+            <div wire:poll.100ms="refreshGameState" class="mobile-game-display-wrapper">
                 <div class="mobile-game-display">
                     <div class="game-content-center">
                         @if($gameStatus === 'waiting')
@@ -715,40 +715,54 @@
 
                 window.playerManager = new PlayerCountManager();
 
-                // Countdown Timer ক্লাস
+                // Countdown Timer ক্লাস - EXACT TIMING
                 class CountdownTimer {
                     constructor() {
                         this.interval = null;
                         this.endTime = null;
                         this.isRunning = false;
+                        this.totalDuration = 10;
                     }
 
-                    start(duration = 10) {
+                    start(duration = 10, totalDuration = 10) {
                         this.stop();
-                        const progressElement = document.getElementById('countdown-progress');
-                        if (!progressElement) return;
 
+                        console.log(`Starting countdown: ${duration}s remaining of ${totalDuration}s total`);
+
+                        const progressElement = document.getElementById('countdown-progress');
+                        if (!progressElement) {
+                            console.error('Progress element not found');
+                            return;
+                        }
+
+                        this.totalDuration = totalDuration;
                         this.endTime = Date.now() + (duration * 1000);
                         this.isRunning = true;
 
+                        // Immediate update
                         this.updateDisplay(progressElement, duration);
+
+                        // Update every 50ms for smooth animation
                         this.interval = setInterval(() => {
                             const now = Date.now();
                             const timeLeft = Math.max(0, this.endTime - now);
-                            const secondsLeft = Math.ceil(timeLeft / 1000);
+                            const secondsLeft = timeLeft / 1000;
+
                             this.updateDisplay(progressElement, secondsLeft);
 
                             if (timeLeft <= 0) {
+                                console.log('Countdown finished');
                                 this.stop();
                                 progressElement.style.width = '0%';
                             }
-                        }, 100);
+                        }, 50); // 50ms for smooth animation
                     }
 
                     updateDisplay(progressElement, secondsLeft) {
                         if (progressElement) {
-                            const progressPercent = (secondsLeft / 10) * 100;
-                            progressElement.style.width = progressPercent + '%';
+                            // Calculate percentage based on total duration
+                            const progressPercent = (secondsLeft / this.totalDuration) * 100;
+                            progressElement.style.width = Math.max(0, Math.min(100, progressPercent)) + '%';
                         }
                     }
 
@@ -758,6 +772,7 @@
                             this.interval = null;
                         }
                         this.isRunning = false;
+                        console.log('Countdown stopped');
                     }
                 }
 
@@ -930,8 +945,8 @@
                     }, 1000);
                 });
 
-                Livewire.on('countdownShouldStart', () => {
-                    console.log('Livewire event: countdownShouldStart - Starting new countdown');
+                Livewire.on('countdownShouldStart', (data) => {
+                    console.log('Countdown should start event received:', data);
 
                     // Stop all previous intervals
                     if (window.playerManager) {
@@ -944,13 +959,19 @@
                     // Reset player counts
                     @this.call('resetPlayerCounts');
 
-                    // Start new waiting period after 500ms
+                    // Start new waiting period with EXACT timing
                     setTimeout(() => {
                         if (window.playerManager) {
                             window.playerManager.startWaitingIncrease();
                         }
-                        if (window.countdownTimer) {
-                            window.countdownTimer.start(10); // Always 10 seconds
+                        if (window.countdownTimer && data) {
+                            const duration = data.duration || 10;
+                            const totalDuration = data.totalDuration || 10;
+                            console.log(`Starting countdown with duration: ${duration}s, total: ${totalDuration}s`);
+                            window.countdownTimer.start(duration, totalDuration);
+                        } else if (window.countdownTimer) {
+                            // Fallback
+                            window.countdownTimer.start(10, 10);
                         }
                     }, 500);
                 });

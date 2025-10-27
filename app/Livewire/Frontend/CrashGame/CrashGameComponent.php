@@ -255,34 +255,55 @@ class CrashGameComponent extends Component
 
         if ($gameData) {
             $previousStatus = $this->gameStatus;
-            $previousMultiplier = $this->currentMultiplier;
-
             $this->gameStatus = $gameData['status'];
 
-            // Game crashed হলে multiplier reset করুন
+            // Game crashed হলে
             if ($this->gameStatus === 'crashed') {
                 $this->currentMultiplier = $gameData['crash_point'];
                 $this->dispatch('gameCrashed', crashPoint: $gameData['crash_point']);
                 $this->srartWCount = true;
             }
-            // Waiting state এ multiplier reset করুন
+            // Waiting state এ
             elseif ($this->gameStatus === 'waiting') {
                 $this->currentMultiplier = 1.00;
 
-                // Update countdown timestamp when game enters waiting state
+                // যদি নতুন waiting শুরু হয়
                 if ($previousStatus !== 'waiting') {
-                    $this->updateCountdownTimestamp();
+                    // Get exact waiting time from cache
+                    $waitingStart = cache()->get('crash_game_waiting_start');
+                    $waitingDuration = cache()->get('crash_game_waiting_duration', 10);
+                    $waitingEnd = cache()->get('crash_game_waiting_end');
+
+                    if ($waitingStart && $waitingEnd) {
+                        $currentTime = microtime(true);
+                        $remainingTime = max(0, $waitingEnd - $currentTime);
+
+                        // Dispatch with exact timing
+                        $this->dispatch('countdownShouldStart', [
+                            'duration' => $remainingTime,
+                            'totalDuration' => $waitingDuration
+                        ]);
+                    } else {
+                        // Fallback to default 10 seconds
+                        $this->dispatch('countdownShouldStart', [
+                            'duration' => 10,
+                            'totalDuration' => 10
+                        ]);
+                    }
+
                     $this->dispatch('startWaitingIncrease');
-                    $this->dispatch('countdownShouldStart');
                 }
             }
-            // Running state এ শুধু বৃদ্ধি পেলে আপডেট করুন
+            // Running state এ
             elseif ($this->gameStatus === 'running') {
+                $previousMultiplier = $this->currentMultiplier;
+
+                // শুধু বৃদ্ধি পেলে আপডেট করুন
                 if ($gameData['multiplier'] >= $previousMultiplier) {
                     $this->currentMultiplier = $gameData['multiplier'];
                 }
 
-                // Start running simulation when game starts
+                // যদি নতুন running শুরু হয়
                 if ($previousStatus !== 'running') {
                     $this->runningPlayerCount = $this->waitingPlayerCount;
                     $this->dispatch('startRunningDecrease');
