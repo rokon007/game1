@@ -485,7 +485,7 @@
         <!-- Main Content - Game Display and Controls Together -->
         <div class="mobile-main-content mt-4">
             <!-- Game Display -->
-            <div wire:poll.250ms="refreshGameState" class="mobile-game-display-wrapper">
+            <div wire:poll.500ms="refreshGameState" class="mobile-game-display-wrapper">
                 <div class="mobile-game-display">
                     <div class="game-content-center">
                         @if($gameStatus === 'waiting')

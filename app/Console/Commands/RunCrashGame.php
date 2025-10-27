@@ -141,16 +141,74 @@ class RunCrashGame extends Command
         }
     }
 
+    // private function runGame(CrashGame $game): void
+    // {
+    //     $currentMultiplier = 1.00;
+    //     $crashPoint = (float) $game->crash_point;
+
+    //     $speedProfile = $this->speedService->getSpeedProfileName();
+    //     $this->info("Running game #{$game->id} - Will crash at {$crashPoint}x - Speed: {$speedProfile}");
+
+    //     // Dispatch game started event
+    //     event(new \App\Events\CrashGameStarted($game, $currentMultiplier));
+
+    //     // Increase multiplier until crash
+    //     while ($currentMultiplier < $crashPoint) {
+    //         // Check for stop signal
+    //         if (Cache::get('crash_game_stop')) {
+    //             $this->info('Stop signal received during game execution.');
+    //             break;
+    //         }
+
+    //         $increment = $this->speedService->calculateDynamicIncrement($currentMultiplier);
+    //         $currentMultiplier += $increment;
+
+    //         // Broadcast current multiplier
+    //         $this->broadcastGameUpdate($game, $currentMultiplier, 'running');
+
+    //         // Dispatch running event (optional - every 0.5x)
+    //         if (fmod($currentMultiplier, 0.5) < $increment) {
+    //             $this->line("Current: {$currentMultiplier}x (Increment: {$increment})");
+    //             event(new \App\Events\CrashGameStarted($game, $currentMultiplier));
+    //         }
+
+    //         // Dynamic delay based on settings
+    //         $interval = $this->speedService->getCurrentInterval();
+    //         usleep($interval * 1000); // Convert ms to microseconds
+    //     }
+
+    //     // Only crash if we didn't receive a stop signal
+    //     if (!Cache::get('crash_game_stop') && $currentMultiplier >= $crashPoint) {
+    //         // Crash the game
+    //         $this->gameService->crashGame($game);
+    //         $this->broadcastGameUpdate($game, $crashPoint, 'crashed');
+
+    //         // Dispatch game crashed event
+    //         event(new \App\Events\CrashGameCrashed($game));
+
+    //         $this->error("CRASHED at {$crashPoint}x!");
+
+    //         // Calculate house profit
+    //         $houseProfit = $this->gameService->calculateHouseProfit($game);
+    //         $this->info("House Profit: ৳{$houseProfit}");
+    //     }
+    // }
+
     private function runGame(CrashGame $game): void
     {
         $currentMultiplier = 1.00;
         $crashPoint = (float) $game->crash_point;
 
         $speedProfile = $this->speedService->getSpeedProfileName();
+        $estimatedDuration = $this->speedService->estimateGameDuration($crashPoint);
         $this->info("Running game #{$game->id} - Will crash at {$crashPoint}x - Speed: {$speedProfile}");
+        $this->info("Estimated duration: {$estimatedDuration} seconds");
 
         // Dispatch game started event
         event(new \App\Events\CrashGameStarted($game, $currentMultiplier));
+
+        $lastBroadcastTime = microtime(true);
+        $broadcastIntervalMs = 100; // Broadcast every 100ms to smooth out updates
 
         // Increase multiplier until crash
         while ($currentMultiplier < $crashPoint) {
@@ -163,13 +221,21 @@ class RunCrashGame extends Command
             $increment = $this->speedService->calculateDynamicIncrement($currentMultiplier);
             $currentMultiplier += $increment;
 
-            // Broadcast current multiplier
-            $this->broadcastGameUpdate($game, $currentMultiplier, 'running');
+            // Make sure we don't overshoot crash point
+            if ($currentMultiplier > $crashPoint) {
+                $currentMultiplier = $crashPoint;
+            }
 
-            // Dispatch running event (optional - every 0.5x)
-            if (fmod($currentMultiplier, 0.5) < $increment) {
-                $this->line("Current: {$currentMultiplier}x (Increment: {$increment})");
-                event(new \App\Events\CrashGameStarted($game, $currentMultiplier));
+            // Broadcast at controlled intervals
+            $currentTime = microtime(true);
+            if (($currentTime - $lastBroadcastTime) * 1000 >= $broadcastIntervalMs) {
+                $this->broadcastGameUpdate($game, $currentMultiplier, 'running');
+                $lastBroadcastTime = $currentTime;
+            }
+
+            // Log progress
+            if (fmod($currentMultiplier, 1.0) < $increment) {
+                $this->line("Current: " . number_format($currentMultiplier, 2) . "x (Increment: {$increment})");
             }
 
             // Dynamic delay based on settings
@@ -179,6 +245,10 @@ class RunCrashGame extends Command
 
         // Only crash if we didn't receive a stop signal
         if (!Cache::get('crash_game_stop') && $currentMultiplier >= $crashPoint) {
+            // Final broadcast before crash
+            $this->broadcastGameUpdate($game, $crashPoint, 'running');
+            usleep(200000); // 200ms pause before crash
+
             // Crash the game
             $this->gameService->crashGame($game);
             $this->broadcastGameUpdate($game, $crashPoint, 'crashed');

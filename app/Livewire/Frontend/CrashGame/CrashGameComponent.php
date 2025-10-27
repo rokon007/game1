@@ -198,25 +198,62 @@ class CrashGameComponent extends Component
         }
     }
 
+    // public function pollGameData(): void
+    // {
+    //     $gameData = cache()->get('crash_game_current');
+
+    //     if ($gameData) {
+    //         $previousStatus = $this->gameStatus;
+    //         $this->currentMultiplier = $gameData['multiplier'];
+    //         $this->gameStatus = $gameData['status'];
+
+    //         //Update countdown timestamp when game enters waiting state
+    //         if ($this->gameStatus === 'waiting' && $previousStatus !== 'waiting') {
+
+    //                 //$this->generatePlayerCounts();
+    //                 $this->dispatch('startWaitingIncrease');
+    //                // $this->srartWCount=false;
+
+    //         }
+
+
+
+    //         // Start running simulation when game starts
+    //         if ($this->gameStatus === 'running' && $previousStatus !== 'running') {
+    //             $this->runningPlayerCount = $this->waitingPlayerCount;
+    //             $this->dispatch('startRunningDecrease');
+    //         }
+
+    //         // Dispatch event to frontend if crashed
+    //         if ($gameData['status'] === 'crashed') {
+    //             $this->dispatch('gameCrashed', crashPoint: $gameData['crash_point']);
+    //             $this->srartWCount=true;
+    //         }
+    //     }
+
+    //     $this->loadCurrentGame();
+    //     $this->loadRecentGames();
+    // }
+
     public function pollGameData(): void
     {
         $gameData = cache()->get('crash_game_current');
 
         if ($gameData) {
             $previousStatus = $this->gameStatus;
-            $this->currentMultiplier = $gameData['multiplier'];
+            $previousMultiplier = $this->currentMultiplier;
+
+            // শুধুমাত্র যদি multiplier বেশি হয় তবেই আপডেট করুন (jumping প্রতিরোধ)
+            if ($gameData['multiplier'] >= $previousMultiplier) {
+                $this->currentMultiplier = $gameData['multiplier'];
+            }
+
             $this->gameStatus = $gameData['status'];
 
             //Update countdown timestamp when game enters waiting state
             if ($this->gameStatus === 'waiting' && $previousStatus !== 'waiting') {
-
-                    //$this->generatePlayerCounts();
-                    $this->dispatch('startWaitingIncrease');
-                   // $this->srartWCount=false;
-
+                $this->dispatch('startWaitingIncrease');
             }
-
-
 
             // Start running simulation when game starts
             if ($this->gameStatus === 'running' && $previousStatus !== 'running') {

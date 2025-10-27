@@ -17,19 +17,19 @@ class CrashGameSpeedService
     {
         $baseConfig = [
             'slow' => [
-                'increment' => 0.005,
-                'interval_ms' => 200,
-                'auto_acceleration' => false,
+                'increment' => 0.01,
+                'interval_ms' => 150,
+                'auto_acceleration' => true,
                 'name' => 'Slow & Realistic'
             ],
             'medium' => [
-                'increment' => 0.01,
+                'increment' => 0.02,
                 'interval_ms' => 100,
                 'auto_acceleration' => true,
                 'name' => 'Medium Balanced'
             ],
             'fast' => [
-                'increment' => 0.02,
+                'increment' => 0.05,
                 'interval_ms' => 50,
                 'auto_acceleration' => true,
                 'name' => 'Fast & Exciting'
@@ -48,27 +48,32 @@ class CrashGameSpeedService
     public function calculateDynamicIncrement(float $currentMultiplier): float
     {
         $config = $this->getSpeedConfig();
+        $baseIncrement = $config['increment'];
 
         if (!$config['auto_acceleration']) {
-            return $config['increment'];
+            return $baseIncrement;
         }
 
-        $baseIncrement = $config['increment'];
         $maxSpeedMultiplier = $this->settings->max_speed_multiplier;
 
+        // যদি target crash point এর কাছাকাছি আসে তাহলে স্পিড কমিয়ে দিন
         if ($currentMultiplier >= $maxSpeedMultiplier) {
             return $baseIncrement;
         }
 
-        // Progressive speed increase
-        if ($currentMultiplier > 10.00) {
-            return $baseIncrement * 3;
+        // Progressive acceleration - আরও দ্রুত বৃদ্ধি
+        if ($currentMultiplier > 20.00) {
+            return $baseIncrement * 8; // খুব দ্রুত
+        } elseif ($currentMultiplier > 10.00) {
+            return $baseIncrement * 6;
         } elseif ($currentMultiplier > 5.00) {
-            return $baseIncrement * 2;
+            return $baseIncrement * 4;
         } elseif ($currentMultiplier > 3.00) {
-            return $baseIncrement * 1.5;
+            return $baseIncrement * 3;
         } elseif ($currentMultiplier > 2.00) {
-            return $baseIncrement * 1.2;
+            return $baseIncrement * 2;
+        } elseif ($currentMultiplier > 1.50) {
+            return $baseIncrement * 1.5;
         }
 
         return $baseIncrement;
@@ -84,5 +89,26 @@ class CrashGameSpeedService
     {
         $config = $this->getSpeedConfig();
         return $config['name'];
+    }
+
+    /**
+     * Calculate estimated time to reach crash point
+     */
+    public function estimateGameDuration(float $crashPoint): float
+    {
+        $config = $this->getSpeedConfig();
+        $baseIncrement = $config['increment'];
+        $intervalMs = $config['interval_ms'];
+
+        $currentMultiplier = 1.00;
+        $totalTime = 0;
+
+        while ($currentMultiplier < $crashPoint) {
+            $increment = $this->calculateDynamicIncrement($currentMultiplier);
+            $currentMultiplier += $increment;
+            $totalTime += $intervalMs;
+        }
+
+        return $totalTime / 1000; // Convert to seconds
     }
 }
