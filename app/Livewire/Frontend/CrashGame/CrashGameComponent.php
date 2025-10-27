@@ -73,7 +73,8 @@ class CrashGameComponent extends Component
             $increase = rand(50, 200); // কম রেঞ্জ দিয়ে ধীরে ধীরে বাড়ানো
             $this->waitingPlayerCount += $increase;
         }
-        dd($this->srartWCount);
+
+
     }
 
     /**
@@ -206,14 +207,14 @@ class CrashGameComponent extends Component
             $this->currentMultiplier = $gameData['multiplier'];
             $this->gameStatus = $gameData['status'];
 
-            // Update countdown timestamp when game enters waiting state
-            // if ($this->gameStatus === 'waiting' && $previousStatus !== 'waiting') {
+            //Update countdown timestamp when game enters waiting state
+            if ($this->gameStatus === 'waiting' && $previousStatus !== 'waiting') {
 
-            //         $this->generatePlayerCounts();
-            //         $this->dispatch('startWaitingIncrease');
-            //         $this->srartWCount=false;
+                    //$this->generatePlayerCounts();
+                    $this->dispatch('startWaitingIncrease');
+                   // $this->srartWCount=false;
 
-            // }
+            }
 
 
 
@@ -278,7 +279,7 @@ class CrashGameComponent extends Component
     {
         $this->recentGames = CrashGame::where('status', 'crashed')
             ->latest()
-            ->limit(5)
+            ->limit(1)
             ->get()
             ->map(function($game) {
                 return [
