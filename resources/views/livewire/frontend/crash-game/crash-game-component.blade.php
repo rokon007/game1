@@ -802,6 +802,100 @@
                 }
 
                 // Livewire event listeners
+                // Livewire.on('startWaitingIncrease', () => {
+                //     console.log('Livewire event: startWaitingIncrease');
+                //     if (window.playerManager) {
+                //         window.playerManager.startWaitingIncrease();
+                //     }
+                // });
+
+                // Livewire.on('startRunningDecrease', () => {
+                //     console.log('Livewire event: startRunningDecrease');
+                //     if (window.playerManager) {
+                //         window.playerManager.startRunningDecrease();
+                //     }
+                // });
+
+                // Livewire.on('gameCrashed', (data) => {
+                //     console.log('Livewire event: gameCrashed');
+                //     if (window.playerManager) {
+                //         window.playerManager.stopAll();
+                //     }
+                //     if (window.countdownTimer) {
+                //         window.countdownTimer.stop();
+                //     }
+                //     setTimeout(() => {
+                //         @this.call('resetPlayerCounts');
+                //     }, 1000);
+                //     window.showCrashAlert(data.crashPoint);
+                // });
+
+                // Livewire.on('countdownShouldStart', () => {
+                //     console.log('Livewire event: countdownShouldStart');
+                //     if (window.playerManager) {
+                //         window.playerManager.stopAll();
+                //     }
+                //     @this.call('resetPlayerCounts');
+                //     setTimeout(() => {
+                //         if (window.playerManager) {
+                //             window.playerManager.startWaitingIncrease();
+                //         }
+                //     }, 500);
+                //     setTimeout(() => {
+                //         if (window.countdownTimer) {
+                //             window.countdownTimer.start(10);
+                //         }
+                //     }, 500);
+                // });
+
+                // Livewire.on('betPlaced', () => {
+                //     console.log('Livewire event: betPlaced');
+                //     Swal.fire({
+                //         icon: 'success',
+                //         title: 'Bet Successful!',
+                //         text: 'Your bet has been recorded',
+                //         timer: 2000,
+                //         showConfirmButton: false
+                //     });
+                // });
+
+                // Livewire.on('cashedOut', () => {
+                //     console.log('Livewire event: cashedOut');
+                //     Swal.fire({
+                //         icon: 'success',
+                //         title: 'Cashout Successful!',
+                //         text: 'You won!',
+                //         timer: 2000,
+                //         showConfirmButton: false
+                //     });
+                // });
+
+                // // Initialize based on current state
+                // @if($gameStatus === 'waiting')
+                //     console.log('Initializing waiting state');
+                //     setTimeout(() => {
+                //         if (window.playerManager) {
+                //             window.playerManager.startWaitingIncrease();
+                //         }
+                //         if (window.countdownTimer) {
+                //             window.countdownTimer.start(10);
+                //         }
+                //     }, 1000);
+                // @endif
+
+                // @if($gameStatus === 'running')
+                //     console.log('Initializing running state');
+                //     setTimeout(() => {
+                //         if (window.playerManager) {
+                //             window.playerManager.startRunningDecrease();
+                //         }
+                //     }, 1000);
+                // @endif
+
+
+
+
+                // Livewire event listeners
                 Livewire.on('startWaitingIncrease', () => {
                     console.log('Livewire event: startWaitingIncrease');
                     if (window.playerManager) {
@@ -817,33 +911,46 @@
                 });
 
                 Livewire.on('gameCrashed', (data) => {
-                    console.log('Livewire event: gameCrashed');
+                    console.log('Livewire event: gameCrashed', data);
+
+                    // Stop all intervals
                     if (window.playerManager) {
                         window.playerManager.stopAll();
                     }
                     if (window.countdownTimer) {
                         window.countdownTimer.stop();
                     }
+
+                    // Show crash alert
+                    window.showCrashAlert(data.crashPoint);
+
+                    // Reset player counts after 1 second
                     setTimeout(() => {
                         @this.call('resetPlayerCounts');
                     }, 1000);
-                    window.showCrashAlert(data.crashPoint);
                 });
 
                 Livewire.on('countdownShouldStart', () => {
-                    console.log('Livewire event: countdownShouldStart');
+                    console.log('Livewire event: countdownShouldStart - Starting new countdown');
+
+                    // Stop all previous intervals
                     if (window.playerManager) {
                         window.playerManager.stopAll();
                     }
+                    if (window.countdownTimer) {
+                        window.countdownTimer.stop();
+                    }
+
+                    // Reset player counts
                     @this.call('resetPlayerCounts');
+
+                    // Start new waiting period after 500ms
                     setTimeout(() => {
                         if (window.playerManager) {
                             window.playerManager.startWaitingIncrease();
                         }
-                    }, 500);
-                    setTimeout(() => {
                         if (window.countdownTimer) {
-                            window.countdownTimer.start(10);
+                            window.countdownTimer.start(10); // Always 10 seconds
                         }
                     }, 500);
                 });
@@ -881,15 +988,15 @@
                             window.countdownTimer.start(10);
                         }
                     }, 1000);
-                @endif
-
-                @if($gameStatus === 'running')
+                @elseif($gameStatus === 'running')
                     console.log('Initializing running state');
                     setTimeout(() => {
                         if (window.playerManager) {
                             window.playerManager.startRunningDecrease();
                         }
                     }, 1000);
+                @elseif($gameStatus === 'crashed')
+                    console.log('Initializing crashed state - will wait for next game');
                 @endif
 
                 // Mobile touch improvements

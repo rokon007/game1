@@ -235,6 +235,20 @@ class CrashGameComponent extends Component
     //     $this->loadRecentGames();
     // }
 
+
+    /**
+     * Refresh component (called by wire:poll)
+     */
+    // public function refreshGameState(): void
+    // {
+    //      if ($this->gameStatus === 'waiting'){
+    //             $this->srartWCount=false;
+    //             $increase = rand(50, 200); // কম রেঞ্জ দিয়ে ধীরে ধীরে বাড়ানো
+    //             $this->waitingPlayerCount += $increase;
+    //          }
+    //     $this->pollGameData();
+    // }
+
     public function pollGameData(): void
     {
         $gameData = cache()->get('crash_game_current');
@@ -243,28 +257,36 @@ class CrashGameComponent extends Component
             $previousStatus = $this->gameStatus;
             $previousMultiplier = $this->currentMultiplier;
 
-            // শুধুমাত্র যদি multiplier বেশি হয় তবেই আপডেট করুন (jumping প্রতিরোধ)
-            if ($gameData['multiplier'] >= $previousMultiplier) {
-                $this->currentMultiplier = $gameData['multiplier'];
-            }
-
             $this->gameStatus = $gameData['status'];
 
-            //Update countdown timestamp when game enters waiting state
-            if ($this->gameStatus === 'waiting' && $previousStatus !== 'waiting') {
-                $this->dispatch('startWaitingIncrease');
-            }
-
-            // Start running simulation when game starts
-            if ($this->gameStatus === 'running' && $previousStatus !== 'running') {
-                $this->runningPlayerCount = $this->waitingPlayerCount;
-                $this->dispatch('startRunningDecrease');
-            }
-
-            // Dispatch event to frontend if crashed
-            if ($gameData['status'] === 'crashed') {
+            // Game crashed হলে multiplier reset করুন
+            if ($this->gameStatus === 'crashed') {
+                $this->currentMultiplier = $gameData['crash_point'];
                 $this->dispatch('gameCrashed', crashPoint: $gameData['crash_point']);
-                $this->srartWCount=true;
+                $this->srartWCount = true;
+            }
+            // Waiting state এ multiplier reset করুন
+            elseif ($this->gameStatus === 'waiting') {
+                $this->currentMultiplier = 1.00;
+
+                // Update countdown timestamp when game enters waiting state
+                if ($previousStatus !== 'waiting') {
+                    $this->updateCountdownTimestamp();
+                    $this->dispatch('startWaitingIncrease');
+                    $this->dispatch('countdownShouldStart');
+                }
+            }
+            // Running state এ শুধু বৃদ্ধি পেলে আপডেট করুন
+            elseif ($this->gameStatus === 'running') {
+                if ($gameData['multiplier'] >= $previousMultiplier) {
+                    $this->currentMultiplier = $gameData['multiplier'];
+                }
+
+                // Start running simulation when game starts
+                if ($previousStatus !== 'running') {
+                    $this->runningPlayerCount = $this->waitingPlayerCount;
+                    $this->dispatch('startRunningDecrease');
+                }
             }
         }
 
@@ -277,11 +299,11 @@ class CrashGameComponent extends Component
      */
     public function refreshGameState(): void
     {
-         if ($this->gameStatus === 'waiting'){
-                $this->srartWCount=false;
-                $increase = rand(50, 200); // কম রেঞ্জ দিয়ে ধীরে ধীরে বাড়ানো
-                $this->waitingPlayerCount += $increase;
-             }
+        if ($this->gameStatus === 'waiting') {
+            $this->srartWCount = false;
+            $increase = rand(50, 200);
+            $this->waitingPlayerCount += $increase;
+        }
         $this->pollGameData();
     }
 
