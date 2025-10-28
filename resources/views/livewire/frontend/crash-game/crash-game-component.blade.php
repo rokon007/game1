@@ -59,7 +59,7 @@
                 gap: 5px;
             }
 
-            /* Game Display - Slightly Reduced Height */
+            /* ✅ Game Display - INCREASED SIZE for Better View */
             .mobile-game-display-wrapper {
                 display: flex;
                 justify-content: center;
@@ -68,8 +68,8 @@
             }
 
             .mobile-game-display {
-                width: 320px;
-                height: 340px; /* Reduced from 380px */
+                width: 350px;
+                height: 420px; /* ✅ বড় করা হয়েছে */
                 background: #1a1a1a;
                 border: 3px solid #fff;
                 border-radius: 15px;
@@ -81,7 +81,7 @@
                 color: white;
                 position: relative;
                 overflow: hidden;
-                padding: 12px;
+                padding: 15px; /* ✅ বেশি padding */
             }
 
             .mobile-game-display::before {
@@ -95,14 +95,14 @@
                 background-size: 10px 10px;
             }
 
-            /* Game Content Area - More Compact */
+            /* Game Content Area - Optimized Spacing */
             .mobile-game-content {
                 background: rgba(255, 255, 255, 0.1);
                 backdrop-filter: blur(10px);
                 border-radius: 12px;
-                padding: 8px; /* Reduced from 12px */
+                padding: 10px; /* ✅ বেশি padding */
                 border: 1px solid rgba(255, 255, 255, 0.2);
-                margin: 0 3px;
+                margin: 0 5px;
             }
 
             /* Bet Controls - ULTRA COMPACT VERSION */
@@ -116,7 +116,7 @@
                 padding: 3px;
                 transition: all 0.3s ease;
                 margin-bottom: 6px;
-                height: 36px; /* Reduced from 44px */
+                height: 36px;
             }
 
             .bet-input-group:focus-within {
@@ -130,14 +130,14 @@
             }
 
             .bet-control-btn {
-                width: 28px; /* Reduced from 32px */
-                height: 28px; /* Reduced from 32px */
+                width: 28px;
+                height: 28px;
                 border-radius: 6px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 font-weight: bold;
-                font-size: 0.8rem; /* Reduced from 0.9rem */
+                font-size: 0.8rem;
                 border: 2px solid #007bff;
                 background: white;
                 color: #007bff;
@@ -162,7 +162,7 @@
                 flex: 1;
                 border: none;
                 background: transparent;
-                font-size: 0.85rem; /* Reduced from 0.9rem */
+                font-size: 0.85rem;
                 font-weight: 600;
                 text-align: center;
                 padding: 0;
@@ -193,10 +193,10 @@
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 border-radius: 5px;
                 color: white;
-                font-size: 9px; /* Reduced from 10px */
+                font-size: 9px;
                 font-weight: 600;
                 transition: all 0.3s ease;
-                height: 24px; /* Reduced from 28px */
+                height: 24px;
             }
 
             .quick-bet-btn:active {
@@ -207,25 +207,25 @@
             /* Main Action Button - More Compact */
             .mobile-action-btn {
                 width: 100%;
-                padding: 8px; /* Reduced from 12px */
+                padding: 8px;
                 border: none;
                 border-radius: 8px;
-                font-size: 13px; /* Reduced from 14px */
+                font-size: 13px;
                 font-weight: bold;
                 transition: all 0.3s ease;
-                height: 36px; /* Reduced from 44px */
+                height: 36px;
             }
 
             .mobile-action-btn:active {
                 transform: scale(0.98);
             }
 
-            /* Game Status Display - Adjusted for smaller height */
+            /* Game Status Display - Adjusted for bigger height */
             .multiplier-display {
-                font-size: 2.5rem; /* Reduced from 3rem */
+                font-size: 2.8rem; /* ✅ আরও বড় */
                 font-weight: bold;
                 text-shadow: 0 0 20px rgba(255,255,255,0.5);
-                margin: 3px 0;
+                margin: 5px 0;
             }
 
             .crashed-animation {
@@ -257,8 +257,8 @@
             }
 
             .recent-game-badge {
-                font-size: 8px; /* Reduced from 9px */
-                padding: 2px 4px; /* Reduced from 3px 6px */
+                font-size: 8px;
+                padding: 2px 4px;
                 border-radius: 8px;
             }
 
@@ -267,13 +267,13 @@
                 background: rgba(255, 255, 255, 0.1);
                 backdrop-filter: blur(10px);
                 border-radius: 12px;
-                padding: 0.8rem; /* Reduced from 1rem */
+                padding: 0.8rem;
                 border: 1px solid rgba(255, 255, 255, 0.2);
                 width: 100%;
             }
 
             .countdown-timer {
-                font-size: 2rem; /* Reduced from 2.5rem */
+                font-size: 2rem;
                 font-weight: 800;
                 background: linear-gradient(45deg, #FFD700, #FFA500);
                 -webkit-background-clip: text;
@@ -284,7 +284,7 @@
             }
 
             .progress-bar-custom {
-                height: 5px; /* Reduced from 6px */
+                height: 5px;
                 border-radius: 5px;
                 overflow: hidden;
                 background: rgba(255, 255, 255, 0.2);
@@ -304,12 +304,12 @@
                 background: rgba(255, 255, 255, 0.15);
                 backdrop-filter: blur(10px);
                 border-radius: 6px;
-                padding: 4px; /* Reduced from 6px */
+                padding: 4px;
                 border: 1px solid rgba(255, 255, 255, 0.2);
                 margin-top: 4px;
             }
 
-            /* Game Images - Slightly Smaller */
+            /* Game Images - Slightly Bigger */
             .game-image {
                 max-width: 100%;
                 height: auto;
@@ -317,7 +317,7 @@
 
             /* Balance Info - More Compact */
             .balance-info {
-                font-size: 9px; /* Reduced from 10px */
+                font-size: 9px;
                 color: rgba(255, 255, 255, 0.8);
                 text-align: center;
                 margin-bottom: 4px;
@@ -328,31 +328,31 @@
                 background: rgba(255, 193, 7, 0.2);
                 border: 1px solid rgba(255, 193, 7, 0.5);
                 border-radius: 12px;
-                padding: 2px 6px; /* Reduced from 3px 8px */
-                font-size: 9px; /* Reduced from 10px */
+                padding: 2px 6px;
+                font-size: 9px;
                 color: #ffc107;
             }
 
             /* Alert Styles - More Compact */
             .mobile-alert {
-                padding: 4px 6px; /* Reduced from 5px 8px */
-                font-size: 9px; /* Reduced from 10px */
+                padding: 4px 6px;
+                font-size: 9px;
                 margin-bottom: 4px;
             }
 
             /* Very Small Screens - Adjusted */
             @media (max-width: 380px) {
                 .mobile-game-display {
-                    width: 300px;
-                    height: 320px; /* Reduced from 360px */
+                    width: 330px;
+                    height: 400px; /* ✅ ছোট স্ক্রিনেও বড় */
                 }
 
                 .multiplier-display {
-                    font-size: 2rem; /* Reduced from 2.5rem */
+                    font-size: 2.2rem;
                 }
 
                 .countdown-timer {
-                    font-size: 1.8rem; /* Reduced from 2rem */
+                    font-size: 1.8rem;
                 }
 
                 .mobile-quick-bets {
@@ -360,17 +360,17 @@
                 }
 
                 .mobile-game-content {
-                    padding: 6px; /* Reduced from 10px */
+                    padding: 8px;
                 }
 
                 .bet-input-group {
-                    height: 32px; /* Reduced from 40px */
+                    height: 32px;
                     padding: 2px;
                 }
 
                 .bet-control-btn {
-                    width: 26px; /* Reduced from 30px */
-                    height: 26px; /* Reduced from 30px */
+                    width: 26px;
+                    height: 26px;
                     font-size: 0.75rem;
                 }
 
@@ -379,14 +379,14 @@
                 }
 
                 .quick-bet-btn {
-                    height: 22px; /* Reduced from 26px */
-                    font-size: 8px; /* Reduced from 9px */
+                    height: 22px;
+                    font-size: 8px;
                 }
 
                 .mobile-action-btn {
-                    height: 32px; /* Reduced from 40px */
-                    padding: 6px; /* Reduced from 10px */
-                    font-size: 12px; /* Reduced from 13px */
+                    height: 32px;
+                    padding: 6px;
+                    font-size: 12px;
                 }
             }
 
@@ -408,8 +408,8 @@
                 }
 
                 .mobile-game-display {
-                    width: 280px;
-                    height: 300px; /* Reduced from 320px */
+                    width: 300px;
+                    height: 340px;
                 }
 
                 .mobile-game-content {
@@ -418,12 +418,12 @@
                 }
 
                 .bet-input-group {
-                    height: 32px; /* Reduced from 38px */
+                    height: 32px;
                 }
 
                 .bet-control-btn {
-                    width: 26px; /* Reduced from 28px */
-                    height: 26px; /* Reduced from 28px */
+                    width: 26px;
+                    height: 26px;
                 }
             }
 
@@ -451,18 +451,18 @@
 
             /* Compact Styles for Mobile */
             .compact-text {
-                font-size: 10px; /* Reduced from 11px */
+                font-size: 10px;
                 margin: 1px 0;
             }
 
             .compact-badge {
-                font-size: 7px; /* Reduced from 8px */
-                padding: 1px 4px; /* Reduced from 2px 5px */
+                font-size: 7px;
+                padding: 1px 4px;
             }
 
             /* Bet Amount Label */
             .bet-amount-label {
-                font-size: 10px; /* Reduced from 11px */
+                font-size: 10px;
                 color: white;
                 margin-bottom: 3px;
                 display: block;
@@ -511,7 +511,7 @@
                                 <div class="multiplier-display pulse-button" id="multiplier-display">
                                     {{ number_format($currentMultiplier, 2) }}x
                                 </div>
-                                <img src="{{asset('assets/frontend/img/rocket.gif')}}" class="game-image" style="max-height: 70px;">
+                                <img src="{{asset('assets/frontend/img/rocket.gif')}}" class="game-image" style="max-height: 120px;">
 
                                 <div class="mt-1">
                                     <span class="player-count-badge">
