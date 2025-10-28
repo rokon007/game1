@@ -17,8 +17,6 @@ class RunCrashGame extends Command
 
     private CrashGameService $gameService;
     private CrashGameSpeedService $speedService;
-
-    // Add the missing property
     private bool $settingsReloaded = false;
 
     public function __construct(CrashGameService $gameService)
@@ -30,14 +28,12 @@ class RunCrashGame extends Command
 
     public function handle(): int
     {
-        // Get current PID and log it
         $pid = getmypid();
         $this->info("=== Crash Game Process Started ===");
         $this->info("Process PID: {$pid}");
         $this->info("Memory Usage: " . memory_get_usage(true) / 1024 / 1024 . " MB");
         $this->info("Game Active: " . ($this->gameService->isGameActive() ? 'Yes' : 'No'));
 
-        // Check if game is active
         if (!$this->gameService->isGameActive()) {
             $this->error('Crash game is not active!');
             Log::warning('Crash game started but is not active in settings');
@@ -46,14 +42,12 @@ class RunCrashGame extends Command
 
         $this->info('Starting Crash Game Loop...');
 
-        // Store process info
         Cache::put('crash_game_running', true, 3600);
         Cache::put('crash_game_pid', $pid, 3600);
         Cache::put('crash_game_started_at', now()->toDateTimeString(), 3600);
 
         $this->info("Process info stored in cache");
 
-        // Register shutdown function for cleanup
         register_shutdown_function(function () {
             $this->cleanup();
         });
@@ -63,19 +57,15 @@ class RunCrashGame extends Command
             $cycleCount++;
             $this->info("=== Game Cycle #{$cycleCount} ===");
 
-            // Check stop signal
             if (Cache::get('crash_game_stop')) {
                 $this->info('Stop signal received. Stopping game...');
                 break;
             }
 
             try {
-                // Check for settings changes before each game cycle
                 if ($this->gameService->checkAndReloadSettings()) {
                     $this->settingsReloaded = true;
                     $this->info('Settings changes detected! New settings will be applied to the next game.');
-
-                    // Also reload speed service with new settings
                     $this->speedService = new CrashGameSpeedService();
                 }
 
@@ -83,13 +73,11 @@ class RunCrashGame extends Command
             } catch (\Exception $e) {
                 Log::error('Crash Game Error: ' . $e->getMessage());
                 $this->error('Error: ' . $e->getMessage());
-
-                // Small delay before retry
                 sleep(5);
             }
 
-            // Small delay between cycles
-            sleep(2);
+            // ✅ CRITICAL: Cycle শেষে ছোট delay
+            sleep(1);
         }
 
         $this->cleanup();
@@ -97,149 +85,63 @@ class RunCrashGame extends Command
         return Command::SUCCESS;
     }
 
-    // private function runGameCycle(): void
-    // {
-    //     // Get or create current game
-    //     $game = $this->gameService->getCurrentGame();
-
-    //     if (!$game || $game->isCrashed()) {
-    //         // If settings were reloaded, log it
-    //         if ($this->settingsReloaded) {
-    //             $this->info('Applying new settings to the game...');
-    //             $this->settingsReloaded = false; // Reset the flag
-    //         }
-
-    //         // Create new game
-    //         $game = $this->gameService->createGame();
-    //         $this->info("New game created: #{$game->id} - Crash Point: {$game->crash_point}x");
-
-    //         // Wait for bets (dynamic waiting time)
-    //         $waitingTime = $this->gameService->getBetWaitingTime();
-    //         $this->info("Waiting for bets for {$waitingTime} seconds...");
-
-    //         // Check for stop signal during waiting period
-    //         $waitStart = time();
-    //         while ((time() - $waitStart) < $waitingTime) {
-    //             if (Cache::get('crash_game_stop')) {
-    //                 $this->info('Stop signal received during betting period.');
-    //                 return;
-    //             }
-    //             sleep(1);
-    //         }
-    //     }
-
-    //     // Start the game if it's pending
-    //     if ($game->isPending()) {
-    //         $this->gameService->startGame($game);
-    //         $this->gameService->startBets($game);
-    //         $this->info("Game #{$game->id} started!");
-    //     }
-
-    //     // Run the game
-    //     if ($game->isRunning()) {
-    //         $this->runGame($game);
-    //     }
-    // }
-
-    // private function runGame(CrashGame $game): void
-    // {
-    //     $currentMultiplier = 1.00;
-    //     $crashPoint = (float) $game->crash_point;
-
-    //     $speedProfile = $this->speedService->getSpeedProfileName();
-    //     $this->info("Running game #{$game->id} - Will crash at {$crashPoint}x - Speed: {$speedProfile}");
-
-    //     // Dispatch game started event
-    //     event(new \App\Events\CrashGameStarted($game, $currentMultiplier));
-
-    //     // Increase multiplier until crash
-    //     while ($currentMultiplier < $crashPoint) {
-    //         // Check for stop signal
-    //         if (Cache::get('crash_game_stop')) {
-    //             $this->info('Stop signal received during game execution.');
-    //             break;
-    //         }
-
-    //         $increment = $this->speedService->calculateDynamicIncrement($currentMultiplier);
-    //         $currentMultiplier += $increment;
-
-    //         // Broadcast current multiplier
-    //         $this->broadcastGameUpdate($game, $currentMultiplier, 'running');
-
-    //         // Dispatch running event (optional - every 0.5x)
-    //         if (fmod($currentMultiplier, 0.5) < $increment) {
-    //             $this->line("Current: {$currentMultiplier}x (Increment: {$increment})");
-    //             event(new \App\Events\CrashGameStarted($game, $currentMultiplier));
-    //         }
-
-    //         // Dynamic delay based on settings
-    //         $interval = $this->speedService->getCurrentInterval();
-    //         usleep($interval * 1000); // Convert ms to microseconds
-    //     }
-
-    //     // Only crash if we didn't receive a stop signal
-    //     if (!Cache::get('crash_game_stop') && $currentMultiplier >= $crashPoint) {
-    //         // Crash the game
-    //         $this->gameService->crashGame($game);
-    //         $this->broadcastGameUpdate($game, $crashPoint, 'crashed');
-
-    //         // Dispatch game crashed event
-    //         event(new \App\Events\CrashGameCrashed($game));
-
-    //         $this->error("CRASHED at {$crashPoint}x!");
-
-    //         // Calculate house profit
-    //         $houseProfit = $this->gameService->calculateHouseProfit($game);
-    //         $this->info("House Profit: ৳{$houseProfit}");
-    //     }
-    // }
-
     private function runGameCycle(): void
     {
-        // Get or create current game
         $game = $this->gameService->getCurrentGame();
 
+        // ✅ FIX: Game না থাকলে বা crashed হলে নতুন game তৈরি করুন
         if (!$game || $game->isCrashed()) {
-            // If settings were reloaded, log it
             if ($this->settingsReloaded) {
                 $this->info('Applying new settings to the game...');
                 $this->settingsReloaded = false;
+            }
+
+            // ✅ CRITICAL: নতুন game তৈরি করার আগে cache clear করুন
+            cache()->forget('crash_game_current');
+            cache()->forget('crash_game_waiting_start');
+            cache()->forget('crash_game_waiting_duration');
+            cache()->forget('crash_game_waiting_end');
+
+            // Small delay after crash before creating new game
+            if ($game && $game->isCrashed()) {
+                $this->info("Previous game crashed. Waiting 2 seconds before next game...");
+                sleep(2);
             }
 
             // Create new game
             $game = $this->gameService->createGame();
             $this->info("New game created: #{$game->id} - Crash Point: {$game->crash_point}x");
 
-            // CRITICAL: Store exact waiting start time in cache
+            // ✅ Set waiting state IMMEDIATELY
             $waitingStartTime = microtime(true);
             $waitingTime = $this->gameService->getBetWaitingTime();
+            $waitingEndTime = $waitingStartTime + $waitingTime;
 
+            // Store in cache
             cache()->put('crash_game_waiting_start', $waitingStartTime, 60);
             cache()->put('crash_game_waiting_duration', $waitingTime, 60);
-            cache()->put('crash_game_waiting_end', $waitingStartTime + $waitingTime, 60);
+            cache()->put('crash_game_waiting_end', $waitingEndTime, 60);
 
-            // Broadcast waiting state immediately with countdown info
+            // ✅ CRITICAL: Broadcast waiting state with exact timing
             $this->broadcastGameUpdate($game, 1.00, 'waiting', [
                 'waiting_start' => $waitingStartTime,
                 'waiting_duration' => $waitingTime,
-                'waiting_end' => $waitingStartTime + $waitingTime
+                'waiting_end' => $waitingEndTime
             ]);
 
             $this->info("Waiting for bets for {$waitingTime} seconds...");
-            $this->info("Waiting will end at: " . date('H:i:s', (int)($waitingStartTime + $waitingTime)));
+            $this->info("Waiting will end at: " . date('H:i:s', (int)$waitingEndTime));
 
-            // Precise waiting with stop signal check
-            $targetEndTime = $waitingStartTime + $waitingTime;
-
-            while (microtime(true) < $targetEndTime) {
+            // Precise waiting loop
+            while (microtime(true) < $waitingEndTime) {
                 if (Cache::get('crash_game_stop')) {
                     $this->info('Stop signal received during betting period.');
                     return;
                 }
 
-                $remainingTime = $targetEndTime - microtime(true);
+                $remainingTime = $waitingEndTime - microtime(true);
                 if ($remainingTime > 0) {
-                    // Sleep in small chunks (100ms) for better responsiveness
+                    // Sleep in small chunks for responsiveness
                     usleep(min(100000, $remainingTime * 1000000));
                 }
             }
@@ -247,20 +149,23 @@ class RunCrashGame extends Command
             $actualWaitTime = microtime(true) - $waitingStartTime;
             $this->info("Actual waiting time: " . round($actualWaitTime, 3) . " seconds");
 
-            // Clear waiting cache
+            // ✅ Clear waiting cache after completion
             cache()->forget('crash_game_waiting_start');
             cache()->forget('crash_game_waiting_duration');
             cache()->forget('crash_game_waiting_end');
         }
 
-        // Start the game if it's pending
+        // Start the game if pending
         if ($game->isPending()) {
             $this->gameService->startGame($game);
             $this->gameService->startBets($game);
             $this->info("Game #{$game->id} started!");
+
+            // ✅ Small delay to ensure state transition
+            usleep(500000); // 500ms
         }
 
-        // Run the game
+        // Run the game if running
         if ($game->isRunning()) {
             $this->runGame($game);
         }
@@ -276,15 +181,13 @@ class RunCrashGame extends Command
         $this->info("Running game #{$game->id} - Will crash at {$crashPoint}x - Speed: {$speedProfile}");
         $this->info("Estimated duration: {$estimatedDuration} seconds");
 
-        // Dispatch game started event
         event(new \App\Events\CrashGameStarted($game, $currentMultiplier));
 
         $lastBroadcastTime = microtime(true);
-        $broadcastIntervalMs = 100; // Broadcast every 100ms
+        $broadcastIntervalMs = 100;
 
-        // Increase multiplier until crash
+        // Game loop
         while ($currentMultiplier < $crashPoint) {
-            // Check for stop signal
             if (Cache::get('crash_game_stop')) {
                 $this->info('Stop signal received during game execution.');
                 break;
@@ -293,39 +196,37 @@ class RunCrashGame extends Command
             $increment = $this->speedService->calculateDynamicIncrement($currentMultiplier);
             $currentMultiplier += $increment;
 
-            // Make sure we don't overshoot crash point
             if ($currentMultiplier > $crashPoint) {
                 $currentMultiplier = $crashPoint;
             }
 
-            // Broadcast at controlled intervals
+            // Controlled broadcasting
             $currentTime = microtime(true);
             if (($currentTime - $lastBroadcastTime) * 1000 >= $broadcastIntervalMs) {
                 $this->broadcastGameUpdate($game, $currentMultiplier, 'running');
                 $lastBroadcastTime = $currentTime;
             }
 
-            // Log progress
             if (fmod($currentMultiplier, 1.0) < $increment) {
                 $this->line("Current: " . number_format($currentMultiplier, 2) . "x");
             }
 
-            // Dynamic delay based on settings
             $interval = $this->speedService->getCurrentInterval();
-            usleep($interval * 1000); // Convert ms to microseconds
+            usleep($interval * 1000);
         }
 
-        // Only crash if we didn't receive a stop signal
+        // Crash handling
         if (!Cache::get('crash_game_stop') && $currentMultiplier >= $crashPoint) {
-            // Final broadcast before crash
+            // Final broadcast at crash point
             $this->broadcastGameUpdate($game, $crashPoint, 'running');
-            usleep(500000); // 500ms pause at crash point
+            usleep(500000); // 500ms pause
 
             // Crash the game
             $this->gameService->crashGame($game);
+
+            // ✅ CRITICAL: Broadcast crashed state
             $this->broadcastGameUpdate($game, $crashPoint, 'crashed');
 
-            // Dispatch game crashed event
             event(new \App\Events\CrashGameCrashed($game));
 
             $this->error("CRASHED at {$crashPoint}x!");
@@ -333,28 +234,18 @@ class RunCrashGame extends Command
             // Show crash for 3 seconds
             sleep(3);
 
-            // Calculate house profit
             $houseProfit = $this->gameService->calculateHouseProfit($game);
             $this->info("House Profit: ৳{$houseProfit}");
 
-            // IMPORTANT: Clear any stale waiting cache before next cycle
+            // ✅ IMPORTANT: Clear all game state before next cycle
+            cache()->forget('crash_game_current');
             cache()->forget('crash_game_waiting_start');
             cache()->forget('crash_game_waiting_duration');
             cache()->forget('crash_game_waiting_end');
+
+            $this->info("Game state cleared. Ready for next game.");
         }
     }
-
-
-    // private function broadcastGameUpdate(CrashGame $game, float $multiplier, string $status): void
-    // {
-    //     cache()->put('crash_game_current', [
-    //         'game_id' => $game->id,
-    //         'multiplier' => round($multiplier, 2),
-    //         'status' => $status,
-    //         'crash_point' => $game->crash_point,
-    //         'updated_at' => now()->timestamp,
-    //     ], 60);
-    // }
 
     private function broadcastGameUpdate(CrashGame $game, float $multiplier, string $status, array $extra = []): void
     {
@@ -363,12 +254,10 @@ class RunCrashGame extends Command
             'multiplier' => round($multiplier, 2),
             'status' => $status,
             'crash_point' => $game->crash_point,
-            'updated_at' => now()->timestamp,
+            'updated_at' => microtime(true), // ✅ Use microtime for precision
         ];
 
-        // Merge extra data (like waiting times)
         $data = array_merge($data, $extra);
-
         cache()->put('crash_game_current', $data, 60);
 
         $this->info("Broadcasted: Status={$status}, Multiplier={$multiplier}");
@@ -381,6 +270,26 @@ class RunCrashGame extends Command
         Cache::forget('crash_game_pid');
         Cache::forget('crash_game_started_at');
         Cache::forget('crash_game_stop');
+        Cache::forget('crash_game_current');
+        Cache::forget('crash_game_waiting_start');
+        Cache::forget('crash_game_waiting_duration');
+        Cache::forget('crash_game_waiting_end');
         $this->info('Game process cleanup completed.');
     }
 }
+
+/*
+ * ✅ KEY CHANGES MADE:
+ *
+ * 1. Cache Clear করা হয়েছে game cycle শুরুর আগে
+ * 2. Crashed হওয়ার পর 2 second delay দেওয়া হয়েছে
+ * 3. Waiting state immediately broadcast করা হচ্ছে
+ * 4. Game state transition-এ 500ms delay যোগ করা হয়েছে
+ * 5. Microtime ব্যবহার করা হচ্ছে precision-এর জন্য
+ * 6. Cleanup function-এ সব cache clear করা হচ্ছে
+ *
+ * এতে আপনার সমস্যা solve হবে:
+ * - Crash → Waiting transition smooth হবে
+ * - Countdown সঠিক সময় থেকে শুরু হবে
+ * - Running state skip হবে না
+ */

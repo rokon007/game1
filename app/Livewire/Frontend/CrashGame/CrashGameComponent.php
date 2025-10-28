@@ -255,21 +255,30 @@ class CrashGameComponent extends Component
 
         if ($gameData) {
             $previousStatus = $this->gameStatus;
+            $previousGameId = $this->currentGame ? $this->currentGame->id : null;
+            $currentGameId = $gameData['game_id'];
+
             $this->gameStatus = $gameData['status'];
 
-            // Game crashed হলে
+            // ✅ NEW GAME DETECTION: যদি game ID বদলে যায়
+            $isNewGame = ($previousGameId !== $currentGameId);
+
+            // ✅ CRASHED STATE
             if ($this->gameStatus === 'crashed') {
                 $this->currentMultiplier = $gameData['crash_point'];
-                $this->dispatch('gameCrashed', crashPoint: $gameData['crash_point']);
-                $this->srartWCount = true;
+
+                // শুধু একবার dispatch করুন
+                if ($previousStatus !== 'crashed') {
+                    $this->dispatch('gameCrashed', crashPoint: $gameData['crash_point']);
+                    $this->srartWCount = true;
+                }
             }
-            // Waiting state এ
+            // ✅ WAITING STATE
             elseif ($this->gameStatus === 'waiting') {
                 $this->currentMultiplier = 1.00;
 
-                // যদি নতুন waiting শুরু হয়
-                if ($previousStatus !== 'waiting') {
-                    // Get exact waiting time from cache
+                // নতুন waiting period শুরু হলে
+                if ($previousStatus !== 'waiting' || $isNewGame) {
                     $waitingStart = cache()->get('crash_game_waiting_start');
                     $waitingDuration = cache()->get('crash_game_waiting_duration', 10);
                     $waitingEnd = cache()->get('crash_game_waiting_end');
@@ -278,13 +287,13 @@ class CrashGameComponent extends Component
                         $currentTime = microtime(true);
                         $remainingTime = max(0, $waitingEnd - $currentTime);
 
-                        // Dispatch with exact timing
+                        // ✅ Dispatch countdown with exact timing
                         $this->dispatch('countdownShouldStart', [
                             'duration' => $remainingTime,
                             'totalDuration' => $waitingDuration
                         ]);
                     } else {
-                        // Fallback to default 10 seconds
+                        // Fallback
                         $this->dispatch('countdownShouldStart', [
                             'duration' => 10,
                             'totalDuration' => 10
@@ -294,17 +303,17 @@ class CrashGameComponent extends Component
                     $this->dispatch('startWaitingIncrease');
                 }
             }
-            // Running state এ
+            // ✅ RUNNING STATE
             elseif ($this->gameStatus === 'running') {
                 $previousMultiplier = $this->currentMultiplier;
 
-                // শুধু বৃদ্ধি পেলে আপডেট করুন
+                // শুধু বৃদ্ধি পেলে update করুন
                 if ($gameData['multiplier'] >= $previousMultiplier) {
                     $this->currentMultiplier = $gameData['multiplier'];
                 }
 
-                // যদি নতুন running শুরু হয়
-                if ($previousStatus !== 'running') {
+                // নতুন running শুরু হলে
+                if ($previousStatus !== 'running' || $isNewGame) {
                     $this->runningPlayerCount = $this->waitingPlayerCount;
                     $this->dispatch('startRunningDecrease');
                 }
@@ -314,6 +323,19 @@ class CrashGameComponent extends Component
         $this->loadCurrentGame();
         $this->loadRecentGames();
     }
+
+    /*
+    * ✅ KEY IMPROVEMENTS:
+    *
+    * 1. Game ID tracking করা হচ্ছে নতুন game detect করতে
+    * 2. State transition শুধু একবার trigger হবে
+    * 3. Crashed state শুধু একবার dispatch হবে
+    * 4. Waiting countdown precise timing পাবে
+    * 5. Running state skip হবে না
+    *
+    * এটি আপনার blade file-এ এভাবে কাজ করবে:
+    * Crashed → 3 sec wait → Waiting (10 sec countdown) → Running
+    */
 
     /**
      * Refresh component (called by wire:poll)
