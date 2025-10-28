@@ -1123,64 +1123,147 @@
                 window.playerManager = new PlayerCountManager();
 
                 // Countdown Timer class
-                class CountdownTimer {
-                    constructor() {
-                        this.interval = null;
-                        this.endTime = null;
-                        this.isRunning = false;
-                        this.totalDuration = 10;
-                    }
+                // class CountdownTimer {
+                //     constructor() {
+                //         this.interval = null;
+                //         this.endTime = null;
+                //         this.isRunning = false;
+                //         this.totalDuration = 10;
+                //     }
 
-                    start(duration = 10, totalDuration = 10) {
-                        this.stop();
+                //     start(duration = 10, totalDuration = 10) {
+                //         this.stop();
 
-                        console.log(`Starting countdown: ${duration}s remaining of ${totalDuration}s total`);
+                //         console.log(`Starting countdown: ${duration}s remaining of ${totalDuration}s total`);
 
-                        const progressElement = document.getElementById('countdown-progress');
-                        if (!progressElement) {
-                            console.error('Progress element not found');
-                            return;
-                        }
+                //         const progressElement = document.getElementById('countdown-progress');
+                //         if (!progressElement) {
+                //             console.error('Progress element not found');
+                //             return;
+                //         }
 
-                        this.totalDuration = totalDuration;
-                        this.endTime = Date.now() + (duration * 1000);
-                        this.isRunning = true;
+                //         this.totalDuration = totalDuration;
+                //         this.endTime = Date.now() + (duration * 1000);
+                //         this.isRunning = true;
 
-                        // Immediate update
-                        this.updateDisplay(progressElement, duration);
+                //         // Immediate update
+                //         this.updateDisplay(progressElement, duration);
 
-                        // Update every 50ms for smooth animation
-                        this.interval = setInterval(() => {
-                            const now = Date.now();
-                            const timeLeft = Math.max(0, this.endTime - now);
-                            const secondsLeft = timeLeft / 1000;
+                //         // Update every 50ms for smooth animation
+                //         this.interval = setInterval(() => {
+                //             const now = Date.now();
+                //             const timeLeft = Math.max(0, this.endTime - now);
+                //             const secondsLeft = timeLeft / 1000;
 
-                            this.updateDisplay(progressElement, secondsLeft);
+                //             this.updateDisplay(progressElement, secondsLeft);
 
-                            if (timeLeft <= 0) {
-                                console.log('Countdown finished');
-                                this.stop();
-                                progressElement.style.width = '0%';
-                            }
-                        }, 50);
-                    }
+                //             if (timeLeft <= 0) {
+                //                 console.log('Countdown finished');
+                //                 this.stop();
+                //                 progressElement.style.width = '0%';
+                //             }
+                //         }, 50);
+                //     }
 
-                    updateDisplay(progressElement, secondsLeft) {
-                        if (progressElement) {
-                            const progressPercent = (secondsLeft / this.totalDuration) * 100;
-                            progressElement.style.width = Math.max(0, Math.min(100, progressPercent)) + '%';
-                        }
-                    }
+                //     updateDisplay(progressElement, secondsLeft) {
+                //         if (progressElement) {
+                //             const progressPercent = (secondsLeft / this.totalDuration) * 100;
+                //             progressElement.style.width = Math.max(0, Math.min(100, progressPercent)) + '%';
+                //         }
+                //     }
 
-                    stop() {
-                        if (this.interval) {
-                            clearInterval(this.interval);
+                //     stop() {
+                //         if (this.interval) {
+                //             clearInterval(this.interval);
+                //             this.interval = null;
+                //         }
+                //         this.isRunning = false;
+                //         console.log('Countdown stopped');
+                //     }
+                // }
+
+                // ✅ UPDATED CountdownTimer class - Exact 10 second timing
+                    class CountdownTimer {
+                        constructor() {
                             this.interval = null;
+                            this.endTime = null;
+                            this.isRunning = false;
+                            this.totalDuration = 10.0;
+                            this.startTime = null;
                         }
-                        this.isRunning = false;
-                        console.log('Countdown stopped');
+
+                        start(duration = 10.0, totalDuration = 10.0) {
+                            this.stop();
+
+                            // ✅ CRITICAL: Validate and cap duration
+                            duration = Math.max(0, Math.min(10.0, parseFloat(duration)));
+                            totalDuration = 10.0; // ✅ Always exactly 10
+
+                            console.log(`⏱️  Starting countdown: ${duration.toFixed(3)}s remaining of ${totalDuration}s total`);
+
+                            const progressElement = document.getElementById('countdown-progress');
+                            if (!progressElement) {
+                                console.error('❌ Progress element not found');
+                                return;
+                            }
+
+                            this.totalDuration = totalDuration;
+                            this.startTime = Date.now();
+                            this.endTime = this.startTime + (duration * 1000);
+                            this.isRunning = true;
+
+                            // ✅ Log exact timing
+                            console.log(`Start: ${new Date(this.startTime).toISOString()}`);
+                            console.log(`End:   ${new Date(this.endTime).toISOString()}`);
+
+                            // Immediate update
+                            this.updateDisplay(progressElement, duration);
+
+                            // ✅ High frequency updates for smoothness
+                            this.interval = setInterval(() => {
+                                const now = Date.now();
+                                const timeLeft = Math.max(0, this.endTime - now);
+                                const secondsLeft = timeLeft / 1000;
+
+                                this.updateDisplay(progressElement, secondsLeft);
+
+                                if (timeLeft <= 0) {
+                                    const actualDuration = (now - this.startTime) / 1000;
+                                    const deviation = Math.abs(actualDuration - this.totalDuration);
+
+                                    console.log(`✅ Countdown finished!`);
+                                    console.log(`   Expected: ${this.totalDuration.toFixed(3)}s`);
+                                    console.log(`   Actual:   ${actualDuration.toFixed(3)}s`);
+                                    console.log(`   Deviation: ${(deviation * 1000).toFixed(2)}ms`);
+
+                                    if (deviation < 0.1) {
+                                        console.log('🎯 PERFECT TIMING!');
+                                    } else {
+                                        console.warn('⚠️  Timing drift detected');
+                                    }
+
+                                    this.stop();
+                                    progressElement.style.width = '0%';
+                                }
+                            }, 20); // ✅ Update every 20ms for smooth animation
+                        }
+
+                        updateDisplay(progressElement, secondsLeft) {
+                            if (progressElement) {
+                                const progressPercent = (secondsLeft / this.totalDuration) * 100;
+                                const clampedPercent = Math.max(0, Math.min(100, progressPercent));
+                                progressElement.style.width = clampedPercent + '%';
+                            }
+                        }
+
+                        stop() {
+                            if (this.interval) {
+                                clearInterval(this.interval);
+                                this.interval = null;
+                            }
+                            this.isRunning = false;
+                        }
                     }
-                }
 
                 window.countdownTimer = new CountdownTimer();
 
@@ -1274,14 +1357,49 @@
                     }, 1000);
                 });
 
-                Livewire.on('countdownShouldStart', (data) => {
-                    console.log('Countdown should start event received:', data);
+                // Livewire.on('countdownShouldStart', (data) => {
+                //     console.log('Countdown should start event received:', data);
 
-                    // ✅ CRITICAL: Multiplier reset করুন waiting এ
+                //     // ✅ CRITICAL: Multiplier reset করুন waiting এ
+                //     window.resetMultiplier();
+                //     window.crashGameState.gameStatus = 'waiting';
+
+                //     // Stop all previous intervals
+                //     if (window.playerManager) {
+                //         window.playerManager.stopAll();
+                //     }
+                //     if (window.countdownTimer) {
+                //         window.countdownTimer.stop();
+                //     }
+
+                //     // Reset player counts
+                //     @this.call('resetPlayerCounts');
+
+                //     // Start new waiting period with EXACT timing
+                //     setTimeout(() => {
+                //         if (window.playerManager) {
+                //             window.playerManager.startWaitingIncrease();
+                //         }
+                //         if (window.countdownTimer && data) {
+                //             const duration = data.duration || 10;
+                //             const totalDuration = data.totalDuration || 10;
+                //             console.log(`Starting countdown with duration: ${duration}s, total: ${totalDuration}s`);
+                //             window.countdownTimer.start(duration, totalDuration);
+                //         } else if (window.countdownTimer) {
+                //             window.countdownTimer.start(10, 10);
+                //         }
+                //     }, 500);
+                // });
+
+                // ✅ UPDATED Event Listener for countdown
+                Livewire.on('countdownShouldStart', (data) => {
+                    console.log('📨 Countdown event received:', data);
+
+                    // ✅ Reset multiplier
                     window.resetMultiplier();
                     window.crashGameState.gameStatus = 'waiting';
 
-                    // Stop all previous intervals
+                    // Stop all intervals
                     if (window.playerManager) {
                         window.playerManager.stopAll();
                     }
@@ -1292,21 +1410,58 @@
                     // Reset player counts
                     @this.call('resetPlayerCounts');
 
-                    // Start new waiting period with EXACT timing
+                    // ✅ Start countdown with exact timing
                     setTimeout(() => {
                         if (window.playerManager) {
                             window.playerManager.startWaitingIncrease();
                         }
                         if (window.countdownTimer && data) {
-                            const duration = data.duration || 10;
-                            const totalDuration = data.totalDuration || 10;
-                            console.log(`Starting countdown with duration: ${duration}s, total: ${totalDuration}s`);
+                            let duration = parseFloat(data.duration) || 10.0;
+                            let totalDuration = parseFloat(data.totalDuration) || 10.0;
+
+                            // ✅ Validate values
+                            duration = Math.max(0, Math.min(10.0, duration));
+                            totalDuration = 10.0;
+
+                            console.log(`🎬 Starting countdown: ${duration.toFixed(3)}s of ${totalDuration}s`);
                             window.countdownTimer.start(duration, totalDuration);
                         } else if (window.countdownTimer) {
-                            window.countdownTimer.start(10, 10);
+                            console.log('🎬 Starting countdown: fallback 10s');
+                            window.countdownTimer.start(10.0, 10.0);
                         }
-                    }, 500);
+                    }, 200); // ✅ Reduced delay for quicker response
                 });
+
+                // ✅ VERIFICATION: Add this for testing
+                window.testCountdownTiming = function() {
+                    console.log('🧪 Testing countdown timing...');
+
+                    let startTime = Date.now();
+                    let countdownReceived = false;
+
+                    const listener = Livewire.on('countdownShouldStart', () => {
+                        if (!countdownReceived) {
+                            countdownReceived = true;
+                            startTime = Date.now();
+                            console.log('⏱️  Countdown started at:', new Date(startTime).toISOString());
+
+                            setTimeout(() => {
+                                const endTime = Date.now();
+                                const actualDuration = (endTime - startTime) / 1000;
+                                const deviation = Math.abs(actualDuration - 10.0);
+
+                                console.log('📊 Test Results:');
+                                console.log('   Duration: ' + actualDuration.toFixed(3) + 's');
+                                console.log('   Deviation: ' + (deviation * 1000).toFixed(2) + 'ms');
+                                console.log(deviation < 0.2 ? '   ✅ PASS' : '   ❌ FAIL');
+                            }, 10100);
+                        }
+                    });
+                };
+
+                // ✅ Initialize countdown timer
+                window.countdownTimer = new CountdownTimer();
+                //-------------------------
 
                 Livewire.on('betPlaced', () => {
                     console.log('Livewire event: betPlaced');

@@ -91,9 +91,29 @@ class CrashGameService
         return (float) $this->settings->max_multiplier;
     }
 
+    // public function getBetWaitingTime(): int
+    // {
+    //     return (int) $this->settings->bet_waiting_time;
+    // }
+
     public function getBetWaitingTime(): int
     {
-        return (int) $this->settings->bet_waiting_time;
+        // ✅ CRITICAL: ALWAYS return exactly 10 seconds
+        // This ensures numbers.gif plays completely
+        return 10;
+
+        // Alternative with validation (if you want to read from DB):
+        /*
+        $configuredTime = (int) $this->settings->bet_waiting_time;
+
+        // Force 10 seconds regardless of DB value
+        if ($configuredTime !== 10) {
+            \Log::warning("Bet waiting time in DB is {$configuredTime}, forcing 10 seconds");
+            return 10;
+        }
+
+        return 10;
+        */
     }
 
     public function isGameActive(): bool
@@ -317,4 +337,19 @@ class CrashGameService
     {
         return $this->settings;
     }
+
+    /**
+ * Verify and fix waiting time if needed
+ */
+    public function ensureCorrectWaitingTime(): void
+    {
+        $currentValue = $this->settings->bet_waiting_time;
+
+        if ($currentValue != 10) {
+            \Log::warning("Fixing bet_waiting_time from {$currentValue} to 10");
+            $this->settings->update(['bet_waiting_time' => 10]);
+            $this->loadSettings(); // Reload
+        }
+    }
+
 }
