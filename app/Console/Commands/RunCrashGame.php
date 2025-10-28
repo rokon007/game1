@@ -1,8 +1,3 @@
-// ============================================
-// FILE 1: RunCrashGame.php - COMPLETE UPDATE
-// ✅ Exact 10 second waiting + Instant crash
-// ============================================
-
 <?php
 
 namespace App\Console\Commands;
