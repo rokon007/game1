@@ -670,7 +670,7 @@
         <livewire:layout.frontend.footer />
     @endsection
 
-    @section('JS')
+    {{-- @section('JS')
         @include('livewire.layout.frontend.js')
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.all.min.js"></script>
 
@@ -1044,6 +1044,362 @@
             });
 
             // Cleanup
+            window.addEventListener('beforeunload', function() {
+                if (window.countdownTimer) {
+                    window.countdownTimer.stop();
+                }
+                if (window.playerManager) {
+                    window.playerManager.stopAll();
+                }
+                if (window.gameInterval) {
+                    clearInterval(window.gameInterval);
+                }
+            });
+        </script>
+    @endsection --}}
+
+
+    @section('JS')
+        @include('livewire.layout.frontend.js')
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.all.min.js"></script>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('DOM loaded - initializing mobile game');
+
+                // ✅ Global state tracker
+                window.crashGameState = {
+                    currentGameId: null,
+                    currentMultiplier: 1.00,
+                    gameStatus: 'waiting'
+                };
+
+                // ✅ Multiplier reset function
+                window.resetMultiplier = function() {
+                    console.log('Resetting multiplier to 1.00');
+                    window.crashGameState.currentMultiplier = 1.00;
+
+                    const displayElement = document.getElementById('multiplier-display');
+                    if (displayElement) {
+                        displayElement.textContent = '1.00x';
+                    }
+                };
+
+                // PlayerCountManager class
+                class PlayerCountManager {
+                    constructor() {
+                        this.waitingInterval = null;
+                        this.runningInterval = null;
+                    }
+
+                    startWaitingIncrease() {
+                        console.log('Starting waiting increase');
+                        this.stopAll();
+                        this.waitingInterval = setInterval(() => {
+                            @this.call('increaseWaitingPlayers');
+                        }, 800);
+                    }
+
+                    startRunningDecrease() {
+                        console.log('Starting running decrease');
+                        this.stopAll();
+                        this.runningInterval = setInterval(() => {
+                            @this.call('decreaseRunningPlayers');
+                        }, 600);
+                    }
+
+                    stopAll() {
+                        if (this.waitingInterval) {
+                            clearInterval(this.waitingInterval);
+                            this.waitingInterval = null;
+                        }
+                        if (this.runningInterval) {
+                            clearInterval(this.runningInterval);
+                            this.runningInterval = null;
+                        }
+                    }
+                }
+
+                window.playerManager = new PlayerCountManager();
+
+                // Countdown Timer class
+                class CountdownTimer {
+                    constructor() {
+                        this.interval = null;
+                        this.endTime = null;
+                        this.isRunning = false;
+                        this.totalDuration = 10;
+                    }
+
+                    start(duration = 10, totalDuration = 10) {
+                        this.stop();
+
+                        console.log(`Starting countdown: ${duration}s remaining of ${totalDuration}s total`);
+
+                        const progressElement = document.getElementById('countdown-progress');
+                        if (!progressElement) {
+                            console.error('Progress element not found');
+                            return;
+                        }
+
+                        this.totalDuration = totalDuration;
+                        this.endTime = Date.now() + (duration * 1000);
+                        this.isRunning = true;
+
+                        // Immediate update
+                        this.updateDisplay(progressElement, duration);
+
+                        // Update every 50ms for smooth animation
+                        this.interval = setInterval(() => {
+                            const now = Date.now();
+                            const timeLeft = Math.max(0, this.endTime - now);
+                            const secondsLeft = timeLeft / 1000;
+
+                            this.updateDisplay(progressElement, secondsLeft);
+
+                            if (timeLeft <= 0) {
+                                console.log('Countdown finished');
+                                this.stop();
+                                progressElement.style.width = '0%';
+                            }
+                        }, 50);
+                    }
+
+                    updateDisplay(progressElement, secondsLeft) {
+                        if (progressElement) {
+                            const progressPercent = (secondsLeft / this.totalDuration) * 100;
+                            progressElement.style.width = Math.max(0, Math.min(100, progressPercent)) + '%';
+                        }
+                    }
+
+                    stop() {
+                        if (this.interval) {
+                            clearInterval(this.interval);
+                            this.interval = null;
+                        }
+                        this.isRunning = false;
+                        console.log('Countdown stopped');
+                    }
+                }
+
+                window.countdownTimer = new CountdownTimer();
+
+                // ✅ UPDATED: Multiplier animation functions
+                window.gameInterval = null;
+                window.currentMult = 1.00;
+
+                window.startMultiplierAnimation = function(targetMult) {
+                    if (window.gameInterval) clearInterval(window.gameInterval);
+
+                    // ✅ সবসময় 1.00 থেকে শুরু করুন
+                    window.currentMult = 1.00;
+                    window.crashGameState.currentMultiplier = 1.00;
+
+                    const displayElement = document.getElementById('multiplier-display');
+                    if (displayElement) {
+                        displayElement.textContent = '1.00x';
+                    }
+
+                    window.gameInterval = setInterval(() => {
+                        window.currentMult += 0.01;
+                        window.crashGameState.currentMultiplier = window.currentMult;
+
+                        if (displayElement) {
+                            displayElement.textContent = window.currentMult.toFixed(2) + 'x';
+                        }
+
+                        if (window.currentMult >= targetMult) {
+                            window.stopMultiplierAnimation();
+                        }
+                    }, 50);
+                }
+
+                window.stopMultiplierAnimation = function() {
+                    if (window.gameInterval) {
+                        clearInterval(window.gameInterval);
+                        window.gameInterval = null;
+                    }
+                }
+
+                window.showCrashAlert = function(crashPoint) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'CRASHED!',
+                        text: 'Crashed at ' + crashPoint.toFixed(2) + 'x',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                }
+
+                // ============================================
+                // Livewire event listeners
+                // ============================================
+
+                Livewire.on('startWaitingIncrease', () => {
+                    console.log('Livewire event: startWaitingIncrease');
+                    if (window.playerManager) {
+                        window.playerManager.startWaitingIncrease();
+                    }
+                });
+
+                Livewire.on('startRunningDecrease', () => {
+                    console.log('Livewire event: startRunningDecrease');
+                    if (window.playerManager) {
+                        window.playerManager.startRunningDecrease();
+                    }
+                });
+
+                Livewire.on('gameCrashed', (data) => {
+                    console.log('Livewire event: gameCrashed', data);
+
+                    // Stop all intervals
+                    if (window.playerManager) {
+                        window.playerManager.stopAll();
+                    }
+                    if (window.countdownTimer) {
+                        window.countdownTimer.stop();
+                    }
+
+                    // ✅ Stop multiplier animation
+                    window.stopMultiplierAnimation();
+
+                    // Show crash alert
+                    window.showCrashAlert(data.crashPoint);
+
+                    // Reset player counts after 1 second
+                    setTimeout(() => {
+                        @this.call('resetPlayerCounts');
+                        // ✅ Reset multiplier display
+                        window.resetMultiplier();
+                    }, 1000);
+                });
+
+                Livewire.on('countdownShouldStart', (data) => {
+                    console.log('Countdown should start event received:', data);
+
+                    // ✅ CRITICAL: Multiplier reset করুন waiting এ
+                    window.resetMultiplier();
+                    window.crashGameState.gameStatus = 'waiting';
+
+                    // Stop all previous intervals
+                    if (window.playerManager) {
+                        window.playerManager.stopAll();
+                    }
+                    if (window.countdownTimer) {
+                        window.countdownTimer.stop();
+                    }
+
+                    // Reset player counts
+                    @this.call('resetPlayerCounts');
+
+                    // Start new waiting period with EXACT timing
+                    setTimeout(() => {
+                        if (window.playerManager) {
+                            window.playerManager.startWaitingIncrease();
+                        }
+                        if (window.countdownTimer && data) {
+                            const duration = data.duration || 10;
+                            const totalDuration = data.totalDuration || 10;
+                            console.log(`Starting countdown with duration: ${duration}s, total: ${totalDuration}s`);
+                            window.countdownTimer.start(duration, totalDuration);
+                        } else if (window.countdownTimer) {
+                            window.countdownTimer.start(10, 10);
+                        }
+                    }, 500);
+                });
+
+                Livewire.on('betPlaced', () => {
+                    console.log('Livewire event: betPlaced');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Bet Successful!',
+                        text: 'Your bet has been recorded',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                });
+
+                Livewire.on('cashedOut', () => {
+                    console.log('Livewire event: cashedOut');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Cashout Successful!',
+                        text: 'You won!',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                });
+
+                // ============================================
+                // Initialize based on current state
+                // ============================================
+
+                @if($gameStatus === 'waiting')
+                    console.log('Initializing waiting state');
+                    // ✅ Ensure multiplier is 1.00
+                    window.resetMultiplier();
+                    window.crashGameState.gameStatus = 'waiting';
+
+                    setTimeout(() => {
+                        if (window.playerManager) {
+                            window.playerManager.startWaitingIncrease();
+                        }
+                        if (window.countdownTimer) {
+                            window.countdownTimer.start(10);
+                        }
+                    }, 1000);
+                @elseif($gameStatus === 'running')
+                    console.log('Initializing running state');
+                    // ✅ Running শুরু হলে current multiplier set করুন
+                    window.crashGameState.gameStatus = 'running';
+                    window.crashGameState.currentMultiplier = {{ $currentMultiplier }};
+
+                    const displayElement = document.getElementById('multiplier-display');
+                    if (displayElement) {
+                        displayElement.textContent = '{{ number_format($currentMultiplier, 2) }}x';
+                    }
+
+                    setTimeout(() => {
+                        if (window.playerManager) {
+                            window.playerManager.startRunningDecrease();
+                        }
+                    }, 1000);
+                @elseif($gameStatus === 'crashed')
+                    console.log('Initializing crashed state - will wait for next game');
+                    window.crashGameState.gameStatus = 'crashed';
+                    window.crashGameState.currentMultiplier = {{ $currentMultiplier }};
+                @endif
+
+                // ============================================
+                // Mobile touch improvements
+                // ============================================
+
+                const buttons = document.querySelectorAll('.quick-bet-btn, .mobile-action-btn');
+                buttons.forEach(button => {
+                    button.addEventListener('touchstart', function() {
+                        this.style.transform = 'scale(0.95)';
+                    });
+
+                    button.addEventListener('touchend', function() {
+                        this.style.transform = 'scale(1)';
+                    });
+                });
+
+                // Prevent zoom on double tap
+                let lastTouchEnd = 0;
+                document.addEventListener('touchend', function (event) {
+                    const now = (new Date()).getTime();
+                    if (now - lastTouchEnd <= 300) {
+                        event.preventDefault();
+                    }
+                    lastTouchEnd = now;
+                }, false);
+            });
+
+            // ============================================
+            // Cleanup
+            // ============================================
+
             window.addEventListener('beforeunload', function() {
                 if (window.countdownTimer) {
                     window.countdownTimer.stop();

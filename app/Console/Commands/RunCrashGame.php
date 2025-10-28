@@ -181,6 +181,7 @@ class RunCrashGame extends Command
         $this->info("Running game #{$game->id} - Will crash at {$crashPoint}x - Speed: {$speedProfile}");
         $this->info("Estimated duration: {$estimatedDuration} seconds");
 
+        $this->broadcastGameUpdate($game, 1.00, 'running');
         event(new \App\Events\CrashGameStarted($game, $currentMultiplier));
 
         $lastBroadcastTime = microtime(true);

@@ -23,10 +23,11 @@ class CrashGameComponent extends Component
     public int $waitingPlayerCount = 0;
     public int $runningPlayerCount = 0;
     public bool $isFirstLoad = true;
-    public  $srartWCount = true;
-
-    // Countdown timestamp for JavaScript
+    public $srartWCount = true;
     public string $countdownTimestamp = '';
+
+    // ✅ NEW: Track current game ID
+    public ?int $currentGameId = null;
 
     protected CrashGameService $gameService;
 
@@ -40,6 +41,12 @@ class CrashGameComponent extends Component
         $this->loadCurrentGame();
         $this->loadRecentGames();
         $this->updateCountdownTimestamp();
+
+        // ✅ Initialize current game ID
+        if ($this->currentGame) {
+            $this->currentGameId = $this->currentGame->id;
+        }
+
         // শুধু প্রথম লোডে waiting player count generate করুন
         if ($this->isFirstLoad) {
             $this->waitingPlayerCount = rand(1025, 10712);
@@ -52,11 +59,6 @@ class CrashGameComponent extends Component
      */
     public function generatePlayerCounts(): void
     {
-        //dd($this->srartWCount);
-        // if($this->srartWCount){
-        //     $this->waitingPlayerCount = rand(1025, 10712);
-        // }
-
         if($this->gameStatus !== 'waiting'){
             $this->waitingPlayerCount = rand(1025, 10712);
         }
@@ -69,12 +71,10 @@ class CrashGameComponent extends Component
     public function increaseWaitingPlayers(): void
     {
         if ($this->gameStatus === 'waiting') {
-            $this->srartWCount=false;
-            $increase = rand(50, 200); // কম রেঞ্জ দিয়ে ধীরে ধীরে বাড়ানো
+            $this->srartWCount = false;
+            $increase = rand(50, 200);
             $this->waitingPlayerCount += $increase;
         }
-
-
     }
 
     /**
@@ -198,70 +198,25 @@ class CrashGameComponent extends Component
         }
     }
 
-    // public function pollGameData(): void
-    // {
-    //     $gameData = cache()->get('crash_game_current');
-
-    //     if ($gameData) {
-    //         $previousStatus = $this->gameStatus;
-    //         $this->currentMultiplier = $gameData['multiplier'];
-    //         $this->gameStatus = $gameData['status'];
-
-    //         //Update countdown timestamp when game enters waiting state
-    //         if ($this->gameStatus === 'waiting' && $previousStatus !== 'waiting') {
-
-    //                 //$this->generatePlayerCounts();
-    //                 $this->dispatch('startWaitingIncrease');
-    //                // $this->srartWCount=false;
-
-    //         }
-
-
-
-    //         // Start running simulation when game starts
-    //         if ($this->gameStatus === 'running' && $previousStatus !== 'running') {
-    //             $this->runningPlayerCount = $this->waitingPlayerCount;
-    //             $this->dispatch('startRunningDecrease');
-    //         }
-
-    //         // Dispatch event to frontend if crashed
-    //         if ($gameData['status'] === 'crashed') {
-    //             $this->dispatch('gameCrashed', crashPoint: $gameData['crash_point']);
-    //             $this->srartWCount=true;
-    //         }
-    //     }
-
-    //     $this->loadCurrentGame();
-    //     $this->loadRecentGames();
-    // }
-
-
     /**
-     * Refresh component (called by wire:poll)
+     * ✅ UPDATED: Poll game data with proper multiplier reset
      */
-    // public function refreshGameState(): void
-    // {
-    //      if ($this->gameStatus === 'waiting'){
-    //             $this->srartWCount=false;
-    //             $increase = rand(50, 200); // কম রেঞ্জ দিয়ে ধীরে ধীরে বাড়ানো
-    //             $this->waitingPlayerCount += $increase;
-    //          }
-    //     $this->pollGameData();
-    // }
-
     public function pollGameData(): void
     {
         $gameData = cache()->get('crash_game_current');
 
         if ($gameData) {
             $previousStatus = $this->gameStatus;
-            $previousGameId = $this->currentGame ? $this->currentGame->id : null;
+            $previousGameId = $this->currentGameId;
             $currentGameId = $gameData['game_id'];
 
-            $this->gameStatus = $gameData['status'];
-
-            // ✅ NEW GAME DETECTION: যদি game ID বদলে যায়
+            // ✅ NEW: নতুন game detect করুন
             $isNewGame = ($previousGameId !== $currentGameId);
+
+            // ✅ Update current game ID
+            $this->currentGameId = $currentGameId;
+
+            $this->gameStatus = $gameData['status'];
 
             // ✅ CRASHED STATE
             if ($this->gameStatus === 'crashed') {
@@ -275,6 +230,7 @@ class CrashGameComponent extends Component
             }
             // ✅ WAITING STATE
             elseif ($this->gameStatus === 'waiting') {
+                // ✅ CRITICAL: Waiting এ সবসময় 1.00 করুন
                 $this->currentMultiplier = 1.00;
 
                 // নতুন waiting period শুরু হলে
@@ -287,13 +243,12 @@ class CrashGameComponent extends Component
                         $currentTime = microtime(true);
                         $remainingTime = max(0, $waitingEnd - $currentTime);
 
-                        // ✅ Dispatch countdown with exact timing
                         $this->dispatch('countdownShouldStart', [
                             'duration' => $remainingTime,
                             'totalDuration' => $waitingDuration
                         ]);
                     } else {
-                        // Fallback
+                        // Fallback to default
                         $this->dispatch('countdownShouldStart', [
                             'duration' => 10,
                             'totalDuration' => 10
@@ -305,37 +260,36 @@ class CrashGameComponent extends Component
             }
             // ✅ RUNNING STATE
             elseif ($this->gameStatus === 'running') {
-                $previousMultiplier = $this->currentMultiplier;
-
-                // শুধু বৃদ্ধি পেলে update করুন
-                if ($gameData['multiplier'] >= $previousMultiplier) {
-                    $this->currentMultiplier = $gameData['multiplier'];
-                }
-
-                // নতুন running শুরু হলে
-                if ($previousStatus !== 'running' || $isNewGame) {
+                // ✅ CRITICAL: নতুন game শুরু হলে 1.00 থেকে শুরু করুন
+                if ($isNewGame) {
+                    $this->currentMultiplier = 1.00;
                     $this->runningPlayerCount = $this->waitingPlayerCount;
                     $this->dispatch('startRunningDecrease');
                 }
+
+                // ✅ শুধু একই game-এ বৃদ্ধি করুন
+                if (!$isNewGame && $gameData['multiplier'] >= $this->currentMultiplier) {
+                    $this->currentMultiplier = $gameData['multiplier'];
+                }
+
+                // State transition handle করুন
+                if ($previousStatus !== 'running') {
+                    $this->runningPlayerCount = $this->waitingPlayerCount;
+                    $this->dispatch('startRunningDecrease');
+                }
+            }
+        } else {
+            // ✅ No game data - reset to waiting
+            if ($this->gameStatus !== 'waiting') {
+                $this->gameStatus = 'waiting';
+                $this->currentMultiplier = 1.00;
+                $this->currentGameId = null;
             }
         }
 
         $this->loadCurrentGame();
         $this->loadRecentGames();
     }
-
-    /*
-    * ✅ KEY IMPROVEMENTS:
-    *
-    * 1. Game ID tracking করা হচ্ছে নতুন game detect করতে
-    * 2. State transition শুধু একবার trigger হবে
-    * 3. Crashed state শুধু একবার dispatch হবে
-    * 4. Waiting countdown precise timing পাবে
-    * 5. Running state skip হবে না
-    *
-    * এটি আপনার blade file-এ এভাবে কাজ করবে:
-    * Crashed → 3 sec wait → Waiting (10 sec countdown) → Running
-    */
 
     /**
      * Refresh component (called by wire:poll)
@@ -414,6 +368,7 @@ class CrashGameComponent extends Component
 
     public function render()
     {
-        return view('livewire.frontend.crash-game.crash-game-component')->layout('livewire.layout.frontend.base');
+        return view('livewire.frontend.crash-game.crash-game-component')
+            ->layout('livewire.layout.frontend.base');
     }
 }
