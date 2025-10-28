@@ -257,8 +257,8 @@
             }
 
             .recent-game-badge {
-                font-size: 8px;
-                padding: 2px 4px;
+                font-size: 16px;
+                padding: 4px 8px;
                 border-radius: 8px;
             }
 
@@ -356,7 +356,7 @@
                 }
 
                 .mobile-quick-bets {
-                    grid-template-columns: repeat(2, 1fr);
+                    grid-template-columns: repeat(3, 1fr);
                 }
 
                 .mobile-game-content {
@@ -455,6 +455,11 @@
                 margin: 1px 0;
             }
 
+            .compact-text2 {
+                font-size: 16px;
+                margin: 1px 0;
+            }
+
             .compact-badge {
                 font-size: 7px;
                 padding: 1px 4px;
@@ -511,7 +516,7 @@
                                 <div class="multiplier-display pulse-button" id="multiplier-display">
                                     {{ number_format($currentMultiplier, 2) }}x
                                 </div>
-                                <img src="{{asset('assets/frontend/img/rocket.gif')}}" class="game-image" style="max-height: 120px;">
+                                <img src="{{asset('assets/frontend/img/rocket.gif')}}" class="game-image" style="max-height: 240px;">
 
                                 <div class="mt-1">
                                     <span class="player-count-badge">
@@ -524,7 +529,7 @@
                             <div class="game-content-center crashed-animation">
                                 <img src="{{asset('assets/frontend/img/crashed.gif')}}" class="game-image" style="max-height: 80px;">
                                 <h2 class="fw-bold text-danger mb-1" style="font-size: 1.3rem;">CRASHED!</h2>
-                                <p class="text-white compact-text">at {{ number_format($currentMultiplier, 2) }}x</p>
+                                <p class="text-white compact-text2">at {{ number_format($currentMultiplier, 2) }}x</p>
                             </div>
                         @endif
 
@@ -588,11 +593,11 @@
                         <i class="fas fa-coins me-1"></i>Bet Amount
                     </label>
 
-                    <div class="bet-input-group @if($userBet || $gameStatus === 'running') disabled @endif">
+                    <div class="bet-input-group">
                         <button
                             class="bet-control-btn"
                             wire:click="decreaseBetAmount"
-                            @if($userBet || $gameStatus === 'running') disabled @endif
+                            {{-- @if($userBet || $gameStatus === 'running') disabled @endif --}}
                         >
                             -
                         </button>
@@ -604,13 +609,13 @@
                             min="1"
                             class="form-control bet-input"
                             placeholder="Enter amount"
-                            @if($userBet || $gameStatus === 'running') disabled @endif
+
                         >
 
                         <button
                             class="bet-control-btn"
                             wire:click="increaseBetAmount"
-                            @if($userBet || $gameStatus === 'running') disabled @endif
+                            {{-- @if($userBet || $gameStatus === 'running') disabled @endif --}}
                         >
                             +
                         </button>
