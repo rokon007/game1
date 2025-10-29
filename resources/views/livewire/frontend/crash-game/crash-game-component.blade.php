@@ -516,7 +516,7 @@
                                 <div class="multiplier-display pulse-button" id="multiplier-display">
                                     {{ number_format($currentMultiplier, 2) }}x
                                 </div>
-                                <img src="{{asset('assets/frontend/img/rocket.gif')}}" class="game-image" style="max-height: 240px;">
+                                <img src="{{asset('assets/frontend/img/rocket.gif')}}" class="game-image" style="max-height: 200px;">
 
                                 <div class="mt-1">
                                     <span class="player-count-badge">

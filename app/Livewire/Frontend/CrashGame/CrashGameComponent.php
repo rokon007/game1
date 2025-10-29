@@ -60,7 +60,7 @@ class CrashGameComponent extends Component
     public function generatePlayerCounts(): void
     {
         if($this->gameStatus !== 'waiting'){
-            $this->waitingPlayerCount = rand(1025, 10712);
+            $this->waitingPlayerCount = 1;
         }
     }
 
@@ -221,6 +221,7 @@ class CrashGameComponent extends Component
                 if ($previousStatus !== 'crashed') {
                     $this->dispatch('gameCrashed', crashPoint: $gameData['crash_point']);
                     $this->srartWCount = true;
+                    $this->waitingPlayerCount = 1;
                 }
             }
             // ✅ WAITING STATE - EXACT 10 SECONDS
