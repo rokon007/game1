@@ -150,6 +150,9 @@ class CrashGameService
                 'profit' => DB::raw('-bet_amount'),
             ]);
 
+            // ✅ ADD THIS: Refresh game data before calculation
+            $game->refresh();
+
             // Calculate final commission and rollover
             $rolloverAmount = $this->betPoolService->calculateAndSetRollover($game);
 
