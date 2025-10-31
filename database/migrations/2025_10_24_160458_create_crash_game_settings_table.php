@@ -1,5 +1,5 @@
 <?php
-// database/migrations/2024_01_01_create_crash_game_settings_table.php
+//2025_10_24_160458_create_crash_game_settings_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

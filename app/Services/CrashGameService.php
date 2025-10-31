@@ -1,5 +1,5 @@
 <?php
-// app/Services/CrashGameService.php
+// app/Services/CrashGameService.php - UPDATED WITH NEW LOGIC
 
 namespace App\Services;
 
@@ -9,47 +9,42 @@ use App\Models\User;
 use App\Models\CrashGameSetting;
 use Illuminate\Support\Facades\DB;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class CrashGameService
 {
     private $settings;
     private $lastSettingsHash;
+    private $betPoolService;
 
     public function __construct()
     {
         $this->loadSettings();
+        $this->betPoolService = new CrashBetPoolService();
     }
 
     private function loadSettings(): void
     {
         $this->settings = CrashGameSetting::first();
         if (!$this->settings) {
-            // Create default settings if not exists
             $this->settings = CrashGameSetting::create([]);
         }
-
-        // Store settings hash for change detection
         $this->lastSettingsHash = $this->getSettingsHash();
     }
 
-    /**
-     * Check if settings have changed and reload if needed
-     */
     public function checkAndReloadSettings(): bool
     {
         $currentHash = $this->getSettingsHash();
 
         if ($currentHash !== $this->lastSettingsHash) {
             $this->loadSettings();
-            return true; // Settings were reloaded
+            $this->betPoolService->reloadSettings();
+            return true;
         }
 
-        return false; // No changes
+        return false;
     }
 
-    /**
-     * Generate a unique hash for current settings
-     */
     private function getSettingsHash(): string
     {
         if (!$this->settings) {
@@ -60,87 +55,21 @@ class CrashGameService
             'house_edge' => $this->settings->house_edge,
             'min_multiplier' => $this->settings->min_multiplier,
             'max_multiplier' => $this->settings->max_multiplier,
-            'bet_waiting_time' => $this->settings->bet_waiting_time,
-            'min_bet_amount' => $this->settings->min_bet_amount,
-            'max_bet_amount' => $this->settings->max_bet_amount,
-            'is_active' => $this->settings->is_active,
-            'multiplier_increment' => $this->settings->multiplier_increment,
-            'multiplier_interval_ms' => $this->settings->multiplier_interval_ms,
-            'max_speed_multiplier' => $this->settings->max_speed_multiplier,
-            'enable_auto_acceleration' => $this->settings->enable_auto_acceleration,
-            'speed_profile' => $this->settings->speed_profile,
+            'admin_commission_rate' => $this->settings->admin_commission_rate,
             'updated_at' => $this->settings->updated_at->timestamp,
         ];
 
         return md5(serialize($settingsData));
     }
 
-
-    private function getHouseEdge(): float
-    {
-        return (float) $this->settings->house_edge;
-    }
-
-    private function getMinMultiplier(): float
-    {
-        return (float) $this->settings->min_multiplier;
-    }
-
-    private function getMaxMultiplier(): float
-    {
-        return (float) $this->settings->max_multiplier;
-    }
-
-    // public function getBetWaitingTime(): int
-    // {
-    //     return (int) $this->settings->bet_waiting_time;
-    // }
-
     public function getBetWaitingTime(): int
     {
-        // ✅ CRITICAL: ALWAYS return exactly 10 seconds
-        // This ensures numbers.gif plays completely
         return 10;
-
-        // Alternative with validation (if you want to read from DB):
-        /*
-        $configuredTime = (int) $this->settings->bet_waiting_time;
-
-        // Force 10 seconds regardless of DB value
-        if ($configuredTime !== 10) {
-            \Log::warning("Bet waiting time in DB is {$configuredTime}, forcing 10 seconds");
-            return 10;
-        }
-
-        return 10;
-        */
     }
 
     public function isGameActive(): bool
     {
         return (bool) $this->settings->is_active;
-    }
-
-    /**
-     * Generate crash point with house edge consideration
-     */
-    public function generateCrashPoint(): float
-    {
-        $random = $this->getSecureRandomFloat();
-        $houseEdge = $this->getHouseEdge();
-        $adjustedRandom = $random * (1 - $houseEdge);
-
-        if ($adjustedRandom <= 0) {
-            return $this->getMinMultiplier();
-        }
-
-        $crashPoint = (1 / $adjustedRandom);
-        $crashPoint = max(
-            $this->getMinMultiplier(),
-            min($this->getMaxMultiplier(), $crashPoint)
-        );
-
-        return round($crashPoint, 2);
     }
 
     /**
@@ -152,19 +81,27 @@ class CrashGameService
             throw new Exception('Crash game is currently inactive');
         }
 
-        $crashPoint = $this->generateCrashPoint();
         $gameHash = hash('sha256', uniqid('crash_', true) . microtime(true));
 
         return CrashGame::create([
             'game_hash' => $gameHash,
-            'crash_point' => $crashPoint,
+            'crash_point' => 1.01,
+            'initial_crash_point' => null,
             'status' => 'pending',
+            'total_bet_pool' => 0,
+            'previous_rollover' => 0,
+            'current_round_bets' => 0,
+            'total_participants' => 0,
+            'active_participants' => 0,
+            'admin_commission_amount' => 0,
+            'commission_rate' => $this->settings->admin_commission_rate ?? 10.00,
+            'pool_locked' => false,
+            'total_payout' => 0,
+            'remaining_pool' => 0,
+            'rollover_to_next' => 0,
         ]);
     }
 
-    /**
-     * Get current active game
-     */
     public function getCurrentGame(): ?CrashGame
     {
         return CrashGame::whereIn('status', ['pending', 'running'])
@@ -173,7 +110,7 @@ class CrashGameService
     }
 
     /**
-     * Start the game
+     * Start the game - LOCK BET POOL
      */
     public function startGame(CrashGame $game): bool
     {
@@ -181,15 +118,15 @@ class CrashGameService
             return false;
         }
 
+        // Lock bet pool (calculates crash point)
+        $this->betPoolService->lockBetPool($game);
+
         return $game->update([
             'status' => 'running',
             'started_at' => now(),
         ]);
     }
 
-    /**
-     * Start bets when game starts
-     */
     public function startBets(CrashGame $game): void
     {
         $game->bets()
@@ -207,16 +144,32 @@ class CrashGameService
         }
 
         return DB::transaction(function () use ($game) {
+            // Mark all pending/playing bets as lost
+            $game->activeBets()->update([
+                'status' => 'lost',
+                'profit' => DB::raw('-bet_amount'),
+            ]);
+
+            // Calculate final commission and rollover
+            $rolloverAmount = $this->betPoolService->calculateAndSetRollover($game);
+
             // Update game status
             $game->update([
                 'status' => 'crashed',
                 'crashed_at' => now(),
             ]);
 
-            // Mark all pending/playing bets as lost
-            $game->activeBets()->update([
-                'status' => 'lost',
-                'profit' => DB::raw('-bet_amount'),
+            // 🆕 NEW: Commission is already deducted from pool, no transfer needed
+            // Remaining pool (if any) goes to admin
+
+            $this->transferRemainingToAdmin($game);
+
+            Log::info("💥 Game crashed", [
+                'game_id' => $game->id,
+                'crash_point' => $game->crash_point,
+                'total_payout' => $game->total_payout,
+                'actual_commission' => $game->admin_commission_amount,
+                'rollover' => $rolloverAmount,
             ]);
 
             return true;
@@ -224,8 +177,34 @@ class CrashGameService
     }
 
     /**
-     * Place a bet
+     * 🆕 Transfer remaining pool to admin
      */
+    private function transferRemainingToAdmin(CrashGame $game): void
+    {
+        $totalPool = $game->total_bet_pool;
+        $totalPaid = $game->total_payout;
+        $rollover = $game->rollover_to_next;
+
+        // Admin gets: Total Pool - Paid to Winners - Rollover
+        $adminAmount = $totalPool - $totalPaid - $rollover;
+
+        if ($adminAmount > 0) {
+            $admin = User::find(1);
+            if ($admin) {
+                // Note: Bets already added to admin when placed
+                // So we only need to log this
+
+                Log::info("💰 Admin profit from game", [
+                    'game_id' => $game->id,
+                    'total_pool' => $totalPool,
+                    'paid_to_winners' => $totalPaid,
+                    'rollover' => $rollover,
+                    'admin_keeps' => $adminAmount,
+                ]);
+            }
+        }
+    }
+
     public function placeBet(User $user, CrashGame $game, float $betAmount): CrashBet
     {
         if (!$this->isGameActive()) {
@@ -234,6 +213,10 @@ class CrashGameService
 
         if ($game->status !== 'pending') {
             throw new Exception('Game has already started');
+        }
+
+        if ($game->pool_locked) {
+            throw new Exception('Bet pool is locked');
         }
 
         if ($betAmount < $this->settings->min_bet_amount) {
@@ -252,7 +235,7 @@ class CrashGameService
             // Deduct credit from user
             $user->decrement('credit', $betAmount);
 
-            // Add bet amount to admin (user id 1)
+            // 🆕 NEW: Add to admin immediately (as before)
             if ($user->id !== 1) {
                 User::where('id', 1)->increment('credit', $betAmount);
             }
@@ -268,7 +251,7 @@ class CrashGameService
     }
 
     /**
-     * Cashout before crash
+     * 🆕 UPDATED: Cashout with dynamic crash point recalculation
      */
     public function cashout(CrashBet $bet, float $currentMultiplier): bool
     {
@@ -284,6 +267,9 @@ class CrashGameService
             $winAmount = $bet->bet_amount * $currentMultiplier;
             $profit = $winAmount - $bet->bet_amount;
 
+            // 🆕 Calculate commission on profit (10%)
+            $commission = $profit * 0.10;
+
             // Update bet
             $bet->update([
                 'cashout_at' => $currentMultiplier,
@@ -292,64 +278,65 @@ class CrashGameService
                 'cashed_out_at' => now(),
             ]);
 
-            // Add winnings to user credit
+            // 🆕 Add winnings to user (full amount, commission already in pool)
             $bet->user->increment('credit', $winAmount);
 
-            // Deduct win amount from admin (user id 1) if user is not admin
-            if ($bet->user_id !== 1) {
-                User::where('id', 1)->decrement('credit', $winAmount);
-            }
+            // 🆕 Recalculate crash point
+            $newCrashPoint = $this->betPoolService->recalculateCrashPoint($bet->game);
+
+            // Update active participants
+            $bet->game->decrement('active_participants');
+
+            // Update crash point
+            $bet->game->update(['crash_point' => $newCrashPoint]);
+
+            // Check if all cashed out
+            $this->betPoolService->checkAndExtendCrashPoint($bet->game);
+
+            Log::info("💵 User cashed out", [
+                'game_id' => $bet->game->id,
+                'user_id' => $bet->user_id,
+                'multiplier' => $currentMultiplier,
+                'bet_amount' => $bet->bet_amount,
+                'win_amount' => $winAmount,
+                'profit' => $profit,
+                'commission' => $commission,
+                'new_crash_point' => $newCrashPoint
+            ]);
 
             return true;
         });
     }
 
     /**
-     * Get secure random float between 0 and 1
-     */
-    private function getSecureRandomFloat(): float
-    {
-        try {
-            $randomBytes = random_bytes(4);
-            $randomInt = unpack('L', $randomBytes)[1];
-            return $randomInt / 0xFFFFFFFF;
-        } catch (Exception $e) {
-            // Fallback to mt_rand
-            return mt_rand() / mt_getrandmax();
-        }
-    }
-
-    /**
-     * Calculate house profit for a game
+     * Calculate house profit
      */
     public function calculateHouseProfit(CrashGame $game): float
     {
-        $totalBets = $game->total_bet_amount;
-        $totalPayouts = $game->total_payout;
-
-        return $totalBets - $totalPayouts;
+        return $game->getAdminProfit();
     }
 
     /**
-     * Get current settings
+     * Get pool statistics
      */
+    public function getPoolStats(CrashGame $game): array
+    {
+        return $this->betPoolService->getPoolStats($game);
+    }
+
     public function getSettings(): CrashGameSetting
     {
         return $this->settings;
     }
 
-    /**
- * Verify and fix waiting time if needed
- */
     public function ensureCorrectWaitingTime(): void
     {
         $currentValue = $this->settings->bet_waiting_time;
 
         if ($currentValue != 10) {
-            \Log::warning("Fixing bet_waiting_time from {$currentValue} to 10");
+            Log::warning("Fixing bet_waiting_time from {$currentValue} to 10");
             $this->settings->update(['bet_waiting_time' => 10]);
-            $this->loadSettings(); // Reload
+            $this->loadSettings();
         }
     }
-
 }

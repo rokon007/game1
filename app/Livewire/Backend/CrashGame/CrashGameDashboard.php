@@ -14,6 +14,7 @@ class CrashGameDashboard extends Component
 
     public $dateFrom;
     public $dateTo;
+    public $total_bet_pool;
 
     public function mount()
     {
@@ -27,13 +28,23 @@ class CrashGameDashboard extends Component
         $games = $this->getGames();
         $topWinners = $this->getTopWinners();
         $recentBets = $this->getRecentBets();
-
+        $pool= $this->poolData();
         return view('livewire.backend.crash-game.crash-game-dashboard', [
             'stats' => $stats,
             'games' => $games,
             'topWinners' => $topWinners,
             'recentBets' => $recentBets,
+            'pool' => $pool,
         ])->layout('livewire.backend.base');
+    }
+
+    private function poolData()
+    {
+        $totalBetPool = \App\Models\CrashGame::latest('id')->value('total_bet_pool') ?? 0;
+
+        return [
+            'total_bet_pool' => $totalBetPool,
+        ];
     }
 
     private function getStatistics()
@@ -104,6 +115,7 @@ class CrashGameDashboard extends Component
             ->orderByDesc('total_profit')
             ->limit(10)
             ->get();
+
     }
 
     private function getRecentBets()

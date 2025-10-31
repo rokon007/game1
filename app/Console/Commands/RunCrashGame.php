@@ -1,4 +1,5 @@
 <?php
+// app/Console/Commands/RunCrashGame.php - UPDATED WITH NEW LOGIC DISPLAY
 
 namespace App\Console\Commands;
 
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\Cache;
 class RunCrashGame extends Command
 {
     protected $signature = 'crash:run';
-    protected $description = 'Run the crash game loop';
+    protected $description = 'Run the crash game loop with dynamic crash point';
 
     private CrashGameService $gameService;
     private CrashGameSpeedService $speedService;
@@ -79,61 +80,156 @@ class RunCrashGame extends Command
     {
         $game = $this->gameService->getCurrentGame();
 
-        // ✅ Create new game if needed
         if (!$game || $game->isCrashed()) {
             if ($this->settingsReloaded) {
                 $this->info('Applying new settings...');
                 $this->settingsReloaded = false;
             }
 
-            // ✅ CRITICAL: Complete cleanup before new game
             $this->clearAllGameCache();
 
-            // Delay after crash
             if ($game && $game->isCrashed()) {
+                $this->displayGameSummary($game);
                 $this->info("Previous game crashed. 3 second pause...");
                 sleep(3);
             }
 
-            // Create new game
             $game = $this->gameService->createGame();
-            $this->info("New game created: #{$game->id} - Crash Point: {$game->crash_point}x");
 
-            // ✅ EXACT 10 SECOND WAITING - START
+            $previousRollover = \App\Models\CrashGame::getLastRolloverAmount();
+            if ($previousRollover > 0) {
+                $this->info("🔄 Rollover from previous game: ৳{$previousRollover}");
+            } else {
+                $this->info("💰 Starting fresh - No rollover");
+            }
+
+            $this->info("New game created: #{$game->id}");
+
             $this->executeExactWaiting($game);
-            // ✅ EXACT 10 SECOND WAITING - END
-
-            // Clear waiting cache after completion
             $this->clearWaitingCache();
         }
 
-        // Start the game if pending
         if ($game->isPending()) {
             $this->gameService->startGame($game);
             $this->gameService->startBets($game);
+
+            $this->displayPoolInfo($game->fresh());
+
             $this->info("Game #{$game->id} started!");
-            usleep(300000); // 300ms transition delay
+            usleep(300000);
         }
 
-        // Run the game
         if ($game->isRunning()) {
             $this->runGame($game);
         }
     }
 
-    // ✅ NEW: Exact 10 second waiting method
+    // 🆕 UPDATED: Display with new logic
+    private function displayGameSummary(CrashGame $game): void
+    {
+        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info("📊 Game #{$game->id} Summary:");
+        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+        // Pool breakdown
+        $this->line("💰 Pool Composition:");
+        $this->line("   Current Round Bets:  ৳{$game->current_round_bets}");
+        $this->line("   Previous Rollover:   ৳{$game->previous_rollover}");
+        $this->line("   ─────────────────────────────────────");
+        $this->info("   Total Pool:          ৳{$game->total_bet_pool}");
+
+        // Participants
+        $cashedOut = $game->total_participants - $game->active_participants;
+        $this->line("");
+        $this->line("👥 Participants:");
+        $this->line("   Total:               {$game->total_participants}");
+        $this->line("   Cashed Out:          {$cashedOut} ✅");
+        $this->line("   Crashed:             {$game->active_participants} ❌");
+
+        // Financial summary
+        $this->line("");
+        $this->line("💵 Financial Summary:");
+        $this->line("   Total Paid to Winners: ৳{$game->total_payout}");
+
+        // Commission calculation
+        $wonBets = $game->wonBets;
+        $totalProfit = $wonBets->sum('profit');
+        $actualCommission = $game->admin_commission_amount;
+
+        $this->line("");
+        $this->line("📊 Commission Details:");
+        $this->line("   Total Profit Paid:   ৳{$totalProfit}");
+        $this->line("   Actual Commission:   ৳{$actualCommission} (10% of profits)");
+
+        // Pool status
+        $this->line("");
+        $this->line("💰 Pool Status:");
+        $this->line("   Started with:        ৳{$game->total_bet_pool}");
+        $this->line("   Paid to winners:     ৳{$game->total_payout}");
+        $this->line("   Commission:          ৳{$actualCommission}");
+        $this->line("   Remaining:           ৳{$game->remaining_pool}");
+
+        // Rollover
+        if ($game->rollover_to_next > 0) {
+            $this->info("   🔄 Rollover to Next:  ৳{$game->rollover_to_next}");
+        } else {
+            $this->line("   ⚠️  No Rollover (below minimum or disabled)");
+        }
+
+        // Admin keeps
+        $adminKeeps = $game->remaining_pool - $game->rollover_to_next + $actualCommission;
+        $this->info("");
+        $this->info("   ✅ Admin Keeps:       ৳{$adminKeeps}");
+
+        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    }
+
+    // 🆕 UPDATED: Display with calculation
+    private function displayPoolInfo(CrashGame $game): void
+    {
+        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->info("🔒 Pool Locked - Game #{$game->id}");
+        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+        $this->line("📊 Pool Composition:");
+        if ($game->previous_rollover > 0) {
+            $this->line("   Previous Rollover:   ৳{$game->previous_rollover}");
+        }
+        $this->line("   Current Round Bets:  ৳{$game->current_round_bets}");
+        $this->line("   ─────────────────────────────────────");
+        $this->info("   Total Pool:          ৳{$game->total_bet_pool}");
+
+        $this->line("");
+        $this->line("💰 Commission Calculation:");
+        $this->line("   Max Commission (10%): ৳{$game->admin_commission_amount}");
+        $availablePool = $game->total_bet_pool - $game->admin_commission_amount;
+        $this->info("   Available Pool:      ৳{$availablePool}");
+
+        $this->line("");
+        $this->line("👥 Participants:         {$game->total_participants} players");
+
+        $totalActiveBets = $game->bets()->where('status', 'pending')->sum('bet_amount');
+        $this->line("   Total Active Bets:   ৳{$totalActiveBets}");
+
+        $this->line("");
+        $this->line("🎯 Crash Point Calculation:");
+        $this->line("   Formula: Available Pool ÷ Total Active Bets");
+        $this->line("   = ৳{$availablePool} ÷ ৳{$totalActiveBets}");
+        $this->info("   = {$game->crash_point}x ✅");
+
+        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    }
+
     private function executeExactWaiting(CrashGame $game): void
     {
-        $waitingTime = 10.0; // ✅ EXACT 10 seconds
+        $waitingTime = 10.0;
         $waitingStartTime = microtime(true);
         $waitingEndTime = $waitingStartTime + $waitingTime;
 
-        // Store in cache
         cache()->put('crash_game_waiting_start', $waitingStartTime, 60);
         cache()->put('crash_game_waiting_duration', $waitingTime, 60);
         cache()->put('crash_game_waiting_end', $waitingEndTime, 60);
 
-        // ✅ Broadcast waiting state immediately
         $this->broadcastGameUpdate($game, 1.00, 'waiting', [
             'waiting_start' => $waitingStartTime,
             'waiting_duration' => $waitingTime,
@@ -141,55 +237,39 @@ class RunCrashGame extends Command
         ]);
 
         $this->info("⏱️  EXACT 10.00 second waiting started");
-        $this->info("Start: " . date('H:i:s', (int)$waitingStartTime) . "." . sprintf('%03d', ($waitingStartTime - floor($waitingStartTime)) * 1000));
-        $this->info("End:   " . date('H:i:s', (int)$waitingEndTime) . "." . sprintf('%03d', ($waitingEndTime - floor($waitingEndTime)) * 1000));
 
-        // ✅ High precision waiting loop
         while (true) {
             $currentTime = microtime(true);
             $remainingTime = $waitingEndTime - $currentTime;
 
-            // ✅ Break exactly when time is up
             if ($remainingTime <= 0) {
                 break;
             }
 
-            // Check stop signal
             if (Cache::get('crash_game_stop')) {
                 $this->info('Stop signal received during betting period.');
                 return;
             }
 
-            // ✅ Sleep in micro-chunks for precision
             if ($remainingTime > 0.1) {
-                usleep(50000); // 50ms chunks when time remaining
+                usleep(50000);
             } else {
-                usleep(10000); // 10ms chunks for final precision
+                usleep(10000);
             }
         }
 
         $actualWaitTime = microtime(true) - $waitingStartTime;
-        $deviation = abs($actualWaitTime - 10.0);
-
         $this->info("✅ Completed: " . number_format($actualWaitTime, 4) . " seconds");
-
-        if ($deviation < 0.05) {
-            $this->info("✅ PERFECT TIMING! (deviation: " . number_format($deviation * 1000, 2) . "ms)");
-        } else {
-            $this->warn("⚠️  Deviation: " . number_format($deviation * 1000, 2) . "ms");
-        }
     }
 
-    // ✅ UPDATED: Instant crash at exact point
     private function runGame(CrashGame $game): void
     {
         $currentMultiplier = 1.00;
         $crashPoint = (float) $game->crash_point;
 
         $speedProfile = $this->speedService->getSpeedProfileName();
-        $this->info("Running game #{$game->id} - Crash at {$crashPoint}x - Speed: {$speedProfile}");
+        $this->info("Running game #{$game->id} - Target Crash: {$crashPoint}x - Speed: {$speedProfile}");
 
-        // ✅ Broadcast initial running state
         $this->broadcastGameUpdate($game, 1.00, 'running');
 
         event(new \App\Events\CrashGameStarted($game, $currentMultiplier));
@@ -197,7 +277,6 @@ class RunCrashGame extends Command
         $lastBroadcastTime = microtime(true);
         $broadcastIntervalMs = 100;
 
-        // ✅ Game loop - stop BEFORE crash point
         while ($currentMultiplier < $crashPoint) {
             if (Cache::get('crash_game_stop')) {
                 $this->info('Stop signal received.');
@@ -207,41 +286,38 @@ class RunCrashGame extends Command
             $increment = $this->speedService->calculateDynamicIncrement($currentMultiplier);
             $nextMultiplier = $currentMultiplier + $increment;
 
-            // ✅ CRITICAL: Stop exactly at crash point, don't overshoot
             if ($nextMultiplier >= $crashPoint) {
                 $currentMultiplier = $crashPoint;
-                break; // ✅ Exit loop immediately
+                break;
             }
 
             $currentMultiplier = $nextMultiplier;
 
-            // Broadcast updates
             $currentTime = microtime(true);
             if (($currentTime - $lastBroadcastTime) * 1000 >= $broadcastIntervalMs) {
+                // Reload game to get updated crash point
+                $game->refresh();
+                $crashPoint = (float) $game->crash_point;
+
                 $this->broadcastGameUpdate($game, $currentMultiplier, 'running');
                 $lastBroadcastTime = $currentTime;
             }
 
-            // Log progress
             if (fmod($currentMultiplier, 1.0) < $increment) {
-                $this->line("Current: " . number_format($currentMultiplier, 2) . "x");
+                $activePlayers = $game->active_participants;
+                $this->line("Current: " . number_format($currentMultiplier, 2) . "x (Target: {$crashPoint}x, Active: {$activePlayers})");
             }
 
-            // Dynamic delay
             $interval = $this->speedService->getCurrentInterval();
             usleep($interval * 1000);
         }
 
-        // ✅ INSTANT CRASH - No pause at crash point
         if (!Cache::get('crash_game_stop') && $currentMultiplier >= $crashPoint) {
-            // ✅ Set to exact crash point
             $currentMultiplier = $crashPoint;
 
-            // ✅ Broadcast running at crash point (brief)
             $this->broadcastGameUpdate($game, $crashPoint, 'running');
-            usleep(100000); // ✅ Only 100ms pause (was 500ms)
+            usleep(100000);
 
-            // ✅ CRASH IMMEDIATELY
             $this->gameService->crashGame($game);
             $this->broadcastGameUpdate($game, $crashPoint, 'crashed');
 
@@ -249,13 +325,13 @@ class RunCrashGame extends Command
 
             $this->error("💥 CRASHED at {$crashPoint}x!");
 
-            // Show crash message
-            sleep(2); // ✅ Reduced from 3 to 2 seconds
+            sleep(2);
+
+            $game->refresh();
 
             $houseProfit = $this->gameService->calculateHouseProfit($game);
-            $this->info("House Profit: ৳{$houseProfit}");
+            $this->info("Admin Profit: ৳{$houseProfit}");
 
-            // ✅ Clear everything for next cycle
             $this->clearAllGameCache();
         }
     }
@@ -267,7 +343,13 @@ class RunCrashGame extends Command
             'multiplier' => round($multiplier, 2),
             'status' => $status,
             'crash_point' => $game->crash_point,
+            'initial_crash_point' => $game->initial_crash_point,
             'updated_at' => microtime(true),
+            'total_bet_pool' => $game->total_bet_pool,
+            'current_round_bets' => $game->current_round_bets,
+            'previous_rollover' => $game->previous_rollover,
+            'total_participants' => $game->total_participants,
+            'active_participants' => $game->active_participants,
         ];
 
         $data = array_merge($data, $extra);
@@ -276,14 +358,12 @@ class RunCrashGame extends Command
         $this->info("📡 Broadcast: {$status} @ {$multiplier}x");
     }
 
-    // ✅ NEW: Clear all game cache
     private function clearAllGameCache(): void
     {
         cache()->forget('crash_game_current');
         $this->clearWaitingCache();
     }
 
-    // ✅ NEW: Clear only waiting cache
     private function clearWaitingCache(): void
     {
         cache()->forget('crash_game_waiting_start');
@@ -302,34 +382,3 @@ class RunCrashGame extends Command
         $this->info('Cleanup completed.');
     }
 }
-
-// ============================================
-// KEY CHANGES SUMMARY:
-// ============================================
-
-/*
-✅ WAITING FIX:
-   - executeExactWaiting() method যোগ করা হয়েছে
-   - microtime(true) দিয়ে exact timing
-   - High precision loop (10ms chunks শেষে)
-   - Deviation tracking and logging
-
-✅ INSTANT CRASH FIX:
-   - Loop থেকে exact crash point এ exit
-   - No overshoot (nextMultiplier check)
-   - 100ms pause only (500ms থেকে কমানো)
-   - Immediate crash after reaching point
-   - 2 second crash display (3 থেকে কমানো)
-
-✅ CACHE MANAGEMENT:
-   - clearAllGameCache() method
-   - clearWaitingCache() method
-   - Proper cleanup after each phase
-
-📊 EXPECTED BEHAVIOR:
-   1. Crash → 2 sec pause
-   2. Waiting → EXACTLY 10.00 seconds
-   3. Running → Smooth increment
-   4. Crash point → INSTANT crash (no pause)
-   5. Repeat
-*/

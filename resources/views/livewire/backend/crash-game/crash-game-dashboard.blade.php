@@ -155,6 +155,23 @@
                 </div>
             </div>
 
+            <div class="col-md-4">
+                    <div class="card shadow-sm border-0 bg-dark text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50 mb-1">Total Bet Pool</h6>
+                                    <h3 class="mb-0">৳{{ number_format($pool['total_bet_pool'], 2) }}</h3>
+                                </div>
+                                <div class="fs-1 opacity-50">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="row g-4">
                 <!-- Games List -->
                 <div class="col-lg-8">

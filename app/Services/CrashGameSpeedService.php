@@ -108,3 +108,4 @@ class CrashGameSpeedService
         return $totalTime / 1000; // Convert to seconds
     }
 }
+

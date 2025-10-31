@@ -34,9 +34,9 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('hajari-games:cancel-old')->everyMinute();
 
-        $schedule->command('crash:cleanup --minutes=30 --quiet')
-             ->everyMinute()
-             ->withoutOverlapping();
+        // $schedule->command('crash:cleanup --minutes=30 --quiet')
+        //      ->everyMinute()
+        //      ->withoutOverlapping();
 
         // Crash game related schedules (যদি প্রয়োজন হয়)
         $schedule->command('crash:run')
