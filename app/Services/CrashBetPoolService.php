@@ -243,14 +243,14 @@ class CrashBetPoolService
         //$totalPaidToWinners = $game->wonBets()->sum('profit') + $game->wonBets()->sum('bet_amount');
         //$game->update(['total_payout' => $totalPaidToWinners]);
 
-         $totalWinAmount = 0;
+         $totalPaidToWinners = 0;
             foreach ($game->wonBets as $bet) {
-                $totalWinAmount += $bet->bet_amount + $bet->profit;
+                $totalPaidToWinners += $bet->bet_amount + $bet->profit;
             }
 
             $game->update([
                 'admin_commission_amount' => $actualCommission,
-                'total_payout' => $totalWinAmount  // 🎯 এখন bet amount + profit থাকবে
+                'total_payout' => $totalPaidToWinners  // 🎯 এখন bet amount + profit থাকবে
             ]);
 
 
