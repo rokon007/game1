@@ -314,9 +314,9 @@ class CrashGameService
     //     });
     // }
 
-    /**
- * 🆕 FIXED: Cashout with proper credit transfer
- */
+     /**
+     * 🆕 COMPLETELY FIXED: Cashout with proper credit transfer
+     */
     public function cashout(CrashBet $bet, float $currentMultiplier): bool
     {
         if ($bet->status !== 'playing') {
@@ -330,8 +330,8 @@ class CrashGameService
         return DB::transaction(function () use ($bet, $currentMultiplier) {
             // ✅ Refresh models to avoid stale data
             $bet->refresh();
-            $user = $bet->user()->lockForUpdate()->first(); // Lock user record
-            $admin = User::where('id', 1)->lockForUpdate()->first(); // Lock admin record
+            $user = $bet->user()->lockForUpdate()->first();
+            $admin = User::where('id', 1)->lockForUpdate()->first();
 
             // Validate user and admin exist
             if (!$user || !$admin) {
@@ -339,9 +339,19 @@ class CrashGameService
             }
 
             // Calculate amounts
-            $winAmount = $bet->bet_amount * $currentMultiplier;
-            $profit = $winAmount - $bet->bet_amount;
+            $betAmount = (float) $bet->bet_amount;
+            $winAmount = $betAmount * $currentMultiplier; // Total return to user
+            $profit = $winAmount - $betAmount; // Actual profit
             $commission = $profit * 0.10;
+
+            // ✅ CRITICAL DEBUG LOG
+            Log::info("🔍 Cashout calculation", [
+                'bet_amount' => $betAmount,
+                'multiplier' => $currentMultiplier,
+                'win_amount_calculated' => $winAmount,
+                'profit_calculated' => $profit,
+                'commission' => $commission,
+            ]);
 
             // ✅ Check admin has sufficient balance
             if ($admin->credit < $winAmount) {
@@ -362,24 +372,46 @@ class CrashGameService
                 'cashed_out_at' => now(),
             ]);
 
-            // ✅ FIXED: Use direct DB update with explicit values
-            DB::table('users')
-                ->where('id', $user->id)
-                ->update([
-                    'credit' => DB::raw("credit + {$winAmount}"),
-                    'updated_at' => now()
-                ]);
+            // ✅ SOLUTION 1: Use prepared statements (MOST RELIABLE)
+            $affectedUser = DB::update(
+                'UPDATE users SET credit = credit + ?, updated_at = ? WHERE id = ?',
+                [$winAmount, now(), $user->id]
+            );
 
-            DB::table('users')
-                ->where('id', $admin->id)
-                ->update([
-                    'credit' => DB::raw("credit - {$winAmount}"),
-                    'updated_at' => now()
+            $affectedAdmin = DB::update(
+                'UPDATE users SET credit = credit - ?, updated_at = ? WHERE id = ?',
+                [$winAmount, now(), $admin->id]
+            );
+
+            // ✅ Verify updates were successful
+            if ($affectedUser === 0) {
+                Log::error("❌ Failed to update user credit", [
+                    'user_id' => $user->id,
+                    'win_amount' => $winAmount
                 ]);
+                throw new Exception('Failed to update user balance');
+            }
+
+            if ($affectedAdmin === 0) {
+                Log::error("❌ Failed to update admin credit", [
+                    'admin_id' => $admin->id,
+                    'win_amount' => $winAmount
+                ]);
+                throw new Exception('Failed to update admin balance');
+            }
 
             // ✅ Refresh to get updated values
             $user->refresh();
             $admin->refresh();
+
+            // ✅ VERIFICATION LOG
+            Log::info("✅ Credit transfer verified", [
+                'user_id' => $user->id,
+                'user_balance_after' => $user->credit,
+                'admin_id' => $admin->id,
+                'admin_balance_after' => $admin->credit,
+                'win_amount_transferred' => $winAmount,
+            ]);
 
             // Recalculate crash point
             $newCrashPoint = $this->betPoolService->recalculateCrashPoint($bet->game);
@@ -393,16 +425,15 @@ class CrashGameService
             // Check if all cashed out
             $this->betPoolService->checkAndExtendCrashPoint($bet->game);
 
-            Log::info("💵 User cashed out - FIXED", [
+            Log::info("💵 User cashed out successfully", [
                 'game_id' => $bet->game->id,
                 'user_id' => $user->id,
                 'multiplier' => $currentMultiplier,
-                'bet_amount' => $bet->bet_amount,
+                'bet_amount' => $betAmount,
                 'win_amount' => $winAmount,
                 'profit' => $profit,
                 'commission' => $commission,
                 'new_crash_point' => $newCrashPoint,
-                // ✅ Log actual balances for verification
                 'user_balance_after' => $user->credit,
                 'admin_balance_after' => $admin->credit,
             ]);
