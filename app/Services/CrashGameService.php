@@ -343,6 +343,7 @@ class CrashGameService
             $winAmount = $betAmount * $currentMultiplier; // Total return to user
             $profit = $winAmount - $betAmount; // Actual profit
             $commission = $profit * 0.10;
+            $payAmaunt= $profit + $betAmount;
 
             // ✅ CRITICAL DEBUG LOG
             Log::info("🔍 Cashout calculation", [
@@ -375,12 +376,12 @@ class CrashGameService
             // ✅ SOLUTION 1: Use prepared statements (MOST RELIABLE)
             $affectedUser = DB::update(
                 'UPDATE users SET credit = credit + ?, updated_at = ? WHERE id = ?',
-                [$winAmount, now(), $user->id]
+                [$payAmaunt, now(), $user->id]
             );
 
             $affectedAdmin = DB::update(
                 'UPDATE users SET credit = credit - ?, updated_at = ? WHERE id = ?',
-                [$winAmount, now(), $admin->id]
+                [$payAmaunt, now(), $admin->id]
             );
 
             // ✅ Verify updates were successful
