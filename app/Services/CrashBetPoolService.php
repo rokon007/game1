@@ -240,7 +240,7 @@ class CrashBetPoolService
         $game->update(['admin_commission_amount' => $actualCommission]);
 
         // Calculate total paid (including commission)
-        $totalPaidToWinners = $game->wonBets()->sum('profit');
+        $totalPaidToWinners = $game->wonBets()->sum('profit') + $game->wonBets()->sum('bet_amount');
         $game->update(['total_payout' => $totalPaidToWinners]);
 
        // $game->refresh();

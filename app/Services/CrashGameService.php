@@ -276,7 +276,7 @@ class CrashGameService
             // Update bet
             $bet->update([
                 'cashout_at' => $currentMultiplier,
-                'profit' => $winAmount,
+                'profit' => $profit,
                 'status' => 'won',
                 'cashed_out_at' => now(),
             ]);
