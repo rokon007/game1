@@ -1,5 +1,5 @@
 <?php
-// app/Services/CrashGameService.php - FIXED CASHOUT METHOD
+// app/Services/CrashGameService.php - WITH ROLLOVER SUPPORT
 
 namespace App\Services;
 
@@ -9,7 +9,6 @@ use App\Models\User;
 use App\Models\CrashGameSetting;
 use Illuminate\Support\Facades\DB;
 use Exception;
-use Illuminate\Support\Facades\Log;
 
 class CrashGameService
 {
@@ -56,6 +55,10 @@ class CrashGameService
             'min_multiplier' => $this->settings->min_multiplier,
             'max_multiplier' => $this->settings->max_multiplier,
             'admin_commission_rate' => $this->settings->admin_commission_rate,
+            'commission_type' => $this->settings->commission_type,
+            'enable_dynamic_crash' => $this->settings->enable_dynamic_crash,
+            'enable_pool_rollover' => $this->settings->enable_pool_rollover,
+            'rollover_percentage' => $this->settings->rollover_percentage,
             'updated_at' => $this->settings->updated_at->timestamp,
         ];
 
@@ -64,7 +67,7 @@ class CrashGameService
 
     public function getBetWaitingTime(): int
     {
-        return 10;
+        return 10; // Always 10 seconds
     }
 
     public function isGameActive(): bool
@@ -73,7 +76,7 @@ class CrashGameService
     }
 
     /**
-     * Create a new game
+     * ✅ Create a new game
      */
     public function createGame(): CrashGame
     {
@@ -85,7 +88,7 @@ class CrashGameService
 
         return CrashGame::create([
             'game_hash' => $gameHash,
-            'crash_point' => 1.01,
+            'crash_point' => 1.01, // Temporary
             'initial_crash_point' => null,
             'status' => 'pending',
             'total_bet_pool' => 0,
@@ -110,7 +113,7 @@ class CrashGameService
     }
 
     /**
-     * Start the game - LOCK BET POOL
+     * ✅ Start the game - LOCK BET POOL & CALCULATE CRASH POINT
      */
     public function startGame(CrashGame $game): bool
     {
@@ -118,7 +121,7 @@ class CrashGameService
             return false;
         }
 
-        // Lock bet pool (calculates crash point)
+        // 🔒 Lock bet pool and calculate crash point (with rollover)
         $this->betPoolService->lockBetPool($game);
 
         return $game->update([
@@ -135,7 +138,7 @@ class CrashGameService
     }
 
     /**
-     * Crash the game
+     * ✅ Crash the game - WITH ROLLOVER CALCULATION
      */
     public function crashGame(CrashGame $game): bool
     {
@@ -150,10 +153,7 @@ class CrashGameService
                 'profit' => DB::raw('-bet_amount'),
             ]);
 
-            // ✅ Refresh game data before calculation
-            $game->refresh();
-
-            // Calculate final commission and rollover
+            // 🆕 Calculate rollover for next game
             $rolloverAmount = $this->betPoolService->calculateAndSetRollover($game);
 
             // Update game status
@@ -162,16 +162,45 @@ class CrashGameService
                 'crashed_at' => now(),
             ]);
 
+            // Transfer commission + kept pool to admin
+            $this->transferProfitToAdmin($game);
+
             Log::info("💥 Game crashed", [
                 'game_id' => $game->id,
                 'crash_point' => $game->crash_point,
                 'total_payout' => $game->total_payout,
-                'actual_commission' => $game->admin_commission_amount,
                 'rollover' => $rolloverAmount,
+                'admin_profit' => $game->getAdminProfit(),
             ]);
 
             return true;
         });
+    }
+
+    /**
+     * 💰 Transfer profit to admin
+     */
+    private function transferProfitToAdmin(CrashGame $game): void
+    {
+        // Admin gets: Commission + (Pool - Payouts - Rollover)
+        $adminProfit = $game->getAdminProfit();
+
+        if ($adminProfit > 0) {
+            $admin = User::find(1);
+            if ($admin) {
+                $admin->increment('credit', $adminProfit);
+
+                Log::info("💰 Profit transferred to admin", [
+                    'game_id' => $game->id,
+                    'amount' => $adminProfit,
+                    'breakdown' => [
+                        'commission' => $game->admin_commission_amount,
+                        'kept_from_pool' => $game->remaining_pool - $game->rollover_to_next,
+                        'total' => $adminProfit,
+                    ]
+                ]);
+            }
+        }
     }
 
     public function placeBet(User $user, CrashGame $game, float $betAmount): CrashBet
@@ -204,11 +233,6 @@ class CrashGameService
             // Deduct credit from user
             $user->decrement('credit', $betAmount);
 
-            // Add to admin immediately
-            if ($user->id !== 1) {
-                User::where('id', 1)->increment('credit', $betAmount);
-            }
-
             // Create bet
             return CrashBet::create([
                 'user_id' => $user->id,
@@ -220,7 +244,7 @@ class CrashGameService
     }
 
     /**
-     * ✅✅✅ COMPLETELY FIXED: Cashout with CORRECT AMOUNT
+     * ✅ Cashout with dynamic crash point increase
      */
     public function cashout(CrashBet $bet, float $currentMultiplier): bool
     {
@@ -233,88 +257,32 @@ class CrashGameService
         }
 
         return DB::transaction(function () use ($bet, $currentMultiplier) {
-            // ✅ Refresh models to avoid stale data
-            $bet->refresh();
-            $user = $bet->user()->lockForUpdate()->first();
-            $admin = User::where('id', 1)->lockForUpdate()->first();
+            $winAmount = $bet->bet_amount * $currentMultiplier;
+            $profit = $winAmount - $bet->bet_amount;
 
-            if (!$user || !$admin) {
-                throw new Exception('User or admin not found');
-            }
-
-            // ✅ CORRECT CALCULATION
-            $betAmount = (float) $bet->bet_amount;
-            $winAmount = $betAmount * $currentMultiplier;  // পুরো return amount
-            $profit = $winAmount - $betAmount;             // শুধু profit
-            $commission = $profit * 0.10;                  // profit এর 10%
-
-            // ✅ CRITICAL LOG
-            Log::info("💵 Cashout Calculation", [
-                'bet_amount' => $betAmount,
-                'multiplier' => $currentMultiplier,
-                'win_amount' => $winAmount,      // এটাই user পাবে
-                'profit' => $profit,
-                'commission' => $commission,
-            ]);
-
-            // ✅ Update bet status
+            // Update bet
             $bet->update([
                 'cashout_at' => $currentMultiplier,
-                'profit' => $profit,  // শুধু profit store করি
+                'profit' => $profit,
                 'status' => 'won',
                 'cashed_out_at' => now(),
             ]);
 
-            // ✅ SOLUTION: Use DB::raw for atomic operation
-            // User কে পুরো winAmount দিতে হবে
-            $affectedUser = DB::update(
-                'UPDATE users SET credit = credit + ?, updated_at = ? WHERE id = ?',
-                [$winAmount, now(), $user->id]
-            );
+            // Add winnings to user credit
+            $bet->user->increment('credit', $winAmount);
 
-            // Admin থেকে পুরো winAmount বাদ দিতে হবে
-            $affectedAdmin = DB::update(
-                'UPDATE users SET credit = credit - ?, updated_at = ? WHERE id = ?',
-                [$winAmount, now(), $admin->id]
-            );
+            // ✅ Increase crash point dynamically
+            $newCrashPoint = $this->betPoolService->increaseCrashPoint($bet->game, $bet);
 
-            // ✅ Verify updates
-            if ($affectedUser === 0 || $affectedAdmin === 0) {
-                Log::error("❌ Credit update failed", [
-                    'user_affected' => $affectedUser,
-                    'admin_affected' => $affectedAdmin,
-                ]);
-                throw new Exception('Failed to update balances');
-            }
-
-            // ✅ Refresh to get updated values
-            $user->refresh();
-            $admin->refresh();
-
-            // ✅ Recalculate crash point
-            $newCrashPoint = $this->betPoolService->recalculateCrashPoint($bet->game);
-
-            // Update active participants
-            $bet->game->decrement('active_participants');
-
-            // Update crash point
-            $bet->game->update(['crash_point' => $newCrashPoint]);
-
-            // Check if all cashed out
+            // ✅ Check if all users cashed out
             $this->betPoolService->checkAndExtendCrashPoint($bet->game);
 
-            // ✅ FINAL VERIFICATION LOG
-            Log::info("✅ Cashout Successful", [
+            Log::info("💵 User cashed out", [
                 'game_id' => $bet->game->id,
-                'user_id' => $user->id,
-                'bet_amount' => $betAmount,
+                'user_id' => $bet->user_id,
                 'multiplier' => $currentMultiplier,
-                'win_amount_given' => $winAmount,  // পুরো amount
-                'profit_earned' => $profit,
-                'commission_deducted' => $commission,
-                'new_crash_point' => $newCrashPoint,
-                'user_balance_after' => $user->credit,
-                'admin_balance_after' => $admin->credit,
+                'win_amount' => $winAmount,
+                'new_crash_point' => $newCrashPoint
             ]);
 
             return true;
@@ -322,7 +290,7 @@ class CrashGameService
     }
 
     /**
-     * Calculate house profit
+     * 📊 Calculate house profit with commission
      */
     public function calculateHouseProfit(CrashGame $game): float
     {
@@ -330,7 +298,7 @@ class CrashGameService
     }
 
     /**
-     * Get pool statistics
+     * 📊 Get pool statistics
      */
     public function getPoolStats(CrashGame $game): array
     {

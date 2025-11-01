@@ -5,11 +5,14 @@
 
     @section('css')
         @include('livewire.layout.backend.inc.css')
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css"/>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css"
+              integrity="sha512-dPXYcDub/aeb08c63jRq/k6GaKccl256JQy/AnOq7CAnEZ9FzSL9wSbcZkMp4R26vBsMLFYH4kQ67/bbV8XaCQ=="
+              crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     @endsection
 
-    <div wire:poll.100ms="refreshData" class="page-content">
-        <!-- Breadcrumb -->
+    <div wire:poll.100ms="getGames" class="page-content">
+        <!--breadcrumb-->
         <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-4">
             <div class="breadcrumb-title pe-3">Crash Game Dashboard</div>
             <div class="ps-3">
@@ -20,17 +23,22 @@
                     </ol>
                 </nav>
             </div>
+            {{-- <div class="ms-auto">
+                <a href="{{ route('admin.lottery.index') }}" class="btn btn-sm btn-secondary">
+                    <i class="bx bx-arrow-back"></i> ফিরে যান
+                </a>
+            </div> --}}
         </div>
+        <!--end breadcrumb-->
 
         <div class="container py-4">
-            <!-- Date Filter -->
             <div class="row mb-4">
                 <div class="col-md-8">
                     <div class="card shadow-sm">
                         <div class="card-body">
                             <form wire:submit.prevent="$refresh" class="row g-3">
                                 <div class="col-md-4">
-                                    <label class="form-label">শুরু তারিখ</label>
+                                    <label class="form-label">শুরুর তারিখ</label>
                                     <input type="date" wire:model.live="dateFrom" class="form-control">
                                 </div>
                                 <div class="col-md-4">
@@ -73,7 +81,6 @@
                                 <div>
                                     <h6 class="text-white-50 mb-1">মোট বেট</h6>
                                     <h3 class="mb-0">৳{{ number_format($stats['total_bets'], 2) }}</h3>
-                                    <small class="text-white-50">Current Round Only</small>
                                 </div>
                                 <div class="fs-1 opacity-50">
                                     <i class="fas fa-coins"></i>
@@ -90,7 +97,6 @@
                                 <div>
                                     <h6 class="text-white-50 mb-1">মোট পেআউট</h6>
                                     <h3 class="mb-0">৳{{ number_format($stats['total_payouts'], 2) }}</h3>
-                                    <small class="text-white-50">Profit Only</small>
                                 </div>
                                 <div class="fs-1 opacity-50">
                                     <i class="fas fa-hand-holding-usd"></i>
@@ -100,7 +106,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="card shadow-sm border-0 bg-success text-white">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
@@ -116,23 +122,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-3">
-                    <div class="card shadow-sm border-0 bg-secondary text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="text-white-50 mb-1">Commission</h6>
-                                    <h3 class="mb-0">৳{{ number_format($stats['total_commission'], 2) }}</h3>
-                                </div>
-                                <div class="fs-1 opacity-50">
-                                    <i class="fas fa-percent"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="card shadow-sm border-0 bg-danger text-white">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
@@ -148,7 +138,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="card shadow-sm border-0 bg-dark text-white">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
@@ -165,27 +155,16 @@
                 </div>
             </div>
 
-            <!-- Current Pool Status -->
-            <div class="row mb-4">
-                <div class="col-md-12">
-                    <div class="card shadow-sm border-0 bg-warning" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                        <div class="card-body text-black">
+            <div class="col-md-4">
+                    <div class="card shadow-sm border-0 bg-dark text-white">
+                        <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h5 class="text-black mb-1">
-                                        <i class="fas fa-database me-2"></i>Current Total Bet Pool
-                                    </h5>
-                                    <h2 class="mb-0 fw-bold">৳{{ number_format($pool['total_bet_pool'], 2) }}</h2>
-                                    @if($pool['current_game_id'])
-                                        <small class="text-black">
-                                            Game #{{ $pool['current_game_id'] }} - Status: {{ ucfirst($pool['current_status']) }}
-                                        </small>
-                                    @else
-                                        <small class="text-black">{{ $pool['current_status'] }}</small>
-                                    @endif
+                                    <h6 class="text-white-50 mb-1">Total Bet Pool</h6>
+                                    <h3 class="mb-0">৳{{ number_format($pool['total_bet_pool'], 2) }}</h3>
                                 </div>
-                                <div class="fs-1">
-                                    <i class="fas fa-coins fa-3x opacity-50"></i>
+                                <div class="fs-1 opacity-50">
+                                    <i class="fas fa-chart-line"></i>
                                 </div>
                             </div>
                         </div>
@@ -209,22 +188,20 @@
                                         <tr>
                                             <th>গেম আইডি</th>
                                             <th>ক্র্যাশ পয়েন্ট</th>
-                                            <th>Pool</th>
-                                            <th>Payout</th>
-                                            <th>Commission</th>
-                                            <th>Rollover</th>
-                                            <th>Profit</th>
+                                            <th>খেলোয়াড়</th>
+                                            <th>মোট বেট</th>
+                                            <th>পেআউট</th>
+                                            <th>প্রফিট</th>
                                             <th>সময়</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @forelse($games as $game)
                                             @php
-                                                $totalPool = $game->total_bet_pool;
-                                                $totalPayout = $game->total_payout;
-                                                $commission = $game->admin_commission_amount;
-                                                $rollover = $game->rollover_to_next;
-                                                $profit = $totalPool - $totalPayout - $rollover;
+                                                $betStats = $game->bets->first();
+                                                $totalBet = $betStats->total_bet ?? 0;
+                                                $totalPayout = $betStats->total_payout ?? 0;
+                                                $profit = $totalBet - $totalPayout;
                                             @endphp
                                             <tr>
                                                 <td><span class="badge bg-secondary">#{{ $game->id }}</span></td>
@@ -233,10 +210,9 @@
                                                         {{ number_format($game->crash_point, 2) }}x
                                                     </span>
                                                 </td>
-                                                <td>৳{{ number_format($totalPool, 2) }}</td>
+                                                <td>{{ $betStats->bet_count ?? 0 }}</td>
+                                                <td>৳{{ number_format($totalBet, 2) }}</td>
                                                 <td>৳{{ number_format($totalPayout, 2) }}</td>
-                                                <td class="text-success">৳{{ number_format($commission, 2) }}</td>
-                                                <td class="text-info">৳{{ number_format($rollover, 2) }}</td>
                                                 <td>
                                                     <span class="badge {{ $profit > 0 ? 'bg-success' : 'bg-danger' }}">
                                                         ৳{{ number_format($profit, 2) }}
@@ -248,7 +224,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="8" class="text-center py-4 text-muted">
+                                                <td colspan="7" class="text-center py-4 text-muted">
                                                     কোন গেম নেই
                                                 </td>
                                             </tr>
@@ -328,9 +304,10 @@
             </div>
         </div>
 
-        @push('scripts')
-            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.all.min.js"></script>
-        @endpush
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.all.min.js"></script>
+@endpush
+
     </div>
 
     @section('JS')
