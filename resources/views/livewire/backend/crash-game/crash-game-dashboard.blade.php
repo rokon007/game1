@@ -8,7 +8,7 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css"/>
     @endsection
 
-    <div wire:poll.5s="render" class="page-content">
+    <div wire:poll.100ms="refreshData" class="page-content">
         <!-- Breadcrumb -->
         <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-4">
             <div class="breadcrumb-title pe-3">Crash Game Dashboard</div>
@@ -168,20 +168,20 @@
             <!-- Current Pool Status -->
             <div class="row mb-4">
                 <div class="col-md-12">
-                    <div class="card shadow-sm border-0 bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                        <div class="card-body text-white">
+                    <div class="card shadow-sm border-0 bg-warning" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="card-body text-black">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h5 class="text-white mb-1">
+                                    <h5 class="text-black mb-1">
                                         <i class="fas fa-database me-2"></i>Current Total Bet Pool
                                     </h5>
                                     <h2 class="mb-0 fw-bold">৳{{ number_format($pool['total_bet_pool'], 2) }}</h2>
                                     @if($pool['current_game_id'])
-                                        <small class="text-white-50">
+                                        <small class="text-black">
                                             Game #{{ $pool['current_game_id'] }} - Status: {{ ucfirst($pool['current_status']) }}
                                         </small>
                                     @else
-                                        <small class="text-white-50">{{ $pool['current_status'] }}</small>
+                                        <small class="text-black">{{ $pool['current_status'] }}</small>
                                     @endif
                                 </div>
                                 <div class="fs-1">

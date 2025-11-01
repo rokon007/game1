@@ -23,6 +23,15 @@ class CrashGameDashboard extends Component
         $this->dateTo = now()->format('Y-m-d');
     }
 
+    /**
+     * ✅ Refresh method for wire:poll
+     */
+    public function refreshData()
+    {
+        // This method will be called by wire:poll
+        // Livewire will automatically re-render
+    }
+
     public function render()
     {
         $stats = $this->getStatistics();
