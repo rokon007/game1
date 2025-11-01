@@ -228,8 +228,8 @@
                         <div class="card-body">
                             <div class="product-thumbnail-side">
                                 <!-- Thumbnail -->
-                                <a class="product-thumbnail d-block" href="#">
-                                    <img src="{{asset('assets/frontend/img/core-img/g3.png')}}" alt="">
+                                <a class="product-thumbnail d-block" href="{{route('crash_game')}}">
+                                    <img src="{{asset('assets/frontend/img/core-img/crash-game.png')}}" alt="">
                                 </a>
                             </div>
                         </div>
