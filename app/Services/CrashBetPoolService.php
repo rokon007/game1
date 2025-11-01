@@ -221,7 +221,7 @@ class CrashBetPoolService
      */
     public function calculateAndSetRollover(CrashGame $game): float
     {
-        $game->refresh();
+        //$game->refresh();
 
         $totalPool = $game->total_bet_pool;
         $maxCommission = $game->admin_commission_amount;
@@ -243,7 +243,7 @@ class CrashBetPoolService
         $totalPaidToWinners = $game->wonBets()->sum('profit');
         $game->update(['total_payout' => $totalPaidToWinners]);
 
-        $game->refresh();
+       // $game->refresh();
         // Remaining pool = Total Pool - Paid to Winners - Actual Commission
         $remaining = $totalPool - $totalPaidToWinners - $actualCommission;
         $game->update(['remaining_pool' => $remaining]);
