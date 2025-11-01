@@ -1,5 +1,5 @@
 <?php
-// app/Services/CrashGameService.php - WITH ROLLOVER SUPPORT
+// app/Services/CrashGameService.php - UPDATED WITH NEW LOGIC
 
 namespace App\Services;
 
@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\CrashGameSetting;
 use Illuminate\Support\Facades\DB;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class CrashGameService
 {
@@ -55,10 +56,6 @@ class CrashGameService
             'min_multiplier' => $this->settings->min_multiplier,
             'max_multiplier' => $this->settings->max_multiplier,
             'admin_commission_rate' => $this->settings->admin_commission_rate,
-            'commission_type' => $this->settings->commission_type,
-            'enable_dynamic_crash' => $this->settings->enable_dynamic_crash,
-            'enable_pool_rollover' => $this->settings->enable_pool_rollover,
-            'rollover_percentage' => $this->settings->rollover_percentage,
             'updated_at' => $this->settings->updated_at->timestamp,
         ];
 
@@ -67,7 +64,7 @@ class CrashGameService
 
     public function getBetWaitingTime(): int
     {
-        return 10; // Always 10 seconds
+        return 10;
     }
 
     public function isGameActive(): bool
@@ -76,7 +73,7 @@ class CrashGameService
     }
 
     /**
-     * ✅ Create a new game
+     * Create a new game
      */
     public function createGame(): CrashGame
     {
@@ -88,7 +85,7 @@ class CrashGameService
 
         return CrashGame::create([
             'game_hash' => $gameHash,
-            'crash_point' => 1.01, // Temporary
+            'crash_point' => 1.01,
             'initial_crash_point' => null,
             'status' => 'pending',
             'total_bet_pool' => 0,
@@ -113,7 +110,7 @@ class CrashGameService
     }
 
     /**
-     * ✅ Start the game - LOCK BET POOL & CALCULATE CRASH POINT
+     * Start the game - LOCK BET POOL
      */
     public function startGame(CrashGame $game): bool
     {
@@ -121,7 +118,7 @@ class CrashGameService
             return false;
         }
 
-        // 🔒 Lock bet pool and calculate crash point (with rollover)
+        // Lock bet pool (calculates crash point)
         $this->betPoolService->lockBetPool($game);
 
         return $game->update([
@@ -138,7 +135,7 @@ class CrashGameService
     }
 
     /**
-     * ✅ Crash the game - WITH ROLLOVER CALCULATION
+     * Crash the game
      */
     public function crashGame(CrashGame $game): bool
     {
@@ -153,7 +150,10 @@ class CrashGameService
                 'profit' => DB::raw('-bet_amount'),
             ]);
 
-            // 🆕 Calculate rollover for next game
+            // ✅ ADD THIS: Refresh game data before calculation
+            $game->refresh();
+
+            // Calculate final commission and rollover
             $rolloverAmount = $this->betPoolService->calculateAndSetRollover($game);
 
             // Update game status
@@ -162,15 +162,17 @@ class CrashGameService
                 'crashed_at' => now(),
             ]);
 
-            // Transfer commission + kept pool to admin
-            $this->transferProfitToAdmin($game);
+            // 🆕 NEW: Commission is already deducted from pool, no transfer needed
+            // Remaining pool (if any) goes to admin
+
+            $this->transferRemainingToAdmin($game);
 
             Log::info("💥 Game crashed", [
                 'game_id' => $game->id,
                 'crash_point' => $game->crash_point,
                 'total_payout' => $game->total_payout,
+                'actual_commission' => $game->admin_commission_amount,
                 'rollover' => $rolloverAmount,
-                'admin_profit' => $game->getAdminProfit(),
             ]);
 
             return true;
@@ -178,26 +180,29 @@ class CrashGameService
     }
 
     /**
-     * 💰 Transfer profit to admin
+     * 🆕 Transfer remaining pool to admin
      */
-    private function transferProfitToAdmin(CrashGame $game): void
+    private function transferRemainingToAdmin(CrashGame $game): void
     {
-        // Admin gets: Commission + (Pool - Payouts - Rollover)
-        $adminProfit = $game->getAdminProfit();
+        $totalPool = $game->total_bet_pool;
+        $totalPaid = $game->total_payout;
+        $rollover = $game->rollover_to_next;
 
-        if ($adminProfit > 0) {
+        // Admin gets: Total Pool - Paid to Winners - Rollover
+        $adminAmount = $totalPool - $totalPaid - $rollover;
+
+        if ($adminAmount > 0) {
             $admin = User::find(1);
             if ($admin) {
-                $admin->increment('credit', $adminProfit);
+                // Note: Bets already added to admin when placed
+                // So we only need to log this
 
-                Log::info("💰 Profit transferred to admin", [
+                Log::info("💰 Admin profit from game", [
                     'game_id' => $game->id,
-                    'amount' => $adminProfit,
-                    'breakdown' => [
-                        'commission' => $game->admin_commission_amount,
-                        'kept_from_pool' => $game->remaining_pool - $game->rollover_to_next,
-                        'total' => $adminProfit,
-                    ]
+                    'total_pool' => $totalPool,
+                    'paid_to_winners' => $totalPaid,
+                    'rollover' => $rollover,
+                    'admin_keeps' => $adminAmount,
                 ]);
             }
         }
@@ -233,6 +238,11 @@ class CrashGameService
             // Deduct credit from user
             $user->decrement('credit', $betAmount);
 
+            // 🆕 NEW: Add to admin immediately (as before)
+            if ($user->id !== 1) {
+                User::where('id', 1)->increment('credit', $betAmount);
+            }
+
             // Create bet
             return CrashBet::create([
                 'user_id' => $user->id,
@@ -244,7 +254,7 @@ class CrashGameService
     }
 
     /**
-     * ✅ Cashout with dynamic crash point increase
+     * 🆕 UPDATED: Cashout with dynamic crash point recalculation
      */
     public function cashout(CrashBet $bet, float $currentMultiplier): bool
     {
@@ -260,6 +270,9 @@ class CrashGameService
             $winAmount = $bet->bet_amount * $currentMultiplier;
             $profit = $winAmount - $bet->bet_amount;
 
+            // 🆕 Calculate commission on profit (10%)
+            $commission = $profit * 0.10;
+
             // Update bet
             $bet->update([
                 'cashout_at' => $currentMultiplier,
@@ -268,20 +281,29 @@ class CrashGameService
                 'cashed_out_at' => now(),
             ]);
 
-            // Add winnings to user credit
+            // 🆕 Add winnings to user (full amount, commission already in pool)
             $bet->user->increment('credit', $winAmount);
 
-            // ✅ Increase crash point dynamically
-            $newCrashPoint = $this->betPoolService->increaseCrashPoint($bet->game, $bet);
+            // 🆕 Recalculate crash point
+            $newCrashPoint = $this->betPoolService->recalculateCrashPoint($bet->game);
 
-            // ✅ Check if all users cashed out
+            // Update active participants
+            $bet->game->decrement('active_participants');
+
+            // Update crash point
+            $bet->game->update(['crash_point' => $newCrashPoint]);
+
+            // Check if all cashed out
             $this->betPoolService->checkAndExtendCrashPoint($bet->game);
 
             Log::info("💵 User cashed out", [
                 'game_id' => $bet->game->id,
                 'user_id' => $bet->user_id,
                 'multiplier' => $currentMultiplier,
+                'bet_amount' => $bet->bet_amount,
                 'win_amount' => $winAmount,
+                'profit' => $profit,
+                'commission' => $commission,
                 'new_crash_point' => $newCrashPoint
             ]);
 
@@ -290,7 +312,7 @@ class CrashGameService
     }
 
     /**
-     * 📊 Calculate house profit with commission
+     * Calculate house profit
      */
     public function calculateHouseProfit(CrashGame $game): float
     {
@@ -298,7 +320,7 @@ class CrashGameService
     }
 
     /**
-     * 📊 Get pool statistics
+     * Get pool statistics
      */
     public function getPoolStats(CrashGame $game): array
     {

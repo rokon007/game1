@@ -192,6 +192,7 @@
                                             <th>মোট বেট</th>
                                             <th>পেআউট</th>
                                             <th>প্রফিট</th>
+                                            <th>কমিসন</th>
                                             <th>সময়</th>
                                         </tr>
                                     </thead>
@@ -202,6 +203,7 @@
                                                 $totalBet = $betStats->total_bet ?? 0;
                                                 $totalPayout = $betStats->total_payout ?? 0;
                                                 $profit = $totalBet - $totalPayout;
+                                                $commission=$game->admin_commission_amount;
                                             @endphp
                                             <tr>
                                                 <td><span class="badge bg-secondary">#{{ $game->id }}</span></td>
@@ -219,7 +221,10 @@
                                                     </span>
                                                 </td>
                                                 <td class="text-muted small">
-                                                    {{ $game->created_at->format('d/m/Y H:i') }}
+                                                    ৳{{ number_format($commission, 2) }}
+                                                </td>
+                                                <td class="text-muted small">
+                                                     {{ $game->created_at->format('d/m H:i') }}
                                                 </td>
                                             </tr>
                                         @empty
