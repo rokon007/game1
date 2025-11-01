@@ -270,7 +270,6 @@ class CrashBetPoolService
 
 
     // CrashBetPoolService.php - calculateAndSetRollover মেথডে
-    // এইটি সঠিক ভাবে কাজ না করায় কমেন্ট করা হলো
     // public function calculateAndSetRollover(CrashGame $game): float
     // {
     //     // ✅ ADD THIS: Force refresh before calculation
@@ -331,68 +330,6 @@ class CrashBetPoolService
     //         'total_pool' => $totalPool,
     //         'max_commission' => $maxCommission,
     //         'actual_commission' => $actualCommission,
-    //         'paid_to_winners' => $game->total_payout,
-    //         'remaining' => $remaining,
-    //         'rollover' => $rolloverAmount,
-    //     ]);
-
-    //     return $rolloverAmount;
-    // }
-
-    // public function calculateAndSetRollover(CrashGame $game): float
-    // {
-    //     $game->refresh();
-
-    //     $totalPool = $game->total_bet_pool;
-    //     $maxCommission = $game->admin_commission_amount;
-
-    //     // Calculate actual commission collected (10% of each cashout profit)
-    //     $actualCommission = 0;
-    //     foreach ($game->wonBets as $bet) {
-    //         $commission = $bet->profit * 0.10; // 10% of profit
-    //         $actualCommission += $commission;
-    //     }
-
-    //     // Cap at max commission
-    //     $actualCommission = min($actualCommission, $maxCommission);
-
-    //     // ✅ CHANGED: Calculate TOTAL WIN AMOUNT (bet amount + profit)
-    //     $totalWinAmount = 0;
-    //     foreach ($game->wonBets as $bet) {
-    //         $totalWinAmount += $bet->profit;
-    //     }
-
-    //     // Alternative method using query (if you prefer):
-    //     // $totalWinAmount = $game->wonBets()->sum(DB::raw('bet_amount + profit'));
-
-    //     // ✅ CHANGED: Update game with actual commission and TOTAL WIN AMOUNT
-    //     $game->update([
-    //         'admin_commission_amount' => $actualCommission,
-    //         'total_payout' => $totalWinAmount  // 🎯 এখন bet amount + profit থাকবে
-    //     ]);
-
-    //     $game->refresh();
-
-    //     // ✅ CHANGED: Remaining pool = Total Pool - Total Win Amount - Actual Commission
-    //     $remaining = $totalPool - $game->total_payout - $actualCommission;
-
-    //     $game->update(['remaining_pool' => $remaining]);
-
-    //     // Calculate rollover
-    //     if (!$this->settings->enable_pool_rollover) {
-    //         $game->update(['rollover_to_next' => 0]);
-    //         return 0;
-    //     }
-
-    //     $rolloverAmount = $this->settings->calculateRollover($remaining, 0);
-    //     $game->update(['rollover_to_next' => $rolloverAmount]);
-
-    //     Log::info("🔄 Rollover calculated", [
-    //         'game_id' => $game->id,
-    //         'total_pool' => $totalPool,
-    //         'max_commission' => $maxCommission,
-    //         'actual_commission' => $actualCommission,
-    //         'total_win_amount' => $totalWinAmount, // ✅ নতুন লগ
     //         'paid_to_winners' => $game->total_payout,
     //         'remaining' => $remaining,
     //         'rollover' => $rolloverAmount,
