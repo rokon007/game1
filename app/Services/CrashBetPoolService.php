@@ -237,11 +237,23 @@ class CrashBetPoolService
         $actualCommission = min($actualCommission, $maxCommission);
 
         // Update game with actual commission
-        $game->update(['admin_commission_amount' => $actualCommission]);
+        //$game->update(['admin_commission_amount' => $actualCommission]);
 
         // Calculate total paid (including commission)
-        $totalPaidToWinners = $game->wonBets()->sum('profit') + $game->wonBets()->sum('bet_amount');
-        $game->update(['total_payout' => $totalPaidToWinners]);
+        //$totalPaidToWinners = $game->wonBets()->sum('profit') + $game->wonBets()->sum('bet_amount');
+        //$game->update(['total_payout' => $totalPaidToWinners]);
+
+         $totalWinAmount = 0;
+            foreach ($game->wonBets as $bet) {
+                $totalWinAmount += $bet->bet_amount + $bet->profit;
+            }
+
+            $game->update([
+                'admin_commission_amount' => $actualCommission,
+                'total_payout' => $totalWinAmount  // 🎯 এখন bet amount + profit থাকবে
+            ]);
+
+
 
        // $game->refresh();
         // Remaining pool = Total Pool - Paid to Winners - Actual Commission
