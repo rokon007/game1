@@ -1,5 +1,5 @@
 <?php
-// app/Services/CrashGameService.php - UPDATED WITH NEW LOGIC
+// app/Services/CrashGameService.php - FIXED CASHOUT METHOD
 
 namespace App\Services;
 
@@ -150,7 +150,7 @@ class CrashGameService
                 'profit' => DB::raw('-bet_amount'),
             ]);
 
-            // ✅ ADD THIS: Refresh game data before calculation
+            // ✅ Refresh game data before calculation
             $game->refresh();
 
             // Calculate final commission and rollover
@@ -162,11 +162,6 @@ class CrashGameService
                 'crashed_at' => now(),
             ]);
 
-            // 🆕 NEW: Commission is already deducted from pool, no transfer needed
-            // Remaining pool (if any) goes to admin
-
-            $this->transferRemainingToAdmin($game);
-
             Log::info("💥 Game crashed", [
                 'game_id' => $game->id,
                 'crash_point' => $game->crash_point,
@@ -177,35 +172,6 @@ class CrashGameService
 
             return true;
         });
-    }
-
-    /**
-     * 🆕 Transfer remaining pool to admin
-     */
-    private function transferRemainingToAdmin(CrashGame $game): void
-    {
-        $totalPool = $game->total_bet_pool;
-        $totalPaid = $game->total_payout;
-        $rollover = $game->rollover_to_next;
-
-        // Admin gets: Total Pool - Paid to Winners - Rollover
-        $adminAmount = $totalPool - $totalPaid - $rollover;
-
-        if ($adminAmount > 0) {
-            $admin = User::find(1);
-            if ($admin) {
-                // Note: Bets already added to admin when placed
-                // So we only need to log this
-
-                Log::info("💰 Admin profit from game", [
-                    'game_id' => $game->id,
-                    'total_pool' => $totalPool,
-                    'paid_to_winners' => $totalPaid,
-                    'rollover' => $rollover,
-                    'admin_keeps' => $adminAmount,
-                ]);
-            }
-        }
     }
 
     public function placeBet(User $user, CrashGame $game, float $betAmount): CrashBet
@@ -238,7 +204,7 @@ class CrashGameService
             // Deduct credit from user
             $user->decrement('credit', $betAmount);
 
-            // 🆕 NEW: Add to admin immediately (as before)
+            // Add to admin immediately
             if ($user->id !== 1) {
                 User::where('id', 1)->increment('credit', $betAmount);
             }
@@ -254,7 +220,7 @@ class CrashGameService
     }
 
     /**
-     * 🆕 UPDATED: Cashout with dynamic crash point recalculation
+     * ✅✅✅ COMPLETELY FIXED: Cashout with CORRECT AMOUNT
      */
     public function cashout(CrashBet $bet, float $currentMultiplier): bool
     {
@@ -267,24 +233,65 @@ class CrashGameService
         }
 
         return DB::transaction(function () use ($bet, $currentMultiplier) {
-            $winAmount = $bet->bet_amount * $currentMultiplier;
-            $profit = $winAmount - $bet->bet_amount;
+            // ✅ Refresh models to avoid stale data
+            $bet->refresh();
+            $user = $bet->user()->lockForUpdate()->first();
+            $admin = User::where('id', 1)->lockForUpdate()->first();
 
-            // 🆕 Calculate commission on profit (10%)
-            $commission = $profit * 0.10;
+            if (!$user || !$admin) {
+                throw new Exception('User or admin not found');
+            }
 
-            // Update bet
+            // ✅ CORRECT CALCULATION
+            $betAmount = (float) $bet->bet_amount;
+            $winAmount = $betAmount * $currentMultiplier;  // পুরো return amount
+            $profit = $winAmount - $betAmount;             // শুধু profit
+            $commission = $profit * 0.10;                  // profit এর 10%
+
+            // ✅ CRITICAL LOG
+            Log::info("💵 Cashout Calculation", [
+                'bet_amount' => $betAmount,
+                'multiplier' => $currentMultiplier,
+                'win_amount' => $winAmount,      // এটাই user পাবে
+                'profit' => $profit,
+                'commission' => $commission,
+            ]);
+
+            // ✅ Update bet status
             $bet->update([
                 'cashout_at' => $currentMultiplier,
-                'profit' => $profit,
+                'profit' => $profit,  // শুধু profit store করি
                 'status' => 'won',
                 'cashed_out_at' => now(),
             ]);
 
-            // 🆕 Add winnings to user (full amount, commission already in pool)
-            $bet->user->increment('credit', $winAmount);
+            // ✅ SOLUTION: Use DB::raw for atomic operation
+            // User কে পুরো winAmount দিতে হবে
+            $affectedUser = DB::update(
+                'UPDATE users SET credit = credit + ?, updated_at = ? WHERE id = ?',
+                [$winAmount, now(), $user->id]
+            );
 
-            // 🆕 Recalculate crash point
+            // Admin থেকে পুরো winAmount বাদ দিতে হবে
+            $affectedAdmin = DB::update(
+                'UPDATE users SET credit = credit - ?, updated_at = ? WHERE id = ?',
+                [$winAmount, now(), $admin->id]
+            );
+
+            // ✅ Verify updates
+            if ($affectedUser === 0 || $affectedAdmin === 0) {
+                Log::error("❌ Credit update failed", [
+                    'user_affected' => $affectedUser,
+                    'admin_affected' => $affectedAdmin,
+                ]);
+                throw new Exception('Failed to update balances');
+            }
+
+            // ✅ Refresh to get updated values
+            $user->refresh();
+            $admin->refresh();
+
+            // ✅ Recalculate crash point
             $newCrashPoint = $this->betPoolService->recalculateCrashPoint($bet->game);
 
             // Update active participants
@@ -296,150 +303,23 @@ class CrashGameService
             // Check if all cashed out
             $this->betPoolService->checkAndExtendCrashPoint($bet->game);
 
-            Log::info("💵 User cashed out", [
+            // ✅ FINAL VERIFICATION LOG
+            Log::info("✅ Cashout Successful", [
                 'game_id' => $bet->game->id,
-                'user_id' => $bet->user_id,
+                'user_id' => $user->id,
+                'bet_amount' => $betAmount,
                 'multiplier' => $currentMultiplier,
-                'bet_amount' => $bet->bet_amount,
-                'win_amount' => $winAmount,
-                'profit' => $profit,
-                'commission' => $commission,
-                'new_crash_point' => $newCrashPoint
+                'win_amount_given' => $winAmount,  // পুরো amount
+                'profit_earned' => $profit,
+                'commission_deducted' => $commission,
+                'new_crash_point' => $newCrashPoint,
+                'user_balance_after' => $user->credit,
+                'admin_balance_after' => $admin->credit,
             ]);
 
             return true;
         });
     }
-
-
-     /**
-     * 🆕 COMPLETELY FIXED: Cashout with proper credit transfer
-     */
-    // public function cashout(CrashBet $bet, float $currentMultiplier): bool
-    // {
-    //     if ($bet->status !== 'playing') {
-    //         throw new Exception('Cannot cashout this bet');
-    //     }
-
-    //     if ($currentMultiplier >= $bet->game->crash_point) {
-    //         throw new Exception('Game has already crashed');
-    //     }
-
-    //     return DB::transaction(function () use ($bet, $currentMultiplier) {
-    //         // ✅ Refresh models to avoid stale data
-    //         $bet->refresh();
-    //         $user = $bet->user()->lockForUpdate()->first();
-    //         $admin = User::where('id', 1)->lockForUpdate()->first();
-
-    //         // Validate user and admin exist
-    //         if (!$user || !$admin) {
-    //             throw new Exception('User or admin not found');
-    //         }
-
-    //         // Calculate amounts
-    //         $betAmount = (float) $bet->bet_amount;
-    //         $winAmount = $betAmount * $currentMultiplier; // Total return to user
-    //         $profit = $winAmount - $betAmount; // Actual profit
-    //         $commission = $profit * 0.10;
-    //         $payAmaunt= $profit + $betAmount;
-
-    //         // ✅ CRITICAL DEBUG LOG
-    //         Log::info("🔍 Cashout calculation", [
-    //             'bet_amount' => $betAmount,
-    //             'multiplier' => $currentMultiplier,
-    //             'win_amount_calculated' => $winAmount,
-    //             'profit_calculated' => $profit,
-    //             'commission' => $commission,
-    //         ]);
-
-    //         // ✅ Check admin has sufficient balance
-    //         if ($admin->credit < $winAmount) {
-    //             Log::error("❌ Admin insufficient balance for cashout", [
-    //                 'admin_balance' => $admin->credit,
-    //                 'required' => $winAmount,
-    //                 'game_id' => $bet->game->id,
-    //                 'user_id' => $user->id
-    //             ]);
-    //             throw new Exception('System error: Insufficient pool balance');
-    //         }
-
-    //         // Update bet status FIRST
-    //         $bet->update([
-    //             'cashout_at' => $currentMultiplier,
-    //             'profit' => $profit,
-    //             'status' => 'won',
-    //             'cashed_out_at' => now(),
-    //         ]);
-
-    //         // ✅ SOLUTION 1: Use prepared statements (MOST RELIABLE)
-    //         $affectedUser = DB::update(
-    //             'UPDATE users SET credit = credit + ?, updated_at = ? WHERE id = ?',
-    //             [$winAmount, now(), $user->id]
-    //         );
-
-    //         // $affectedAdmin = DB::update(
-    //         //     'UPDATE users SET credit = credit - ?, updated_at = ? WHERE id = ?',
-    //         //     [$payAmaunt, now(), $admin->id]
-    //         // );
-
-    //         // ✅ Verify updates were successful
-    //         if ($affectedUser === 0) {
-    //             Log::error("❌ Failed to update user credit", [
-    //                 'user_id' => $user->id,
-    //                 'win_amount' => $winAmount
-    //             ]);
-    //             throw new Exception('Failed to update user balance');
-    //         }
-
-    //         if ($affectedAdmin === 0) {
-    //             Log::error("❌ Failed to update admin credit", [
-    //                 'admin_id' => $admin->id,
-    //                 'win_amount' => $winAmount
-    //             ]);
-    //             throw new Exception('Failed to update admin balance');
-    //         }
-
-    //         // ✅ Refresh to get updated values
-    //         $user->refresh();
-    //         $admin->refresh();
-
-    //         // ✅ VERIFICATION LOG
-    //         Log::info("✅ Credit transfer verified", [
-    //             'user_id' => $user->id,
-    //             'user_balance_after' => $user->credit,
-    //             'admin_id' => $admin->id,
-    //             'admin_balance_after' => $admin->credit,
-    //             'win_amount_transferred' => $winAmount,
-    //         ]);
-
-    //         // Recalculate crash point
-    //         $newCrashPoint = $this->betPoolService->recalculateCrashPoint($bet->game);
-
-    //         // Update active participants
-    //         $bet->game->decrement('active_participants');
-
-    //         // Update crash point
-    //         $bet->game->update(['crash_point' => $newCrashPoint]);
-
-    //         // Check if all cashed out
-    //         $this->betPoolService->checkAndExtendCrashPoint($bet->game);
-
-    //         Log::info("💵 User cashed out successfully", [
-    //             'game_id' => $bet->game->id,
-    //             'user_id' => $user->id,
-    //             'multiplier' => $currentMultiplier,
-    //             'bet_amount' => $betAmount,
-    //             'win_amount' => $winAmount,
-    //             'profit' => $profit,
-    //             'commission' => $commission,
-    //             'new_crash_point' => $newCrashPoint,
-    //             'user_balance_after' => $user->credit,
-    //             'admin_balance_after' => $admin->credit,
-    //         ]);
-
-    //         return true;
-    //     });
-    // }
 
     /**
      * Calculate house profit

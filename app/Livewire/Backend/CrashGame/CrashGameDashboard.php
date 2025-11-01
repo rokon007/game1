@@ -1,4 +1,5 @@
 <?php
+// app/Livewire/Backend/CrashGame/CrashGameDashboard.php - FIXED
 
 namespace App\Livewire\Backend\CrashGame;
 
@@ -28,7 +29,8 @@ class CrashGameDashboard extends Component
         $games = $this->getGames();
         $topWinners = $this->getTopWinners();
         $recentBets = $this->getRecentBets();
-        $pool= $this->poolData();
+        $pool = $this->poolData();
+
         return view('livewire.backend.crash-game.crash-game-dashboard', [
             'stats' => $stats,
             'games' => $games,
@@ -38,15 +40,37 @@ class CrashGameDashboard extends Component
         ])->layout('livewire.backend.base');
     }
 
+    /**
+     * ✅ FIXED: Pool data calculation
+     */
     private function poolData()
     {
-        $totalBetPool = \App\Models\CrashGame::latest('id')->value('total_bet_pool') ?? 0;
+        // Current running/pending game এর pool
+        $currentGame = CrashGame::whereIn('status', ['pending', 'running'])
+            ->latest()
+            ->first();
+
+        if ($currentGame) {
+            $totalBetPool = $currentGame->total_bet_pool;
+        } else {
+            // যদি কোন active game না থাকে, শেষ game এর rollover দেখাও
+            $lastGame = CrashGame::where('status', 'crashed')
+                ->latest()
+                ->first();
+
+            $totalBetPool = $lastGame ? $lastGame->rollover_to_next : 0;
+        }
 
         return [
             'total_bet_pool' => $totalBetPool,
+            'current_game_id' => $currentGame ? $currentGame->id : null,
+            'current_status' => $currentGame ? $currentGame->status : 'No active game',
         ];
     }
 
+    /**
+     * ✅ FIXED: Statistics calculation
+     */
     private function getStatistics()
     {
         $query = CrashGame::whereBetween('created_at', [
@@ -55,44 +79,54 @@ class CrashGameDashboard extends Component
         ]);
 
         $totalGames = $query->count();
-        $totalBets = CrashBet::whereHas('game', function($q) {
-            $q->whereBetween('created_at', [
-                $this->dateFrom . ' 00:00:00',
-                $this->dateTo . ' 23:59:59'
-            ]);
-        })->sum('bet_amount');
 
-        $totalPayouts = CrashBet::whereHas('game', function($q) {
-            $q->whereBetween('created_at', [
-                $this->dateFrom . ' 00:00:00',
-                $this->dateTo . ' 23:59:59'
-            ]);
-        })->where('status', 'won')->sum('profit');
+        // ✅ Total bets থেকে previous_rollover বাদ দিয়ে শুধু actual bets
+        $totalBets = CrashGame::whereBetween('created_at', [
+            $this->dateFrom . ' 00:00:00',
+            $this->dateTo . ' 23:59:59'
+        ])->sum('current_round_bets'); // শুধু current round bets
 
-        $houseProfit = $totalBets - $totalPayouts;
+        // ✅ Total payouts = শুধু profit (bet amount নয়)
+        $totalPayouts = CrashGame::whereBetween('created_at', [
+            $this->dateFrom . ' 00:00:00',
+            $this->dateTo . ' 23:59:59'
+        ])->sum('total_payout');
+
+        // ✅ House profit calculation
+        $totalCommission = CrashGame::whereBetween('created_at', [
+            $this->dateFrom . ' 00:00:00',
+            $this->dateTo . ' 23:59:59'
+        ])->sum('admin_commission_amount');
+
+        $totalRollover = CrashGame::whereBetween('created_at', [
+            $this->dateFrom . ' 00:00:00',
+            $this->dateTo . ' 23:59:59'
+        ])->sum('rollover_to_next');
+
+        // House profit = Total bets - Total payouts - Total rollover
+        // অথবা: House profit = Commission + (Remaining - Rollover)
+        $houseProfit = $totalBets - $totalPayouts - $totalRollover;
+
         $houseEdge = $totalBets > 0 ? ($houseProfit / $totalBets) * 100 : 0;
 
         return [
             'total_games' => $totalGames,
             'total_bets' => $totalBets,
             'total_payouts' => $totalPayouts,
+            'total_commission' => $totalCommission,
+            'total_rollover' => $totalRollover,
             'house_profit' => $houseProfit,
             'house_edge' => $houseEdge,
             'avg_crash_point' => $query->avg('crash_point') ?? 0,
         ];
     }
 
+    /**
+     * ✅ FIXED: Games list with accurate data
+     */
     public function getGames()
     {
-        return CrashGame::with(['bets' => function($query) {
-                $query->select('crash_game_id',
-                    DB::raw('COUNT(*) as bet_count'),
-                    DB::raw('SUM(bet_amount) as total_bet'),
-                    DB::raw('SUM(CASE WHEN status = "won" THEN profit ELSE 0 END) as total_payout')
-                )
-                ->groupBy('crash_game_id');
-            }])
-            ->whereBetween('created_at', [
+        return CrashGame::whereBetween('created_at', [
                 $this->dateFrom . ' 00:00:00',
                 $this->dateTo . ' 23:59:59'
             ])
@@ -115,7 +149,6 @@ class CrashGameDashboard extends Component
             ->orderByDesc('total_profit')
             ->limit(10)
             ->get();
-
     }
 
     private function getRecentBets()
