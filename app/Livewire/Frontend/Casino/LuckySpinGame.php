@@ -199,8 +199,14 @@ class LuckySpinGame extends Component
                 return;
             }
 
+            // Store initial credit before deduction
+            $initialCredit = $user->credit;
+
             // Debit user and create transaction
             $user->decrement('credit', $this->betAmount);
+
+            // Update component credit to show deduction immediately
+            $this->credit = $user->credit;
 
             // Create debit transaction for user
             Transaction::create([
@@ -328,8 +334,10 @@ class LuckySpinGame extends Component
             $this->preCalculatedMultiplier = null;
             $this->preCalculatedReward = null;
 
-            // Update component state
-            $this->credit = $user->fresh()->credit;
+            // Get the final credit after reward (but don't update component state yet)
+            $finalCredit = $user->fresh()->credit;
+
+            // Update pool amount
             $this->updatePoolAmount();
             $this->result = $result;
             $this->reward = $reward;
@@ -347,7 +355,9 @@ class LuckySpinGame extends Component
                 'bet_amount' => $this->betAmount,
                 'pool_before' => $poolBefore,
                 'pool_after' => $poolAfter,
-                'admin_commission' => $adminCommission
+                'admin_commission' => $adminCommission,
+                'final_credit' => $finalCredit,
+                'initial_credit' => $this->credit
             ]);
 
         } catch (\Exception $e) {

@@ -317,8 +317,9 @@
 
             /* Balance Info - More Compact */
             .balance-info {
-                font-size: 11px;
-                color: rgba(255, 255, 255, 0.8);
+                font-size: 12px;
+                font-weight: bold;
+                color: black;
                 text-align: center;
                 margin-bottom: 4px;
             }

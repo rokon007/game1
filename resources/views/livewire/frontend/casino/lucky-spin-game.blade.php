@@ -10,6 +10,7 @@
         @include('livewire.layout.frontend.css')
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
         <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.4/dist/sweetalert2.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://unpkg.com/augmented-ui@2/augmented.css">
         <style>
             .game-container {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -90,12 +91,12 @@
                 transform-origin: center;
             }
 
-            .label-1 { top: 10%; left: 70%; transform: rotate(30deg); }
-            .label-2 { top: 10%; left: 30%; transform: rotate(-30deg); }
-            .label-3 { top: 50%; left: 10%; transform: rotate(-90deg); }
-            .label-4 { top: 50%; left: 80%; transform: rotate(90deg); }
-            .label-5 { top: 85%; left: 70%; transform: rotate(150deg); }
-            .label-6 { top: 85%; left: 30%; transform: rotate(-150deg); }
+            .label-1 { top: 10%; left: 60%; transform: rotate(30deg); }
+            .label-2 { top: 10%; left: 15%; transform: rotate(-30deg); }
+            .label-3 { top: 50%; left: 0%; transform: rotate(-90deg); }
+            .label-4 { top: 50%; left: 75%; transform: rotate(90deg); }
+            .label-5 { top: 85%; left: 60%; transform: rotate(150deg); }
+            .label-6 { top: 80%; left: 15%; transform: rotate(-150deg); }
 
             /* Button Styles */
             .spin-btn {
@@ -126,6 +127,17 @@
                 border-radius: 15px;
                 padding: 15px;
                 box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+                transition: all 0.3s ease;
+            }
+
+            .credit-display.credit-updating {
+                animation: creditPulse 0.5s ease-in-out infinite;
+                box-shadow: 0 5px 25px rgba(46, 204, 113, 0.6);
+            }
+
+            @keyframes creditPulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.05); background: linear-gradient(135deg, #27ae60, #2ecc71); }
             }
 
             .bet-controls .btn {
@@ -156,21 +168,23 @@
                 color: #2c3e50;
             }
 
-            /* Reward Preview Styles */
+            /* Enhanced Reward Preview Styles - More Professional & Compact */
             .reward-preview-overlay {
                 position: fixed;
                 top: 0;
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.95);
+                /* background: rgba(0, 0, 0, 0.7);  */
+                background: transparent;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 z-index: 9999;
                 opacity: 0;
                 visibility: hidden;
-                transition: all 0.4s ease;
+                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                backdrop-filter: blur(3px);
             }
 
             .reward-preview-overlay.active {
@@ -179,146 +193,177 @@
             }
 
             .reward-preview-content {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 30px;
-                padding: 50px 40px;
+                /* background: linear-gradient(145deg, #0a0a1a, #1a1a2e); */
+                background: linear-gradient(145deg, rgba(0,0,0,0.45), rgba(30,30,30,0.25));
+                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+
+                padding: 30px 25px;
                 text-align: center;
                 color: white;
-                max-width: 500px;
-                width: 90%;
-                box-shadow: 0 30px 60px rgba(0,0,0,0.5);
-                transform: scale(0.7) rotateX(20deg);
-                transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+                max-width: 380px;
+                width: 85%;
+                border-radius: 16px;
+                box-shadow: 0 10px 40px rgba(0, 255, 255, 0.3),
+                            0 0 0 2px rgba(0, 255, 255, 0.1),
+                            inset 0 0 20px rgba(0, 255, 255, 0.1);
+                transform: scale(0.8) translateY(20px);
+                transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                 position: relative;
                 overflow: hidden;
             }
 
             .reward-preview-overlay.active .reward-preview-content {
-                transform: scale(1) rotateX(0deg);
+                transform: scale(1) translateY(0);
             }
 
             .reward-preview-content::before {
                 content: '';
                 position: absolute;
-                top: -50%;
-                left: -50%;
-                width: 200%;
-                height: 200%;
-                background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-                animation: shimmer 2s infinite;
-            }
-
-            @keyframes shimmer {
-                0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-                100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(135deg,
+                    transparent 0%,
+                    rgba(0, 255, 255, 0.05) 30%,
+                    rgba(0, 255, 255, 0.1) 50%,
+                    rgba(0, 255, 255, 0.05) 70%,
+                    transparent 100%);
+                z-index: 0;
             }
 
             .reward-icon {
-                font-size: 80px;
-                margin-bottom: 20px;
-                animation: bounce 2s infinite;
-                filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+                font-size: 50px;
+                margin-bottom: 15px;
+                animation: subtleBounce 2s infinite;
+                color: cyan;
+                position: relative;
+                z-index: 1;
+                filter: drop-shadow(0 0 10px cyan);
             }
 
-            @keyframes bounce {
+            @keyframes subtleBounce {
                 0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-                40% { transform: translateY(-30px); }
-                60% { transform: translateY(-15px); }
+                40% { transform: translateY(-15px); }
+                60% { transform: translateY(-7px); }
             }
 
             .reward-title {
-                font-size: 28px;
+                display: inline-block;
+                padding: 0.4em 1.5em;
+                font-size: 18px;
                 font-weight: bold;
-                margin-bottom: 15px;
-                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-                letter-spacing: 2px;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                margin-bottom: 10px;
+                color: #000;
+                background: #ffff00;
+                border-radius: 8px;
+                position: relative;
+                z-index: 1;
+                box-shadow: 0 0 15px yellow;
             }
 
             .reward-multiplier {
-                font-size: 72px;
+                font-size: 52px;
                 font-weight: bold;
-                color: #f1c40f;
-                margin: 20px 0;
-                text-shadow: 0 0 30px rgba(241, 196, 15, 0.8), 0 0 60px rgba(241, 196, 15, 0.5);
-                animation: pulse 1.5s infinite;
+                color: #ffff;
+                margin: 15px 0;
+                text-shadow: 0 0 20px #000;
+                animation: gentlePulse 1.5s infinite;
                 position: relative;
                 z-index: 1;
             }
 
-            @keyframes pulse {
+            @keyframes gentlePulse {
                 0%, 100% {
                     transform: scale(1);
-                    text-shadow: 0 0 30px rgba(241, 196, 15, 0.8), 0 0 60px rgba(241, 196, 15, 0.5);
+                    text-shadow: 0 0 20px #ff3366;
                 }
                 50% {
-                    transform: scale(1.15);
-                    text-shadow: 0 0 40px rgba(241, 196, 15, 1), 0 0 80px rgba(241, 196, 15, 0.7);
+                    transform: scale(1.05);
+                    text-shadow: 0 0 30px #ff3366;
                 }
             }
 
             .reward-amount {
-                font-size: 32px;
-                margin: 15px 0;
+                font-size: 24px;
+                margin: 10px 0;
                 font-weight: bold;
-                color: #ffffff;
-                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                color: #ffcc00;
+                text-shadow: 0 0 15px #ffcc00;
+                position: relative;
+                z-index: 1;
             }
 
             .reward-subtitle {
-                font-size: 18px;
+                font-size: 14px;
                 opacity: 0.9;
-                margin-top: 20px;
-                animation: fadeInOut 2s infinite;
-            }
-
-            @keyframes fadeInOut {
-                0%, 100% { opacity: 0.6; }
-                50% { opacity: 1; }
+                margin-top: 15px;
+                color: #a0a0ff;
+                position: relative;
+                z-index: 1;
             }
 
             .countdown-timer {
-                font-size: 48px;
+                font-size: 20px;
                 font-weight: bold;
-                color: #f1c40f;
-                margin-top: 30px;
-                text-shadow: 0 0 20px rgba(241, 196, 15, 0.8);
+                color: #00ffff;
+                margin-top: 20px;
+                text-shadow: 0 0 15px cyan;
                 animation: countdownPulse 1s infinite;
+                position: relative;
+                z-index: 1;
             }
 
             @keyframes countdownPulse {
                 0%, 100% { transform: scale(1); opacity: 1; }
-                50% { transform: scale(1.2); opacity: 0.8; }
+                50% { transform: scale(1.1); opacity: 0.8; }
             }
 
-            /* Sparkle Effects */
+            /* Sparkle Effects - More Subtle */
             .sparkle {
                 position: absolute;
-                width: 4px;
-                height: 4px;
-                background: white;
+                width: 3px;
+                height: 3px;
+                background: #ff3366;
                 border-radius: 50%;
-                animation: sparkleFloat 3s infinite;
+                box-shadow: 0 0 8px #ff3366;
+                animation: sparkleFloat 2.5s infinite;
+                z-index: 0;
             }
 
             @keyframes sparkleFloat {
                 0% { transform: translateY(0) scale(0); opacity: 0; }
                 50% { opacity: 1; }
-                100% { transform: translateY(-200px) scale(1); opacity: 0; }
+                100% { transform: translateY(-150px) scale(1); opacity: 0; }
             }
 
-            .result-alert {
-                animation: slideDown 0.5s ease;
+            /* Compact SweetAlert Styles */
+            .swal2-popup {
+                max-width: 380px !important;
+                width: 90% !important;
+                border-radius: 16px !important;
+                padding: 20px !important;
             }
 
-            @keyframes slideDown {
-                from {
-                    transform: translateY(-20px);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateY(0);
-                    opacity: 1;
-                }
+            .swal2-title {
+                font-size: 22px !important;
+                padding: 0 1em !important;
+            }
+
+            .swal2-html-container {
+                font-size: 14px !important;
+                margin: 1em 0 !important;
+            }
+
+            .swal2-confirm {
+                padding: 10px 25px !important;
+                font-size: 14px !important;
+                border-radius: 8px !important;
             }
 
             @media (max-width: 768px) {
@@ -345,27 +390,76 @@
                 }
 
                 .reward-preview-content {
-                    padding: 40px 25px;
+                    padding: 25px 20px;
+                    max-width: 320px;
+                    width: 80%;
                 }
 
                 .reward-icon {
-                    font-size: 60px;
+                    font-size: 40px;
                 }
 
                 .reward-title {
-                    font-size: 22px;
+                    font-size: 16px;
+                    padding: 0.3em 1.2em;
                 }
 
                 .reward-multiplier {
-                    font-size: 56px;
+                    font-size: 44px;
                 }
 
                 .reward-amount {
-                    font-size: 24px;
+                    font-size: 20px;
                 }
 
                 .countdown-timer {
-                    font-size: 36px;
+                    font-size: 18px;
+                }
+
+                /* Even more compact SweetAlert on mobile */
+                .swal2-popup {
+                    max-width: 320px !important;
+                    width: 85% !important;
+                    padding: 18px !important;
+                }
+
+                .swal2-title {
+                    font-size: 20px !important;
+                }
+
+                .swal2-html-container {
+                    font-size: 13px !important;
+                }
+            }
+
+            @media (max-width: 480px) {
+                .reward-preview-content {
+                    padding: 20px 15px;
+                    max-width: 280px;
+                }
+
+                .reward-icon {
+                    font-size: 35px;
+                }
+
+                .reward-title {
+                    font-size: 14px;
+                }
+
+                .reward-multiplier {
+                    font-size: 38px;
+                }
+
+                .reward-amount {
+                    font-size: 18px;
+                }
+
+                .reward-subtitle {
+                    font-size: 12px;
+                }
+
+                .countdown-timer {
+                    font-size: 16px;
                 }
             }
         </style>
@@ -380,32 +474,30 @@
     @endsection
 
     <div class="game-container">
-        <!-- Reward Preview Overlay -->
+        <!-- Enhanced Reward Preview Overlay -->
         <div class="reward-preview-overlay" id="rewardPreviewOverlay">
             <div class="reward-preview-content">
-                <!-- Sparkle effects -->
-                <div class="sparkle" style="top: 10%; left: 20%; animation-delay: 0s;"></div>
-                <div class="sparkle" style="top: 20%; left: 80%; animation-delay: 0.3s;"></div>
-                <div class="sparkle" style="top: 80%; left: 15%; animation-delay: 0.6s;"></div>
-                <div class="sparkle" style="top: 70%; left: 85%; animation-delay: 0.9s;"></div>
-                <div class="sparkle" style="top: 40%; left: 10%; animation-delay: 1.2s;"></div>
-                <div class="sparkle" style="top: 50%; left: 90%; animation-delay: 1.5s;"></div>
+                <!-- Subtle sparkle effects -->
+                <div class="sparkle" style="top: 15%; left: 25%; animation-delay: 0s;"></div>
+                <div class="sparkle" style="top: 25%; left: 75%; animation-delay: 0.4s;"></div>
+                <div class="sparkle" style="top: 75%; left: 20%; animation-delay: 0.8s;"></div>
+                <div class="sparkle" style="top: 65%; left: 80%; animation-delay: 1.2s;"></div>
 
                 <div class="reward-icon">
-                    <i class="fas fa-gift"></i>
+                    <i class="fas fa-gem"></i>
                 </div>
-                <h2 class="reward-title">POSSIBLE REWARD</h2>
+                <div class="reward-title">POTENTIAL WIN</div>
                 <div class="reward-multiplier" id="previewMultiplier">?x</div>
                 <div class="reward-amount" id="previewAmount">? Credits</div>
-                <p class="reward-subtitle">✨ Spin to reveal your prize! ✨</p>
-                <div class="countdown-timer" id="countdownTimer">1</div>
+                <p class="reward-subtitle">Spin to reveal your prize!</p>
+                <div class="countdown-timer" id="countdownTimer">3</div>
             </div>
         </div>
 
         <!-- Sound Toggle Button -->
-        <button class="sound-toggle" id="soundToggle">
+        {{-- <button class="sound-toggle" id="soundToggle">
             <i class="fas fa-volume-up"></i>
-        </button>
+        </button> --}}
 
         <div class="container">
             <div class="row justify-content-center">
@@ -414,12 +506,12 @@
                         <!-- Wheel -->
                         <div class="wheel-container mb-4">
                             <div class="wheel" id="wheel">
-                                <div class="segment-label label-1">LOSE</div>
-                                <div class="segment-label label-2">WIN</div>
-                                <div class="segment-label label-3">LOSE</div>
-                                <div class="segment-label label-4">JACKPOT</div>
-                                <div class="segment-label label-5">LOSE</div>
-                                <div class="segment-label label-6">WIN</div>
+                                <div class="segment-label label-1">MISSED</div>
+                                <div class="segment-label label-2">LUCKY SHOT</div>
+                                <div class="segment-label label-3">MISSED</div>
+                                <div class="segment-label label-4">LUCKY SHOT</div>
+                                <div class="segment-label label-5">MISSED</div>
+                                <div class="segment-label label-6">LUCKY SHOT</div>
                             </div>
                             <div class="wheel-pointer">
                                 <i class="fas fa-caret-down"></i>
@@ -474,7 +566,7 @@
                             </button>
                         </div>
 
-                        <div class="credit-display text-center mb-4">
+                        <div class="credit-display text-center mb-4" id="creditDisplay">
                             <div class="row">
                                 <div class="col-12">
                                     <div class="mb-2">
@@ -493,39 +585,6 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>
                         @endif
-
-                        <!-- Result Display -->
-                        {{-- @if($result)
-                            <div class="result-alert">
-                                <div class="alert
-                                    @if($result === 'win') alert-success
-                                    @elseif($result === 'jackpot') alert-warning
-                                    @else alert-info @endif
-                                    alert-dismissible fade show">
-                                    <div class="text-center">
-                                        @if($result === 'win')
-                                            <h5 class="alert-heading">
-                                                <i class="fas fa-trophy me-2"></i>CONGRATULATIONS!
-                                            </h5>
-                                            <p class="mb-2">You won <strong>{{ number_format($reward) }} credits!</strong></p>
-                                            <p class="mb-0 text-muted">Multiplier: {{ number_format($reward / $betAmount, 1) }}x</p>
-                                        @elseif($result === 'jackpot')
-                                            <h5 class="alert-heading">
-                                                <i class="fas fa-crown me-2"></i>JACKPOT!
-                                            </h5>
-                                            <p class="mb-2">You won the massive jackpot of</p>
-                                            <h4 class="text-warning fw-bold">{{ number_format($reward) }} credits!</h4>
-                                        @else
-                                            <h5 class="alert-heading">
-                                                <i class="fas fa-redo me-2"></i>BETTER LUCK NEXT TIME
-                                            </h5>
-                                            <p class="mb-0">Keep trying!</p>
-                                        @endif
-                                    </div>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                </div>
-                            </div>
-                        @endif --}}
                     </div>
                 </div>
             </div>
@@ -627,7 +686,7 @@
 
             const soundManager = new SoundManager();
 
-            // Reward Preview Manager
+            // Enhanced Reward Preview Manager
             class RewardPreviewManager {
                 constructor() {
                     this.overlay = document.getElementById('rewardPreviewOverlay');
@@ -653,7 +712,7 @@
                     this.multiplierEl.textContent = displayMultiplier + 'x';
                     this.amountEl.textContent = potentialWin.toLocaleString() + ' Credits';
 
-                    // Show overlay
+                    // Show overlay with smooth animation
                     this.overlay.classList.add('active');
                     soundManager.play('preview');
 
@@ -671,7 +730,7 @@
                 }
 
                 startCountdown() {
-                    let count = 1;
+                    let count = 3;
                     this.countdownEl.textContent = count;
 
                     this.countdownInterval = setInterval(() => {
@@ -688,7 +747,7 @@
                             setTimeout(() => {
                                 this.hide();
                                 this.triggerSpin();
-                            }, 800);
+                            }, 500);
                         }
                     }, 1000);
                 }
@@ -782,9 +841,55 @@
                     if (spinData.result === 'jackpot') soundManager.play('jackpot');
                     else if (spinData.result === 'win') soundManager.play('win');
                     else soundManager.play('lose');
+
+                    // Update credit after spin completes (only if won)
+                    if (spinData.reward > 0) {
+                        animateCreditUpdate(spinData.initial_credit, spinData.final_credit);
+                    }
+
                     showResultAlert(spinData);
                 }, 4500);
             };
+
+            function animateCreditUpdate(startCredit, endCredit) {
+                const creditDisplay = document.getElementById('creditDisplay');
+                const duration = 1500; // 1.5 seconds
+                const startTime = Date.now();
+                const difference = endCredit - startCredit;
+
+                // Add pulsing animation class
+                if (creditDisplay) {
+                    creditDisplay.classList.add('credit-updating');
+                }
+
+                function updateCredit() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+
+                    // Easing function for smooth animation
+                    const easeOut = 1 - Math.pow(1 - progress, 3);
+                    const currentCredit = Math.floor(startCredit + (difference * easeOut));
+
+                    // Update the Livewire component
+                    @this.set('credit', currentCredit);
+
+                    if (progress < 1) {
+                        requestAnimationFrame(updateCredit);
+                    } else {
+                        // Ensure final value is set
+                        @this.set('credit', endCredit);
+
+                        // Remove animation class
+                        if (creditDisplay) {
+                            setTimeout(() => {
+                                creditDisplay.classList.remove('credit-updating');
+                            }, 500);
+                        }
+                    }
+                }
+
+                requestAnimationFrame(updateCredit);
+            }
 
             function playTickSounds() {
                 let tickCount = 0;
@@ -806,44 +911,42 @@
                 const displayMultiplier = data.multiplier || 0;
 
                 if (data.result === 'jackpot') {
-                    title = '🎉 JACKPOT! 🎉';
-                    icon = 'success';
+                    title = '🎉 JACKPOT!';
                     html = `<div class="text-center">
-                        <h4 class="text-warning fw-bold">CONGRATULATIONS!</h4>
-                        <p>You hit the JACKPOT!</p>
-                        <h2 class="text-success fw-bold my-3">${data.reward.toLocaleString()} CREDITS</h2>
-                        ${displayMultiplier > 0 ? `<p class="text-muted">Amazing ${displayMultiplier.toFixed(1)}x multiplier!</p>` : ''}
-                        <p class="text-muted">You are our lucky winner! 🏆</p>
+                        <h5 class="text-warning fw-bold mb-2">CONGRATULATIONS!</h5>
+                        <p class="mb-2">You hit the JACKPOT!</p>
+                        <h4 class="text-success fw-bold my-2">${data.reward.toLocaleString()} CREDITS</h4>
+                        ${displayMultiplier > 0 ? `<p class="text-muted small">${displayMultiplier.toFixed(1)}x multiplier!</p>` : ''}
                     </div>`;
 
-                        Swal.fire({
+                    Swal.fire({
                         title: title,
                         html: html,
-                        icon: icon,
                         confirmButtonColor: '#3085d6',
                         confirmButtonText: 'SPIN AGAIN',
-                        allowOutsideClick: false
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'compact-swal'
+                        }
                     });
                 } else if (data.result === 'win') {
                     title = '🎊 YOU WON!';
-                    icon = 'success';
                     html = `<div class="text-center">
-                        <h5 class="text-success fw-bold">Congratulations!</h5>
-                        <p>Just as predicted in the preview!</p>
-                        <h3 class="text-success fw-bold my-2">${data.reward.toLocaleString()} CREDITS</h3>
-                        <p class="text-info fw-bold">Multiplier: ${displayMultiplier}x ✨</p>
-                        <p class="text-muted">Great spin! Keep going!</p>
+                        <p class="mb-2">Congratulations! You won:</p>
+                        <h4 class="text-success fw-bold my-2">${data.reward.toLocaleString()} CREDITS</h4>
+                        <p class="text-info fw-bold small">Multiplier: ${displayMultiplier}x</p>
                     </div>`;
 
-                        Swal.fire({
+                    Swal.fire({
                         title: title,
                         html: html,
-                        icon: icon,
                         confirmButtonColor: '#3085d6',
                         confirmButtonText: 'SPIN AGAIN',
-                        allowOutsideClick: false
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'compact-swal'
+                        }
                     });
-
                 }
             }
 
@@ -856,7 +959,7 @@
             });
 
             console.log('Lucky Spin Game JavaScript loaded successfully');
-            console.log('Reward Preview System ready!');
+            console.log('Enhanced Reward Preview System ready!');
         </script>
     @endsection
 </div>
