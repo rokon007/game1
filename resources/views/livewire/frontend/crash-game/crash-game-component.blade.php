@@ -317,7 +317,7 @@
 
             /* Balance Info - More Compact */
             .balance-info {
-                font-size: 9px;
+                font-size: 11px;
                 color: rgba(255, 255, 255, 0.8);
                 text-align: center;
                 margin-bottom: 4px;
@@ -461,7 +461,7 @@
             }
 
             .compact-badge {
-                font-size: 7px;
+                font-size: 10px;
                 padding: 1px 4px;
             }
 

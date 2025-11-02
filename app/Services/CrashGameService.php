@@ -1,5 +1,5 @@
 <?php
-// app/Services/CrashGameService.php - UPDATED WITH NEW LOGIC
+// app/Services/CrashGameService.php - FIXED WITH FULL WIN PAYOUT
 
 namespace App\Services;
 
@@ -145,12 +145,16 @@ class CrashGameService
 
         return DB::transaction(function () use ($game) {
             // Mark all pending/playing bets as lost
-            $game->activeBets()->update([
-                'status' => 'lost',
-                'profit' => DB::raw('-bet_amount'),
-            ]);
+            $lostBets = $game->activeBets()->get();
 
-            // ✅ ADD THIS: Refresh game data before calculation
+            foreach ($lostBets as $bet) {
+                $bet->update([
+                    'status' => 'lost',
+                    'profit' => -$bet->bet_amount,
+                ]);
+            }
+
+            // Refresh game data
             $game->refresh();
 
             // Calculate final commission and rollover
@@ -162,11 +166,6 @@ class CrashGameService
                 'crashed_at' => now(),
             ]);
 
-            // 🆕 NEW: Commission is already deducted from pool, no transfer needed
-            // Remaining pool (if any) goes to admin
-
-            $this->transferRemainingToAdmin($game);
-
             Log::info("💥 Game crashed", [
                 'game_id' => $game->id,
                 'crash_point' => $game->crash_point,
@@ -177,35 +176,6 @@ class CrashGameService
 
             return true;
         });
-    }
-
-    /**
-     * 🆕 Transfer remaining pool to admin
-     */
-    private function transferRemainingToAdmin(CrashGame $game): void
-    {
-        $totalPool = $game->total_bet_pool;
-        $totalPaid = $game->total_payout;
-        $rollover = $game->rollover_to_next;
-
-        // Admin gets: Total Pool - Paid to Winners - Rollover
-        $adminAmount = $totalPool - $totalPaid - $rollover;
-
-        if ($adminAmount > 0) {
-            $admin = User::find(1);
-            if ($admin) {
-                // Note: Bets already added to admin when placed
-                // So we only need to log this
-
-                Log::info("💰 Admin profit from game", [
-                    'game_id' => $game->id,
-                    'total_pool' => $totalPool,
-                    'paid_to_winners' => $totalPaid,
-                    'rollover' => $rollover,
-                    'admin_keeps' => $adminAmount,
-                ]);
-            }
-        }
     }
 
     public function placeBet(User $user, CrashGame $game, float $betAmount): CrashBet
@@ -238,7 +208,7 @@ class CrashGameService
             // Deduct credit from user
             $user->decrement('credit', $betAmount);
 
-            // 🆕 NEW: Add to admin immediately (as before)
+            // ✅ Add to admin immediately
             if ($user->id !== 1) {
                 User::where('id', 1)->increment('credit', $betAmount);
             }
@@ -254,7 +224,7 @@ class CrashGameService
     }
 
     /**
-     * 🆕 UPDATED: Cashout with dynamic crash point recalculation
+     * ✅ FIXED: Cashout with FULL win amount to user
      */
     public function cashout(CrashBet $bet, float $currentMultiplier): bool
     {
@@ -267,25 +237,39 @@ class CrashGameService
         }
 
         return DB::transaction(function () use ($bet, $currentMultiplier) {
-            $winAmount = $bet->bet_amount * $currentMultiplier;
-            $profit = $winAmount - $bet->bet_amount;
+            $betAmount = $bet->bet_amount;
+            $fullWinAmount = $betAmount * $currentMultiplier; // ✅ Full win (e.g., ৳300)
+            $profit = $fullWinAmount - $betAmount; // ✅ Profit (e.g., ৳200)
 
-            // 🆕 Calculate commission on profit (10%)
-            $commission = $profit * 0.10;
+            // ✅ Commission on profit (10%)
+            $commission = $profit * 0.10; // e.g., ৳20
 
-            // Update bet
+            // Update bet record with PROFIT (for statistics)
             $bet->update([
                 'cashout_at' => $currentMultiplier,
-                'profit' => $profit,
+                'profit' => $profit, // ✅ Store full profit (৳200)
                 'status' => 'won',
                 'cashed_out_at' => now(),
             ]);
 
-            // 🆕 Add winnings to user (full amount, commission already in pool)
-            $bet->user->increment('credit', $winAmount);
+            // ✅ Admin pays FULL WIN AMOUNT
+            $admin = User::find(1);
+            if ($admin) {
+                $admin->decrement('credit', $fullWinAmount); // ✅ Deduct ৳300
 
-            // 🆕 Recalculate crash point
-            $newCrashPoint = $this->betPoolService->recalculateCrashPoint($bet->game);
+                Log::info("💰 Admin paid full win", [
+                    'game_id' => $bet->game->id,
+                    'user_id' => $bet->user_id,
+                    'paid_amount' => $fullWinAmount,
+                    'admin_balance_after' => $admin->fresh()->credit,
+                ]);
+            }
+
+            // ✅ User receives FULL WIN AMOUNT
+            $bet->user->increment('credit', $fullWinAmount); // ✅ User gets ৳300
+
+            // ✅ Recalculate crash point - Pool loses Win + Commission
+            $newCrashPoint = $this->betPoolService->recalculateCrashPoint($bet->game, $fullWinAmount, $commission);
 
             // Update active participants
             $bet->game->decrement('active_participants');
@@ -296,15 +280,15 @@ class CrashGameService
             // Check if all cashed out
             $this->betPoolService->checkAndExtendCrashPoint($bet->game);
 
-            Log::info("💵 User cashed out", [
+            Log::info("💵 User cashed out - FULL WIN", [
                 'game_id' => $bet->game->id,
                 'user_id' => $bet->user_id,
                 'multiplier' => $currentMultiplier,
-                'bet_amount' => $bet->bet_amount,
-                'win_amount' => $winAmount,
+                'bet_amount' => $betAmount,
+                'full_win_amount' => $fullWinAmount,
                 'profit' => $profit,
                 'commission' => $commission,
-                'new_crash_point' => $newCrashPoint
+                'new_crash_point' => $newCrashPoint,
             ]);
 
             return true;

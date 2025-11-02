@@ -1,5 +1,5 @@
 <?php
-// app/Services/CrashBetPoolService.php - NEW DYNAMIC LOGIC
+// app/Services/CrashBetPoolService.php - POOL LOSES WIN + COMMISSION
 
 namespace App\Services;
 
@@ -30,10 +30,10 @@ class CrashBetPoolService
         // Get rollover from previous game
         $previousRollover = CrashGame::getLastRolloverAmount();
 
-        // 🆕 NEW LOGIC: Total pool = current bets + previous rollover
+        // ✅ Total pool = current bets + previous rollover
         $totalPool = $currentBets + $previousRollover;
 
-        // 🆕 Calculate MAX commission (10% of total pool)
+        // ✅ Calculate MAX commission (10% of total pool)
         $maxCommission = $totalPool * ($this->settings->admin_commission_rate / 100);
 
         // Lock the pool
@@ -43,13 +43,13 @@ class CrashBetPoolService
             'total_bet_pool' => $totalPool,
             'total_participants' => $participants,
             'active_participants' => $participants,
-            'admin_commission_amount' => $maxCommission, // MAX possible commission
+            'admin_commission_amount' => $maxCommission,
             'commission_rate' => $this->settings->admin_commission_rate ?? 10.00,
             'pool_locked' => true,
             'pool_locked_at' => now(),
         ]);
 
-        // 🆕 Calculate initial crash point
+        // Calculate initial crash point
         $initialCrashPoint = $this->calculateDynamicCrashPoint($game);
 
         $game->update([
@@ -57,7 +57,7 @@ class CrashBetPoolService
             'crash_point' => $initialCrashPoint
         ]);
 
-        Log::info("🔒 Pool locked with new logic", [
+        Log::info("🔒 Pool locked", [
             'game_id' => $game->id,
             'current_bets' => $currentBets,
             'previous_rollover' => $previousRollover,
@@ -69,8 +69,7 @@ class CrashBetPoolService
     }
 
     /**
-     * 🆕 NEW: Dynamic crash point calculation
-     * Formula: Available Pool ÷ Total Active Bets
+     * 🎯 Dynamic crash point calculation
      */
     public function calculateDynamicCrashPoint(CrashGame $game): float
     {
@@ -80,11 +79,10 @@ class CrashBetPoolService
         // Available pool = Total - Max Commission
         $availablePool = $totalPool - $maxCommission;
 
-        // Get total active bets (only playing bets)
+        // Get total active bets
         $totalActiveBets = $game->activeBets()->sum('bet_amount');
 
         if ($totalActiveBets <= 0) {
-            // No bets, return max multiplier
             return $this->settings->max_multiplier ?? 100.00;
         }
 
@@ -110,29 +108,42 @@ class CrashBetPoolService
     }
 
     /**
-     * 🆕 UPDATED: Recalculate crash point after cashout
+     * ✅ FIXED: Recalculate crash point - Pool loses Win + Commission
      */
-    public function recalculateCrashPoint(CrashGame $game): float
+    public function recalculateCrashPoint(CrashGame $game, float $latestWinAmount = 0, float $latestCommission = 0): float
     {
-        // Get updated data
+        $game->refresh();
+
         $totalPool = $game->total_bet_pool;
         $maxCommission = $game->admin_commission_amount;
 
-        // Calculate actual commission paid so far
-        $actualCommissionPaid = $game->wonBets()->sum(DB::raw('profit * 0.10')); // 10% of profit
+        // ✅ Calculate total WIN AMOUNT paid out so far
+        $totalWinsPaid = 0;
+        $totalCommissionCollected = 0;
+
+        foreach ($game->wonBets as $bet) {
+            $winAmount = $bet->bet_amount * $bet->cashout_at;
+            $profit = $bet->profit;
+            $commission = $profit * 0.10;
+
+            $totalWinsPaid += $winAmount;
+            $totalCommissionCollected += $commission;
+        }
+
+        // Add latest cashout
+        $totalWinsPaid += $latestWinAmount;
+        $totalCommissionCollected += $latestCommission;
 
         // Remaining commission allowance
-        $remainingCommission = max(0, $maxCommission - $actualCommissionPaid);
+        $remainingCommission = max(0, $maxCommission - $totalCommissionCollected);
 
-        // Available pool = Total Pool - Already Paid - Remaining Commission Reserve
-        $totalPaid = $game->wonBets()->sum('profit');
-        $availablePool = $totalPool - $totalPaid - $remainingCommission;
+        // ✅ Available pool = Total Pool - Total Wins Paid - Total Commission - Remaining Commission Reserve
+        $availablePool = $totalPool - $totalWinsPaid - $totalCommissionCollected - $remainingCommission;
 
         // Get remaining active bets
         $totalActiveBets = $game->activeBets()->sum('bet_amount');
 
         if ($totalActiveBets <= 0) {
-            // All cashed out, go to max
             return $this->settings->max_multiplier ?? 100.00;
         }
 
@@ -146,17 +157,20 @@ class CrashBetPoolService
         $finalCrashPoint = max($minMultiplier, min($maxMultiplier, $newCrashPoint));
 
         Log::info("🔄 Crash point recalculated", [
+            'total_pool' => $totalPool,
+            'total_wins_paid' => $totalWinsPaid,
+            'total_commission_collected' => $totalCommissionCollected,
+            'remaining_commission' => $remainingCommission,
             'available_pool' => $availablePool,
             'total_active_bets' => $totalActiveBets,
-            'new_crash' => $newCrashPoint,
-            'final_crash' => $finalCrashPoint,
+            'new_crash' => $finalCrashPoint,
         ]);
 
         return round($finalCrashPoint, 2);
     }
 
     /**
-     * 💰 Calculate commission (NOT used upfront anymore)
+     * 💰 Calculate commission
      */
     public function calculateCommission(float $betAmount): float
     {
@@ -175,18 +189,22 @@ class CrashBetPoolService
      */
     public function increaseCrashPoint(CrashGame $game, CrashBet $cashedOutBet): float
     {
-        // Reduce active participants
         $game->decrement('active_participants');
 
-        // 🆕 Recalculate crash point based on remaining pool
-        $newCrashPoint = $this->recalculateCrashPoint($game);
+        // Calculate amounts
+        $winAmount = $cashedOutBet->bet_amount * $cashedOutBet->cashout_at;
+        $profit = $cashedOutBet->profit;
+        $commission = $profit * 0.10;
 
-        // Update game
+        $newCrashPoint = $this->recalculateCrashPoint($game, $winAmount, $commission);
+
         $game->update(['crash_point' => $newCrashPoint]);
 
         Log::info("📈 Crash point updated after cashout", [
             'game_id' => $game->id,
             'user_id' => $cashedOutBet->user_id,
+            'win_amount' => $winAmount,
+            'commission_deducted' => $commission,
             'new_crash' => $newCrashPoint,
         ]);
 
@@ -217,101 +235,52 @@ class CrashBetPoolService
     }
 
     /**
-     * 🆕 Calculate final commission and rollover
+     * ✅ FIXED: Calculate final commission and rollover - Pool loses Win + Commission
      */
-    // public function calculateAndSetRollover(CrashGame $game): float
-    // {
-    //     $totalPool = $game->total_bet_pool;
-    //     $maxCommission = $game->admin_commission_amount;
-
-    //     // Calculate actual commission collected (10% of each cashout profit)
-    //     $actualCommission = 0;
-    //     foreach ($game->wonBets as $bet) {
-    //         $commission = $bet->profit * 0.10; // 10% of profit
-    //         $actualCommission += $commission;
-    //     }
-
-    //     // Cap at max commission
-    //     $actualCommission = min($actualCommission, $maxCommission);
-
-    //     // Update game with actual commission
-    //     $game->update(['admin_commission_amount' => $actualCommission]);
-
-    //     // Calculate total paid (including commission)
-    //     $totalPaidToWinners = $game->wonBets()->sum('profit');
-    //     $game->update(['total_payout' => $totalPaidToWinners]);
-
-    //     // Remaining pool = Total Pool - Paid to Winners - Actual Commission
-    //     $remaining = $totalPool - $totalPaidToWinners - $actualCommission;
-    //     $game->update(['remaining_pool' => $remaining]);
-
-    //     // Calculate rollover
-    //     if (!$this->settings->enable_pool_rollover) {
-    //         $game->update(['rollover_to_next' => 0]);
-    //         return 0;
-    //     }
-
-    //     $rolloverAmount = $this->settings->calculateRollover($remaining, 0); // No commission in rollover base
-
-    //     $game->update(['rollover_to_next' => $rolloverAmount]);
-
-    //     Log::info("🔄 Rollover calculated with new logic", [
-    //         'game_id' => $game->id,
-    //         'total_pool' => $totalPool,
-    //         'max_commission' => $maxCommission,
-    //         'actual_commission' => $actualCommission,
-    //         'paid_to_winners' => $totalPaidToWinners,
-    //         'remaining' => $remaining,
-    //         'rollover' => $rolloverAmount,
-    //     ]);
-
-    //     return $rolloverAmount;
-    // }
-
-
-    // CrashBetPoolService.php - calculateAndSetRollover মেথডে
     public function calculateAndSetRollover(CrashGame $game): float
     {
-        // ✅ ADD THIS: Force refresh before calculation
         $game->refresh();
 
         $totalPool = $game->total_bet_pool;
         $maxCommission = $game->admin_commission_amount;
 
-        // Calculate actual commission collected (10% of each cashout profit)
+        // ✅ Calculate actual commission collected and total wins paid
         $actualCommission = 0;
+        $totalWinsPaid = 0;
+
         foreach ($game->wonBets as $bet) {
-            $commission = $bet->profit * 0.10; // 10% of profit
+            $winAmount = $bet->bet_amount * $bet->cashout_at;
+            $profit = $bet->profit;
+            $commission = $profit * 0.10;
+
+            $totalWinsPaid += $winAmount;
             $actualCommission += $commission;
         }
 
-        // Cap at max commission
+        // Cap commission at max
         $actualCommission = min($actualCommission, $maxCommission);
 
-        // ✅ ADD VALIDATION: Ensure totalPool is not zero
+        // ✅ Validate total pool
         if ($totalPool <= 0) {
-            Log::error("❌ Total pool is zero or negative in calculateAndSetRollover", [
+            Log::error("❌ Total pool is zero in calculateAndSetRollover", [
                 'game_id' => $game->id,
-                'total_pool' => $totalPool,
                 'current_round_bets' => $game->current_round_bets,
                 'previous_rollover' => $game->previous_rollover
             ]);
 
-            // Fallback calculation
             $totalPool = $game->current_round_bets + $game->previous_rollover;
         }
 
-        // Update game with actual commission
+        // Update game
         $game->update([
             'admin_commission_amount' => $actualCommission,
-            'total_payout' => $game->wonBets()->sum('profit')
+            'total_payout' => $totalWinsPaid // Total wins paid to users
         ]);
 
-        // ✅ REFRESH AGAIN: Get updated data
         $game->refresh();
 
-        // Remaining pool = Total Pool - Paid to Winners - Actual Commission
-        $remaining = $totalPool - $game->total_payout - $actualCommission;
+        // ✅ Remaining pool = Total Pool - Total Wins Paid - Commission
+        $remaining = $totalPool - $totalWinsPaid - $actualCommission;
 
         $game->update(['remaining_pool' => $remaining]);
 
@@ -325,14 +294,15 @@ class CrashBetPoolService
 
         $game->update(['rollover_to_next' => $rolloverAmount]);
 
-        Log::info("🔄 Rollover calculated", [
+        Log::info("🔄 Rollover calculated - Pool loses Win + Commission", [
             'game_id' => $game->id,
             'total_pool' => $totalPool,
             'max_commission' => $maxCommission,
             'actual_commission' => $actualCommission,
-            'paid_to_winners' => $game->total_payout,
-            'remaining' => $remaining,
+            'total_wins_paid' => $totalWinsPaid,
+            'remaining_pool' => $remaining,
             'rollover' => $rolloverAmount,
+            'formula' => "Pool ($totalPool) - Wins ($totalWinsPaid) - Commission ($actualCommission) = $remaining"
         ]);
 
         return $rolloverAmount;
@@ -346,18 +316,24 @@ class CrashBetPoolService
         $totalPool = $game->total_bet_pool;
         $maxCommission = $game->admin_commission_amount;
         $actualCommission = 0;
+        $totalWinsPaid = 0;
 
         if ($game->status === 'crashed') {
             $actualCommission = $game->admin_commission_amount;
+            $totalWinsPaid = $game->total_payout;
         } else {
-            // Calculate current commission
             foreach ($game->wonBets as $bet) {
-                $actualCommission += $bet->profit * 0.10;
+                $winAmount = $bet->bet_amount * $bet->cashout_at;
+                $profit = $bet->profit;
+                $commission = $profit * 0.10;
+
+                $totalWinsPaid += $winAmount;
+                $actualCommission += $commission;
             }
             $actualCommission = min($actualCommission, $maxCommission);
         }
 
-        $availablePool = $totalPool - $actualCommission;
+        $availablePool = $totalPool - $totalWinsPaid - $actualCommission;
         $totalActiveBets = $game->activeBets()->sum('bet_amount');
 
         return [
@@ -366,6 +342,7 @@ class CrashBetPoolService
             'previous_rollover' => $game->previous_rollover,
             'max_commission' => $maxCommission,
             'actual_commission' => $actualCommission,
+            'total_wins_paid' => $totalWinsPaid,
             'available_pool' => $availablePool,
             'participants' => $game->total_participants,
             'active_participants' => $game->active_participants,
