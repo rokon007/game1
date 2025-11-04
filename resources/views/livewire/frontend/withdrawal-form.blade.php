@@ -230,7 +230,7 @@
                     <div class="row align-items-end">
                         <div class="col-md-8">
                             <label class="form-label">Amount (৳)</label>
-                            <input type="number"
+                            <input type="number" step="0.01" inputmode="decimal"
                                    class="form-control form-control-lg custom-input"
                                    wire:model="amount"
                                    placeholder="Enter amount between {{ $min_amount }} - {{ $max_amount }}"

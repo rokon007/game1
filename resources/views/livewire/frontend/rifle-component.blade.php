@@ -344,7 +344,7 @@
                         </div>
                         <p class="mb-2 mt-3">Sender mobile</p>
                         <div class="coupon-form">
-                            <input class="form-control custom-input" wire:model='sending_mobile' type="text" placeholder="Enter sender mobile number">
+                            <input class="form-control custom-input" inputmode="numeric" pattern="[0-9]*" wire:model='sending_mobile' type="text" placeholder="Enter sender mobile number">
                             @error('sending_mobile')
                                     <small class="text-danger mb-2">{{ $message }}</small>
                                 @enderror
@@ -359,7 +359,7 @@
                         </div>
                         <p class="mb-2 mt-3">Amount</p>
                         <div class="coupon-form">
-                            <input class="form-control custom-input" wire:model='amount_rifle' type="text" placeholder="Enter amount">
+                            <input class="form-control custom-input" wire:model='amount_rifle' type="number" step="0.01" inputmode="decimal" id="amount"  placeholder="Enter amount">
                             @error('amount_rifle')
                                     <small class="text-danger mb-2">{{ $message }}</small>
                                 @enderror

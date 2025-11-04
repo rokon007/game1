@@ -610,7 +610,7 @@
                             min="1"
                             class="form-control bet-input"
                             placeholder="Enter amount"
-
+                            inputmode="decimal"
                         >
 
                         <button

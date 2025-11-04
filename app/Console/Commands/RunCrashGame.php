@@ -185,11 +185,46 @@ class RunCrashGame extends Command
     }
 
     // 🆕 UPDATED: Display with calculation
+    // private function displayPoolInfo(CrashGame $game): void
+    // {
+    //     $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    //     $this->info("🔒 Pool Locked - Game #{$game->id}");
+    //     $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+    //     $this->line("📊 Pool Composition:");
+    //     if ($game->previous_rollover > 0) {
+    //         $this->line("   Previous Rollover:   ৳{$game->previous_rollover}");
+    //     }
+    //     $this->line("   Current Round Bets:  ৳{$game->current_round_bets}");
+    //     $this->line("   ─────────────────────────────────────");
+    //     $this->info("   Total Pool:          ৳{$game->total_bet_pool}");
+
+    //     $this->line("");
+    //     $this->line("💰 Commission Calculation:");
+    //     $this->line("   Max Commission (10%): ৳{$game->admin_commission_amount}");
+    //     $availablePool = $game->total_bet_pool - $game->admin_commission_amount;
+    //     $this->info("   Available Pool:      ৳{$availablePool}");
+
+    //     $this->line("");
+    //     $this->line("👥 Participants:         {$game->total_participants} players");
+
+    //     $totalActiveBets = $game->bets()->where('status', 'pending')->sum('bet_amount');
+    //     $this->line("   Total Active Bets:   ৳{$totalActiveBets}");
+
+    //     $this->line("");
+    //     $this->line("🎯 Crash Point Calculation:");
+    //     $this->line("   Formula: Available Pool ÷ Total Active Bets");
+    //     $this->line("   = ৳{$availablePool} ÷ ৳{$totalActiveBets}");
+    //     $this->info("   = {$game->crash_point}x ✅");
+
+    //     $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    // }
+
     private function displayPoolInfo(CrashGame $game): void
     {
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->line("┌─────────────────────────────────────┐");
         $this->info("🔒 Pool Locked - Game #{$game->id}");
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        $this->line("└─────────────────────────────────────┘");
 
         $this->line("📊 Pool Composition:");
         if ($game->previous_rollover > 0) {
@@ -212,12 +247,22 @@ class RunCrashGame extends Command
         $this->line("   Total Active Bets:   ৳{$totalActiveBets}");
 
         $this->line("");
-        $this->line("🎯 Crash Point Calculation:");
-        $this->line("   Formula: Available Pool ÷ Total Active Bets");
-        $this->line("   = ৳{$availablePool} ÷ ৳{$totalActiveBets}");
-        $this->info("   = {$game->crash_point}x ✅");
 
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        // ✅ Show random crash point generation
+        if ($totalActiveBets > 0) {
+            $maxPoolCrash = $availablePool / $totalActiveBets;
+            $this->line("🎯 Crash Point Generation:");
+            $this->line("   Max Pool Crash:      {$maxPoolCrash}x");
+            $this->line("   Random Method:       Weighted Distribution");
+            $this->info("   Final Crash Point:   {$game->crash_point}x ✅ (FIXED)");
+        } else {
+            $this->line("🎯 Crash Point Generation:");
+            $this->line("   No bets placed");
+            $this->line("   Random Method:       Pure Random");
+            $this->info("   Final Crash Point:   {$game->crash_point}x ✅ (FIXED)");
+        }
+
+        $this->line("┌─────────────────────────────────────┐");
     }
 
     private function executeExactWaiting(CrashGame $game): void
@@ -262,13 +307,87 @@ class RunCrashGame extends Command
         $this->info("✅ Completed: " . number_format($actualWaitTime, 4) . " seconds");
     }
 
+    // private function runGame(CrashGame $game): void
+    // {
+    //     $currentMultiplier = 1.00;
+    //     $crashPoint = (float) $game->crash_point;
+
+    //     $speedProfile = $this->speedService->getSpeedProfileName();
+    //     $this->info("Running game #{$game->id} - Target Crash: {$crashPoint}x - Speed: {$speedProfile}");
+
+    //     $this->broadcastGameUpdate($game, 1.00, 'running');
+
+    //     event(new \App\Events\CrashGameStarted($game, $currentMultiplier));
+
+    //     $lastBroadcastTime = microtime(true);
+    //     $broadcastIntervalMs = 100;
+
+    //     while ($currentMultiplier < $crashPoint) {
+    //         if (Cache::get('crash_game_stop')) {
+    //             $this->info('Stop signal received.');
+    //             break;
+    //         }
+
+    //         $increment = $this->speedService->calculateDynamicIncrement($currentMultiplier);
+    //         $nextMultiplier = $currentMultiplier + $increment;
+
+    //         if ($nextMultiplier >= $crashPoint) {
+    //             $currentMultiplier = $crashPoint;
+    //             break;
+    //         }
+
+    //         $currentMultiplier = $nextMultiplier;
+
+    //         $currentTime = microtime(true);
+    //         if (($currentTime - $lastBroadcastTime) * 1000 >= $broadcastIntervalMs) {
+    //             // Reload game to get updated crash point
+    //             $game->refresh();
+    //             $crashPoint = (float) $game->crash_point;
+
+    //             $this->broadcastGameUpdate($game, $currentMultiplier, 'running');
+    //             $lastBroadcastTime = $currentTime;
+    //         }
+
+    //         if (fmod($currentMultiplier, 1.0) < $increment) {
+    //             $activePlayers = $game->active_participants;
+    //             $this->line("Current: " . number_format($currentMultiplier, 2) . "x (Target: {$crashPoint}x, Active: {$activePlayers})");
+    //         }
+
+    //         $interval = $this->speedService->getCurrentInterval();
+    //         usleep($interval * 1000);
+    //     }
+
+    //     if (!Cache::get('crash_game_stop') && $currentMultiplier >= $crashPoint) {
+    //         $currentMultiplier = $crashPoint;
+
+    //         $this->broadcastGameUpdate($game, $crashPoint, 'running');
+    //         usleep(100000);
+
+    //         $this->gameService->crashGame($game);
+    //         $this->broadcastGameUpdate($game, $crashPoint, 'crashed');
+
+    //         event(new \App\Events\CrashGameCrashed($game));
+
+    //         $this->error("💥 CRASHED at {$crashPoint}x!");
+
+    //         sleep(2);
+
+    //         $game->refresh();
+
+    //         $houseProfit = $this->gameService->calculateHouseProfit($game);
+    //         $this->info("Admin Profit: ৳{$houseProfit}");
+
+    //         $this->clearAllGameCache();
+    //     }
+    // }
+
     private function runGame(CrashGame $game): void
     {
         $currentMultiplier = 1.00;
-        $crashPoint = (float) $game->crash_point;
+        $crashPoint = (float) $game->crash_point; // ✅ Fixed, never changes
 
         $speedProfile = $this->speedService->getSpeedProfileName();
-        $this->info("Running game #{$game->id} - Target Crash: {$crashPoint}x - Speed: {$speedProfile}");
+        $this->info("Running game #{$game->id} - Fixed Crash: {$crashPoint}x - Speed: {$speedProfile}");
 
         $this->broadcastGameUpdate($game, 1.00, 'running');
 
@@ -295,17 +414,14 @@ class RunCrashGame extends Command
 
             $currentTime = microtime(true);
             if (($currentTime - $lastBroadcastTime) * 1000 >= $broadcastIntervalMs) {
-                // Reload game to get updated crash point
-                $game->refresh();
-                $crashPoint = (float) $game->crash_point;
-
+                // ✅ NO crash point reload - it's fixed!
                 $this->broadcastGameUpdate($game, $currentMultiplier, 'running');
                 $lastBroadcastTime = $currentTime;
             }
 
             if (fmod($currentMultiplier, 1.0) < $increment) {
                 $activePlayers = $game->active_participants;
-                $this->line("Current: " . number_format($currentMultiplier, 2) . "x (Target: {$crashPoint}x, Active: {$activePlayers})");
+                $this->line("Current: " . number_format($currentMultiplier, 2) . "x (Fixed Crash: {$crashPoint}x, Active: {$activePlayers})");
             }
 
             $interval = $this->speedService->getCurrentInterval();

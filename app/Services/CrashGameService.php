@@ -226,6 +226,78 @@ class CrashGameService
     /**
      * ✅ FIXED: Cashout with FULL win amount to user
      */
+    // public function cashout(CrashBet $bet, float $currentMultiplier): bool
+    // {
+    //     if ($bet->status !== 'playing') {
+    //         throw new Exception('Cannot cashout this bet');
+    //     }
+
+    //     if ($currentMultiplier >= $bet->game->crash_point) {
+    //         throw new Exception('Game has already crashed');
+    //     }
+
+    //     return DB::transaction(function () use ($bet, $currentMultiplier) {
+    //         $betAmount = $bet->bet_amount;
+    //         $fullWinAmount = $betAmount * $currentMultiplier; // ✅ Full win (e.g., ৳300)
+    //         $profit = $fullWinAmount - $betAmount; // ✅ Profit (e.g., ৳200)
+
+    //         // ✅ Commission on profit (10%)
+    //         $commission = $profit * 0.10; // e.g., ৳20
+
+    //         // Update bet record with PROFIT (for statistics)
+    //         $bet->update([
+    //             'cashout_at' => $currentMultiplier,
+    //             'profit' => $profit, // ✅ Store full profit (৳200)
+    //             'status' => 'won',
+    //             'cashed_out_at' => now(),
+    //         ]);
+
+    //         // ✅ Admin pays FULL WIN AMOUNT
+    //         $admin = User::find(1);
+    //         if ($admin) {
+    //             $admin->decrement('credit', $fullWinAmount); // ✅ Deduct ৳300
+
+    //             Log::info("💰 Admin paid full win", [
+    //                 'game_id' => $bet->game->id,
+    //                 'user_id' => $bet->user_id,
+    //                 'paid_amount' => $fullWinAmount,
+    //                 'admin_balance_after' => $admin->fresh()->credit,
+    //             ]);
+    //         }
+
+    //         // ✅ User receives FULL WIN AMOUNT
+    //         $bet->user->increment('credit', $fullWinAmount); // ✅ User gets ৳300
+
+    //         // ✅ Recalculate crash point - Pool loses Win + Commission
+    //         $newCrashPoint = $this->betPoolService->recalculateCrashPoint($bet->game, $fullWinAmount, $commission);
+
+    //         // Update active participants
+    //         $bet->game->decrement('active_participants');
+
+    //         // Update crash point
+    //         $bet->game->update(['crash_point' => $newCrashPoint]);
+
+    //         // Check if all cashed out
+    //         $this->betPoolService->checkAndExtendCrashPoint($bet->game);
+
+    //         Log::info("💵 User cashed out - FULL WIN", [
+    //             'game_id' => $bet->game->id,
+    //             'user_id' => $bet->user_id,
+    //             'multiplier' => $currentMultiplier,
+    //             'bet_amount' => $betAmount,
+    //             'full_win_amount' => $fullWinAmount,
+    //             'profit' => $profit,
+    //             'commission' => $commission,
+    //             'new_crash_point' => $newCrashPoint,
+    //         ]);
+
+    //         return true;
+    //     });
+    // }
+
+    /**
+     * ✅ UPDATED: Cashout WITHOUT crash point recalculation
+     */
     public function cashout(CrashBet $bet, float $currentMultiplier): bool
     {
         if ($bet->status !== 'playing') {
@@ -238,24 +310,24 @@ class CrashGameService
 
         return DB::transaction(function () use ($bet, $currentMultiplier) {
             $betAmount = $bet->bet_amount;
-            $fullWinAmount = $betAmount * $currentMultiplier; // ✅ Full win (e.g., ৳300)
-            $profit = $fullWinAmount - $betAmount; // ✅ Profit (e.g., ৳200)
+            $fullWinAmount = $betAmount * $currentMultiplier;
+            $profit = $fullWinAmount - $betAmount;
 
-            // ✅ Commission on profit (10%)
-            $commission = $profit * 0.10; // e.g., ৳20
+            // Commission on profit (10%)
+            $commission = $profit * 0.10;
 
             // Update bet record with PROFIT (for statistics)
             $bet->update([
                 'cashout_at' => $currentMultiplier,
-                'profit' => $profit, // ✅ Store full profit (৳200)
+                'profit' => $profit,
                 'status' => 'won',
                 'cashed_out_at' => now(),
             ]);
 
-            // ✅ Admin pays FULL WIN AMOUNT
+            // Admin pays FULL WIN AMOUNT
             $admin = User::find(1);
             if ($admin) {
-                $admin->decrement('credit', $fullWinAmount); // ✅ Deduct ৳300
+                $admin->decrement('credit', $fullWinAmount);
 
                 Log::info("💰 Admin paid full win", [
                     'game_id' => $bet->game->id,
@@ -265,22 +337,13 @@ class CrashGameService
                 ]);
             }
 
-            // ✅ User receives FULL WIN AMOUNT
-            $bet->user->increment('credit', $fullWinAmount); // ✅ User gets ৳300
+            // User receives FULL WIN AMOUNT
+            $bet->user->increment('credit', $fullWinAmount);
 
-            // ✅ Recalculate crash point - Pool loses Win + Commission
-            $newCrashPoint = $this->betPoolService->recalculateCrashPoint($bet->game, $fullWinAmount, $commission);
-
-            // Update active participants
+            // ✅ Update active participants (NO crash point recalculation)
             $bet->game->decrement('active_participants');
 
-            // Update crash point
-            $bet->game->update(['crash_point' => $newCrashPoint]);
-
-            // Check if all cashed out
-            $this->betPoolService->checkAndExtendCrashPoint($bet->game);
-
-            Log::info("💵 User cashed out - FULL WIN", [
+            Log::info("💵 User cashed out - FIXED CRASH POINT", [
                 'game_id' => $bet->game->id,
                 'user_id' => $bet->user_id,
                 'multiplier' => $currentMultiplier,
@@ -288,7 +351,8 @@ class CrashGameService
                 'full_win_amount' => $fullWinAmount,
                 'profit' => $profit,
                 'commission' => $commission,
-                'new_crash_point' => $newCrashPoint,
+                'crash_point' => $bet->game->crash_point, // ✅ Remains unchanged
+                'note' => 'Crash point is FIXED, no recalculation'
             ]);
 
             return true;
