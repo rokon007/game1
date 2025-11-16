@@ -136,7 +136,238 @@
                 </div>
             </div>
 
-    </div>
+        </div>
+
+        {{-- Add this to your admin dashboard --}}
+        <div class="row">
+            <div class="col-12 col-lg-12 col-xl-12">
+                <div class="card radius-10">
+                    <div class="card-header bg-transparent">
+                        <div class="d-flex align-items-center">
+                            <div>
+                                <h6 class="mb-0">🎰 Lucky Spin Statistics (Last 24 Hours)</h6>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        @php
+                            use App\Models\LuckySpin;
+                            use App\Models\SystemPool;
+                            use App\Models\SystemSetting;
+                            use App\Models\Transaction;
+
+                            // Get stats for last 24 hours
+                            $yesterday = now()->subDay();
+
+                            $stats = [
+                                'total_spins' => LuckySpin::where('created_at', '>=', $yesterday)->count(),
+                                'total_bet' => LuckySpin::where('created_at', '>=', $yesterday)->sum('bet_amount'),
+                                'total_won' => LuckySpin::where('created_at', '>=', $yesterday)->sum('reward_amount'),
+                                'wins' => LuckySpin::where('created_at', '>=', $yesterday)->where('result', 'win')->count(),
+                                'jackpots' => LuckySpin::where('created_at', '>=', $yesterday)->where('result', 'jackpot')->count(),
+                                'loses' => LuckySpin::where('created_at', '>=', $yesterday)->where('result', 'lose')->count(),
+                            ];
+
+                            $stats['win_rate'] = $stats['total_spins'] > 0
+                                ? round(($stats['wins'] / $stats['total_spins']) * 100, 2)
+                                : 0;
+
+                            $stats['rtp'] = $stats['total_bet'] > 0
+                                ? round(($stats['total_won'] / $stats['total_bet']) * 100, 2)
+                                : 0;
+
+                            $stats['house_profit'] = $stats['total_bet'] - $stats['total_won'];
+
+                            // Admin commission earned
+                            $stats['admin_commission'] = Transaction::where('user_id', 1)
+                                ->where('type', 'credit')
+                                ->where('details', 'like', '%Lucky Spin Commission%')
+                                ->where('created_at', '>=', $yesterday)
+                                ->sum('amount');
+
+                            // Current pool
+                            $pool = SystemPool::first();
+                            $stats['current_pool'] = $pool ? $pool->total_collected : 0;
+
+                            // Settings
+                            $jackpot_limit = (int) SystemSetting::getValue('jackpot_limit', 100000);
+                            $expected_win_rate = (int) SystemSetting::getValue('win_chance_percent', 20);
+
+                            // Pool progress
+                            $stats['pool_progress'] = $jackpot_limit > 0
+                                ? round(($stats['current_pool'] / $jackpot_limit) * 100, 2)
+                                : 0;
+
+                            // Status indicators
+                            $win_rate_status = abs($stats['win_rate'] - $expected_win_rate) <= 5 ? 'success' : 'warning';
+                            $pool_status = $stats['pool_progress'] >= 100 ? 'danger' : ($stats['pool_progress'] >= 75 ? 'warning' : 'info');
+                        @endphp
+
+                        <div class="row g-3">
+                            {{-- Total Spins --}}
+                            <div class="col-md-3">
+                                <div class="card border-0 bg-light-primary">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="fs-1 text-primary">
+                                                <i class="bi bi-arrow-repeat"></i>
+                                            </div>
+                                            <div class="ms-auto">
+                                                <h4 class="mb-0 text-primary">{{ number_format($stats['total_spins']) }}</h4>
+                                                <p class="mb-0 text-secondary">Total Spins</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Total Bet --}}
+                            <div class="col-md-3">
+                                <div class="card border-0 bg-light-info">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="fs-1 text-info">
+                                                <i class="bi bi-currency-dollar"></i>
+                                            </div>
+                                            <div class="ms-auto">
+                                                <h4 class="mb-0 text-info">{{ number_format($stats['total_bet']) }}</h4>
+                                                <p class="mb-0 text-secondary">Total Bet</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- House Profit --}}
+                            <div class="col-md-3">
+                                <div class="card border-0 bg-light-success">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="fs-1 text-success">
+                                                <i class="bi bi-graph-up-arrow"></i>
+                                            </div>
+                                            <div class="ms-auto">
+                                                <h4 class="mb-0 text-success">{{ number_format($stats['house_profit']) }}</h4>
+                                                <p class="mb-0 text-secondary">House Profit</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Admin Commission --}}
+                            <div class="col-md-3">
+                                <div class="card border-0 bg-light-warning">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center">
+                                            <div class="fs-1 text-warning">
+                                                <i class="bi bi-cash-stack"></i>
+                                            </div>
+                                            <div class="ms-auto">
+                                                <h4 class="mb-0 text-warning">{{ number_format($stats['admin_commission']) }}</h4>
+                                                <p class="mb-0 text-secondary">Admin Commission</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Additional Stats Row --}}
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-6">
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <h6 class="mb-3">Win Distribution</h6>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>🔴 Loses:</span>
+                                            <strong>{{ number_format($stats['loses']) }} ({{ $stats['total_spins'] > 0 ? round(($stats['loses'] / $stats['total_spins']) * 100, 1) : 0 }}%)</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>🟢 Wins:</span>
+                                            <strong>{{ number_format($stats['wins']) }} ({{ $stats['total_spins'] > 0 ? round(($stats['wins'] / $stats['total_spins']) * 100, 1) : 0 }}%)</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>👑 Jackpots:</span>
+                                            <strong class="text-warning">{{ number_format($stats['jackpots']) }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card border">
+                                    <div class="card-body">
+                                        <h6 class="mb-3">Performance Metrics</h6>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Win Rate:</span>
+                                            <strong class="text-{{ $win_rate_status }}">{{ $stats['win_rate'] }}%
+                                                <small class="text-muted">(Expected: {{ $expected_win_rate }}%)</small>
+                                            </strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>RTP:</span>
+                                            <strong>{{ $stats['rtp'] }}%</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>House Edge:</span>
+                                            <strong>{{ 100 - $stats['rtp'] }}%</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Current Pool Status --}}
+                        <div class="row g-3 mt-2">
+                            <div class="col-12">
+                                <div class="card border-{{ $pool_status }}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="mb-0">🏦 Current Pool Status</h6>
+                                            <span class="badge bg-{{ $pool_status }}">{{ $stats['pool_progress'] }}% to Jackpot</span>
+                                        </div>
+                                        <div class="progress" style="height: 25px;">
+                                            <div class="progress-bar bg-{{ $pool_status }} progress-bar-striped progress-bar-animated"
+                                                role="progressbar"
+                                                style="width: {{ min($stats['pool_progress'], 100) }}%"
+                                                aria-valuenow="{{ $stats['pool_progress'] }}"
+                                                aria-valuemin="0"
+                                                aria-valuemax="100">
+                                                {{ number_format($stats['current_pool']) }} / {{ number_format($jackpot_limit) }} credits
+                                            </div>
+                                        </div>
+                                        @if($stats['pool_progress'] >= 100)
+                                            <div class="alert alert-danger mt-3 mb-0">
+                                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                                <strong>Jackpot Active!</strong> Next spin has a chance to win the jackpot.
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Quick Actions --}}
+                        <div class="row g-3 mt-2">
+                            <div class="col-12">
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <a href="{{ route('admin.system_settings') }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-gear me-1"></i> Configure Settings
+                                    </a>
+                                    <a href="#" class="btn btn-sm btn-secondary">
+                                        <i class="bi bi-list me-1"></i> View All Spins
+                                    </a>
+                                    <button class="btn btn-sm btn-info" onclick="location.reload()">
+                                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh Stats
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 
         <!-- Recharge Modal -->
