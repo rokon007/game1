@@ -64,8 +64,107 @@ class LuckySpinGame extends Component
     }
 
     /**
-     * Preview Result - Calculate what will happen
+     * 🎲 FIXED: Preview with Random Jackpot Chance
      */
+    // public function previewResult()
+    // {
+    //     $user = auth()->user();
+    //     if (!$user || $user->credit < $this->betAmount) {
+    //         return ['result' => 'lose', 'multiplier' => 0, 'reward' => 0];
+    //     }
+
+    //     // Get settings
+    //     $jackpotLimit = (int) SystemSetting::getValue('jackpot_limit', 100000);
+    //     $jackpotChance = (float) SystemSetting::getValue('jackpot_chance_percent', 0.1); // 0.1%
+    //     $winChancePercent = (int) SystemSetting::getValue('win_chance_percent', 20);
+    //     $minimumPoolReserve = (int) SystemSetting::getValue('minimum_pool_reserve', 10000);
+
+    //     // Lock pool for accurate reading
+    //     $pool = SystemPool::lockForUpdate()->first();
+
+    //     // Calculate available pool (excluding reserve)
+    //     $availablePool = max(0, $pool->total_collected - $minimumPoolReserve);
+
+    //     // Reset pre-calculated values
+    //     $this->preCalculatedResult = null;
+    //     $this->preCalculatedMultiplier = null;
+    //     $this->preCalculatedReward = null;
+
+    //     // 🎰 STEP 1: Check Jackpot (RANDOM CHANCE)
+    //     if ($pool->total_collected >= $jackpotLimit) {
+    //         $randomJackpot = mt_rand(1, 10000) / 100; // 0.01 to 100.00
+
+    //         if ($randomJackpot <= $jackpotChance) {
+    //             // JACKPOT WON!
+    //             $adminCommissionPercent = (int) SystemSetting::getValue('admin_commission', 10);
+    //             $adminCommission = (int) floor($pool->total_collected * ($adminCommissionPercent / 100));
+    //             $reward = $pool->total_collected - $adminCommission;
+    //             $multiplier = $reward > 0 ? round($reward / $this->betAmount, 2) : 0;
+
+    //             $this->preCalculatedResult = 'jackpot';
+    //             $this->preCalculatedMultiplier = $multiplier;
+    //             $this->preCalculatedReward = $reward;
+
+    //             return [
+    //                 'result' => 'jackpot',
+    //                 'multiplier' => $multiplier,
+    //                 'reward' => $reward
+    //             ];
+    //         }
+    //     }
+
+    //     // 🎲 STEP 2: Check Regular Win
+    //     $randomWin = rand(1, 100);
+
+    //     if ($randomWin <= $winChancePercent) {
+    //         // Calculate max possible multiplier based on available pool
+    //         $maxPossibleMultiplier = $availablePool > 0
+    //             ? floor($availablePool / $this->betAmount)
+    //             : 0;
+
+    //         $possibleMultipliers = [2, 3, 4, 5];
+    //         $validMultipliers = array_filter($possibleMultipliers, function($m) use ($maxPossibleMultiplier) {
+    //             return $m <= $maxPossibleMultiplier;
+    //         });
+
+    //         if (count($validMultipliers) > 0) {
+    //             $validMultipliersArray = array_values($validMultipliers);
+    //             $randomIndex = rand(0, count($validMultipliersArray) - 1);
+    //             $multiplier = $validMultipliersArray[$randomIndex];
+    //             $reward = (int) floor($this->betAmount * $multiplier);
+
+    //             // Apply max win limit (50% of available pool)
+    //             $maxWinLimit = (int) floor($availablePool * 0.5);
+    //             if ($reward > $maxWinLimit) {
+    //                 $reward = $maxWinLimit;
+    //                 $multiplier = $reward > 0 ? round($reward / $this->betAmount, 2) : 0;
+    //             }
+
+    //             $this->preCalculatedResult = 'win';
+    //             $this->preCalculatedMultiplier = $multiplier;
+    //             $this->preCalculatedReward = $reward;
+
+    //             return [
+    //                 'result' => 'win',
+    //                 'multiplier' => $multiplier,
+    //                 'reward' => $reward
+    //             ];
+    //         }
+    //     }
+
+    //     // 🎲 STEP 3: Lose (show realistic multiplier = 0)
+    //     $this->preCalculatedResult = 'lose';
+    //     $this->preCalculatedMultiplier = 0;
+    //     $this->preCalculatedReward = 0;
+
+    //     return [
+    //         'result' => 'lose',
+    //         'multiplier' => 0, // Honest display
+    //         'reward' => 0
+    //     ];
+    // }
+
+    // Pre-calculate what the result will be (called from frontend)
     public function previewResult()
     {
         $user = auth()->user();
@@ -75,47 +174,38 @@ class LuckySpinGame extends Component
 
         $pool = SystemPool::first();
         $jackpotLimit = (int) SystemSetting::getValue('jackpot_limit', 100000);
-        $jackpotChance = (float) SystemSetting::getValue('jackpot_chance_percent', 0.1);
         $winChancePercent = (int) SystemSetting::getValue('win_chance_percent', 20);
-        $minimumPoolReserve = (int) SystemSetting::getValue('minimum_pool_reserve', 10000);
+        $adminCommissionPercent = (int) SystemSetting::getValue('admin_commission', 10);
 
-        // Calculate available pool (excluding reserve) AFTER bet added
-        $futurePool = $pool->total_collected + $this->betAmount;
-        $availablePool = max(0, $futurePool - $minimumPoolReserve);
+        // Determine result with a fresh random seed
+        $randomSeed = rand(1, 100);
 
-        // Reset pre-calculated values
+        // Store the seed and timestamp to use in actual spin
         $this->preCalculatedResult = null;
         $this->preCalculatedMultiplier = null;
         $this->preCalculatedReward = null;
 
-        // Check Jackpot with random chance
-        if ($futurePool >= $jackpotLimit) {
-            $randomJackpot = mt_rand(1, 10000) / 100; // 0.01 to 100.00
+        if ($pool->total_collected >= $jackpotLimit) {
+            $adminCommission = (int) floor($pool->total_collected * ($adminCommissionPercent / 100));
+            $reward = $pool->total_collected - $adminCommission;
+            $multiplier = $reward > 0 ? round($reward / $this->betAmount, 2) : 0;
 
-            if ($randomJackpot <= $jackpotChance) {
-                // JACKPOT - পুরো available pool দিয়ে দিবে
-                $reward = $availablePool;
-                $multiplier = $reward > 0 ? round($reward / $this->betAmount, 2) : 0;
+            // Store pre-calculated values
+            $this->preCalculatedResult = 'jackpot';
+            $this->preCalculatedMultiplier = $multiplier;
+            $this->preCalculatedReward = $reward;
 
-                $this->preCalculatedResult = 'jackpot';
-                $this->preCalculatedMultiplier = $multiplier;
-                $this->preCalculatedReward = $reward;
-
-                return [
-                    'result' => 'jackpot',
-                    'multiplier' => $multiplier,
-                    'reward' => $reward
-                ];
-            }
+            return [
+                'result' => 'jackpot',
+                'multiplier' => $multiplier,
+                'reward' => $reward
+            ];
         }
 
-        // Check Regular Win
-        $randomSeed = rand(1, 100);
-
         if ($randomSeed <= $winChancePercent) {
-            // Calculate max possible multiplier based on available pool
-            $maxPossibleMultiplier = $availablePool > 0
-                ? floor($availablePool / $this->betAmount)
+            // Will win - calculate exact multiplier now
+            $maxPossibleMultiplier = $pool->total_collected > 0
+                ? floor($pool->total_collected / $this->betAmount)
                 : 0;
 
             $possibleMultipliers = [2, 3, 4, 5];
@@ -124,18 +214,18 @@ class LuckySpinGame extends Component
             });
 
             if (count($validMultipliers) > 0) {
+                // FIX: Properly get random multiplier from valid multipliers
                 $validMultipliersArray = array_values($validMultipliers);
                 $randomIndex = rand(0, count($validMultipliersArray) - 1);
                 $multiplier = $validMultipliersArray[$randomIndex];
                 $reward = (int) floor($this->betAmount * $multiplier);
 
-                // Apply max win limit (50% of available pool)
-                $maxWinLimit = (int) floor($availablePool * 0.5);
-                if ($reward > $maxWinLimit) {
-                    $reward = $maxWinLimit;
+                if ($reward > $pool->total_collected) {
+                    $reward = $pool->total_collected;
                     $multiplier = $reward > 0 ? round($reward / $this->betAmount, 2) : 0;
                 }
 
+                // Store pre-calculated values
                 $this->preCalculatedResult = 'win';
                 $this->preCalculatedMultiplier = $multiplier;
                 $this->preCalculatedReward = $reward;
@@ -152,6 +242,7 @@ class LuckySpinGame extends Component
         $excitingMultipliers = [2, 3, 5, 10, 15, 20, 50, 100];
         $fakeMultiplier = $excitingMultipliers[array_rand($excitingMultipliers)];
 
+        // Store that this is a lose
         $this->preCalculatedResult = 'lose';
         $this->preCalculatedMultiplier = 0;
         $this->preCalculatedReward = 0;
@@ -164,7 +255,7 @@ class LuckySpinGame extends Component
     }
 
     /**
-     * 🎰 MAIN SPIN FUNCTION - FULLY FIXED
+     * 🎰 MAIN SPIN FUNCTION - FIXED
      */
     public function spin()
     {
@@ -216,17 +307,16 @@ class LuckySpinGame extends Component
             $poolBefore = $pool->total_collected;
             $initialCredit = $user->credit;
 
-            // 💰 STEP 1: DEDUCT BET FROM USER (সবসময় প্রথমে এটা হবে)
+            // 💰 DEDUCT BET FROM USER (always happens first)
             $user->decrement('credit', $this->betAmount);
             $this->credit = $user->credit;
 
-            // 💰 STEP 2: ADD BET TO POOL
+            // 💰 ADD BET TO POOL (not to admin)
             $pool->total_collected += $this->betAmount;
 
-            // Calculate available pool (excluding reserve)
+            // Calculate available pool
             $availablePool = max(0, $pool->total_collected - $minimumPoolReserve);
 
-            // Get pre-calculated result
             $result = $this->preCalculatedResult ?? 'lose';
             $multiplier = $this->preCalculatedMultiplier ?? 0;
             $reward = $this->preCalculatedReward ?? 0;
@@ -241,19 +331,17 @@ class LuckySpinGame extends Component
 
                 if ($randomJackpot <= $jackpotChance) {
                     // ✅ JACKPOT CONFIRMED
-
-                    // 🔥 FIX: Admin commission পুল থেকে কাটা হবে (user reward থেকে নয়)
-                    $adminCommission = (int) floor($availablePool * ($adminCommissionPercent / 100));
-                    $reward = $availablePool - $adminCommission; // User পাবে বাকি সব
+                    $adminCommission = (int) floor($pool->total_collected * ($adminCommissionPercent / 100));
+                    $reward = $pool->total_collected - $adminCommission;
                     $multiplier = $reward > 0 ? round($reward / $this->betAmount, 2) : 0;
 
-                    \Log::info("🎉 Jackpot won! User: {$user->id}, Available Pool: {$availablePool}, Commission: {$adminCommission}, User Reward: {$reward}");
+                    \Log::info("🎉 Jackpot won by user {$user->id}! Pool: {$pool->total_collected}, Commission: {$adminCommission}, Reward: {$reward}");
 
-                    // 🔥 FIX: Pool থেকে (reward + commission) কাটা হবে
-                    $pool->total_collected -= ($reward + $adminCommission);
+                    // Reset pool after jackpot
+                    $pool->total_collected = 0;
                     $pool->last_jackpot_at = now();
                 } else {
-                    // ❌ Jackpot chance missed
+                    // ❌ Jackpot chance missed, convert to regular spin
                     \Log::info("❌ Jackpot chance missed for user {$user->id}");
                     $result = 'lose';
                     $multiplier = 0;
@@ -262,25 +350,27 @@ class LuckySpinGame extends Component
             }
             // 2️⃣ REGULAR WIN
             elseif ($result === 'win') {
-                // 🔥 FIX: Check করা হচ্ছে pool এ পর্যাপ্ত টাকা আছে কিনা
-                if ($reward <= $availablePool) {
-                    // 🔥 FIX: Admin commission পুল থেকে কাটা হবে (user reward এর উপর based)
+                // Verify pool has enough
+                if ($reward > $availablePool) {
+                    $reward = $availablePool;
+                    $multiplier = $reward > 0 ? round($reward / $this->betAmount, 2) : 0;
+                }
+
+                if ($reward > 0) {
+                    // Calculate admin commission on win
                     $adminCommission = (int) floor($reward * ($adminCommissionPercent / 100));
+                    $netReward = $reward - $adminCommission;
 
-                    \Log::info("✅ Regular win! User: {$user->id}, Reward: {$reward}, Commission: {$adminCommission}");
+                    // Deduct from pool
+                    $pool->total_collected -= $reward;
 
-                    // 🔥 FIX: Pool থেকে (reward + commission) কাটা হবে
-                    $pool->total_collected -= ($reward + $adminCommission);
-
-                    // 🔥 FIX: User পাবে পুরো reward (commission কাটা হবে না)
-                    // $reward এ কোনো পরিবর্তন নেই
+                    // Give net reward to user
+                    $reward = $netReward;
                 } else {
-                    // 🔥 FIX: Pool insufficient, win কে lose তে convert করা হচ্ছে
-                    \Log::warning("⚠️ Pool insufficient! Required: {$reward}, Available: {$availablePool}. Converting to lose.");
+                    // Pool exhausted, convert to lose
                     $result = 'lose';
                     $multiplier = 0;
                     $reward = 0;
-                    $adminCommission = 0;
                 }
             }
             // 3️⃣ LOSE
@@ -288,14 +378,14 @@ class LuckySpinGame extends Component
                 $result = 'lose';
                 $reward = 0;
                 $multiplier = 0;
-                $adminCommission = 0;
                 // Bet already added to pool above
             }
 
-            // 💰 STEP 3: GIVE REWARD TO USER (if won)
+            // 💰 APPLY REWARDS
             if ($reward > 0) {
                 $user->increment('credit', $reward);
 
+                // User credit transaction
                 Transaction::create([
                     'user_id' => $user->id,
                     'type' => 'credit',
@@ -304,7 +394,7 @@ class LuckySpinGame extends Component
                 ]);
             }
 
-            // 💰 STEP 4: GIVE COMMISSION TO ADMIN (only if there's commission)
+            // 💰 GIVE COMMISSION TO ADMIN (only if there's commission)
             if ($adminCommission > 0) {
                 $adminUser = User::find(1); // Admin ID = 1
                 if ($adminUser) {

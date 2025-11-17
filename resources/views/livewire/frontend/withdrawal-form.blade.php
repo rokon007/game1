@@ -183,7 +183,7 @@
                     </div>
                 </div>
 
-                <div class="instruction-card">
+                {{-- <div class="instruction-card">
                     <h4 class="mb-3 text-success"><i class="fas fa-info-circle me-2"></i>Withdrawal Instructions</h4>
                     <div class="row">
                         <div class="col-md-6">
@@ -222,7 +222,7 @@
                         <strong><i class="fas fa-exclamation-triangle me-2"></i>Note:</strong>
                         You can only have one pending withdrawal request at a time. Processing time may vary depending on the payment method.
                     </div>
-                </div>
+                </div> --}}
 
                 <!-- Amount Input -->
                 <div class="form-card">
@@ -240,7 +240,7 @@
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 mt-4">
                             <button class="btn btn-withdrawal w-100" wire:click="nextToPaymentMethod">
                                 Next <i class="fas fa-arrow-right ms-2"></i>
                             </button>
@@ -395,7 +395,7 @@
                             @enderror
                         </div>
 
-                        <div class="mb-3">
+                        {{-- <div class="mb-3">
                             <label class="form-label">Additional Notes (Optional)</label>
                             <textarea class="form-control custom-input"
                                       wire:model="user_notes"
@@ -404,16 +404,16 @@
                             @error('user_notes')
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
-                        </div>
+                        </div> --}}
 
-                        <div class="alert alert-info">
+                        {{-- <div class="alert alert-info">
                             <h6><i class="fas fa-info-circle me-2"></i>Important</h6>
                             <ul class="mb-0">
                                 <li>Ensure your account number is correct</li>
                                 <li>Withdrawal processing time: 24-48 hours</li>
                                 <li>Amount will be deducted from your balance immediately</li>
                             </ul>
-                        </div>
+                        </div> --}}
                     </div>
 
                     <div class="row">

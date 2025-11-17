@@ -71,6 +71,7 @@ class WithdrawalForm extends Component
         $this->method = $selectedMethod;
         $this->paymentMethodSection = false;
         $this->submitSection = true;
+        $this->account_number=auth()->user()->mobile;
     }
 
     protected function rules()
