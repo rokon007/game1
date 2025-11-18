@@ -177,7 +177,7 @@
                 <div class="col-4">
                     <div class="card featured-product-card">
                         <div class="card-body">
-                            <div class="product-thumbnail-side">
+                            <div class="product-thumbnail-side" style="background-color:#D3D3D3;">
                                 <!-- Thumbnail -->
                                 <a class="product-thumbnail d-block" href="{{route('buy_ticket')}}">
                                     <img src="{{asset('assets/frontend/img/core-img/housie.png')}}" alt="">
@@ -189,7 +189,7 @@
                 <div class="col-4">
                     <div class="card featured-product-card">
                         <div class="card-body">
-                            <div class="product-thumbnail-side">
+                            <div class="product-thumbnail-side" style="background-color:#D3D3D3;">
                                 <!-- Thumbnail -->
                                 <a class="product-thumbnail d-block" href="{{route('lottery.index')}}">
                                     <img src="{{asset('assets/frontend/img/core-img/g1.png')}}" alt="">
@@ -201,7 +201,7 @@
                 <div class="col-4">
                     <div class="card featured-product-card">
                         <div class="card-body">
-                            <div class="product-thumbnail-side">
+                            <div class="product-thumbnail-side" style="background-color:#D3D3D3;">
                                 <!-- Thumbnail -->
                                 <a class="product-thumbnail d-block" href="{{route('games.index')}}">
                                     <img src="{{asset('assets/frontend/img/core-img/hajari.png')}}" alt="">
@@ -214,7 +214,7 @@
                 <div class="col-4">
                     <div class="card featured-product-card">
                         <div class="card-body">
-                            <div class="product-thumbnail-side">
+                            <div class="product-thumbnail-side" style="background-color:#D3D3D3;">
                                 <!-- Thumbnail -->
                                 <a class="product-thumbnail d-block" href="{{route('lucky_spin')}}">
                                     <img src="{{asset('assets/frontend/img/core-img/lucky-spin.png')}}" alt="">
@@ -226,7 +226,7 @@
                 <div class="col-4">
                     <div class="card featured-product-card">
                         <div class="card-body">
-                            <div class="product-thumbnail-side">
+                            <div class="product-thumbnail-side" style="background-color:#D3D3D3;">
                                 <!-- Thumbnail -->
                                 <a class="product-thumbnail d-block" href="{{route('crash_game')}}">
                                     <img src="{{asset('assets/frontend/img/core-img/crash-game.png')}}" alt="">

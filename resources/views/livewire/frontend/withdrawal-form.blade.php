@@ -71,13 +71,13 @@
                 border: none;
             }
             .btn-withdrawal {
-                background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                background: linear-gradient(135deg, #373fa7 0%, #373fa7 100%);
                 border: none;
                 border-radius: 50px;
                 padding: 0.75rem 2rem;
                 font-weight: 600;
                 color: white;
-                box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+                box-shadow: 0 4px 15px 373fa7(17, 153, 142, 0.3);
                 transition: all 0.3s ease;
             }
             .btn-withdrawal:hover {
@@ -225,7 +225,7 @@
                 </div> --}}
 
                 <!-- Amount Input -->
-                <div class="form-card">
+                <div class="card withdrawal-header">
                     <h5 class="mb-3"><i class="fas fa-money-bill me-2"></i>Enter Withdrawal Amount</h5>
                     <div class="row align-items-end">
                         <div class="col-md-8">
@@ -233,7 +233,7 @@
                             <input type="number" step="0.01" inputmode="decimal"
                                    class="form-control form-control-lg custom-input"
                                    wire:model="amount"
-                                   placeholder="Enter amount between {{ $min_amount }} - {{ $max_amount }}"
+                                   {{-- placeholder="Enter amount between {{ $min_amount }} - {{ $max_amount }}" --}}
                                    min="{{ $min_amount }}"
                                    max="{{ $max_amount }}">
                             @error('amount')
@@ -367,7 +367,7 @@
                 </div>
 
                 <form wire:submit.prevent="submitWithdrawalRequest">
-                    <div class="form-card">
+                    <div class="card withdrawal-header">
                         <h5 class="mb-4"><i class="fas fa-credit-card me-2"></i>Payment Information</h5>
 
                         <div class="row mb-3">
