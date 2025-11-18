@@ -240,4 +240,23 @@ class User extends Authenticatable implements MustVerifyEmail
             ->sum('profit'));
     }
 
+    public function withdrawalRequests()
+    {
+        return $this->hasMany(WithdrawalRequest::class);
+    }
+
+    public function getAvailableBalanceAttribute()
+    {
+        $pending = $this->withdrawalRequests()
+                        ->where('status', 'pending')
+                        ->sum('amount') ?? 0;
+
+        $available = $this->credit - $pending;
+
+        return max($available, 0);
+    }
+
+
+
+
 }

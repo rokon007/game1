@@ -189,6 +189,12 @@ class LuckySpinGame extends Component
             return;
         }
 
+        // Check available balance
+        if ($user->available_balance < $this->bid_amount) {
+            session()->flash('error', 'Insufficient available balance.');
+            return;
+        }
+
         $this->spinning = true;
         $this->result = null;
         $this->reward = 0;

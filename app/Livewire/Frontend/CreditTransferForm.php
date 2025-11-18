@@ -81,6 +81,12 @@ class CreditTransferForm extends Component
             return;
         }
 
+        // Check available balance
+        if ($authUser->available_balance < $this->amount) {
+            session()->flash('error', 'Insufficient available balance. Your current usable balance is ');
+            return;
+        }
+
         $this->receiverData = $receiver;
         $this->sendingForm = false;
         $this->confermationForm = true;

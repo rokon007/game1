@@ -35,6 +35,12 @@ class GameList extends Component
             return;
         }
 
+        // Check available balance
+        if (Auth::user()->available_balance < $game->bid_amount) {
+            session()->flash('error', 'Insufficient available balance.');
+            return;
+        }
+
         $this->gameId=$game;
         $this->bid_amount=$game->bid_amount;
 

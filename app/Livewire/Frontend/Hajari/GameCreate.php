@@ -76,6 +76,12 @@ class GameCreate extends Component
             return;
         }
 
+        // Check available balance
+        if (Auth::user()->available_balance < $this->bid_amount) {
+            session()->flash('error', 'Insufficient available balance.');
+            return;
+        }
+
         $this->showConfirmationModal = true;
     }
 

@@ -84,20 +84,75 @@ class WithdrawalForm extends Component
         ];
     }
 
+    // public function submitWithdrawalRequest()
+    // {
+    //     $this->validate();
+
+    //     // Check balance again before submission
+    //     if (auth()->user()->credit < $this->amount) {
+    //         session()->flash('error', 'Insufficient balance. Your current balance is ' . auth()->user()->credit . '৳');
+    //         return;
+    //     }
+
+    //     DB::transaction(function () {
+    //         // Create withdrawal request
+    //         $withdrawal = WithdrawalRequest::create([
+    //             'user_id' => auth()->user()->id,
+    //             'amount' => $this->amount,
+    //             'method' => $this->method,
+    //             'account_number' => $this->account_number,
+    //             'user_notes' => $this->user_notes,
+    //             'status' => 'pending',
+    //         ]);
+
+    //         // Deduct amount from user's credit
+    //         //auth()->user()->decrement('credit', $this->amount);
+
+    //         // Prepare notification data
+    //         $data = [
+    //             'user_name' => auth()->user()->name,
+    //             'user_id' => auth()->user()->id,
+    //             'amount' => $this->amount,
+    //             'method' => $this->method,
+    //             'request_id' => $withdrawal->id,
+    //         ];
+
+    //         // Notify user
+    //         auth()->user()->notify(new WithdrawalRequestSubmitted($data));
+
+    //         // Notify admins
+    //         $admins = User::where('role', 'admin')->get();
+    //         Notification::send($admins, new WithdrawalRequestSubmitted($data));
+    //     });
+
+    //     // Reset and show status
+    //     $this->submitSection = false;
+    //     $this->requestStatus = true;
+    //     $this->withdrawalStatus = WithdrawalRequest::where('user_id', auth()->user()->id)
+    //         ->whereIn('status', ['pending'])
+    //         ->get();
+
+    //     session()->flash('success', 'Withdrawal request submitted successfully!');
+    //     $this->reset(['amount', 'method', 'account_number', 'user_notes']);
+    // }
+
     public function submitWithdrawalRequest()
     {
         $this->validate();
 
-        // Check balance again before submission
-        if (auth()->user()->credit < $this->amount) {
-            session()->flash('error', 'Insufficient balance. Your current balance is ' . auth()->user()->credit . '৳');
+        $user = auth()->user();
+
+        // Check available balance
+        if ($user->available_balance < $this->amount) {
+            session()->flash('error', 'Insufficient available balance. Your current usable balance is ' . $user->available_balance . '৳');
             return;
         }
 
-        DB::transaction(function () {
+        DB::transaction(function () use ($user) {
+
             // Create withdrawal request
             $withdrawal = WithdrawalRequest::create([
-                'user_id' => auth()->user()->id,
+                'user_id' => $user->id,
                 'amount' => $this->amount,
                 'method' => $this->method,
                 'account_number' => $this->account_number,
@@ -105,20 +160,17 @@ class WithdrawalForm extends Component
                 'status' => 'pending',
             ]);
 
-            // Deduct amount from user's credit
-            //auth()->user()->decrement('credit', $this->amount);
-
             // Prepare notification data
             $data = [
-                'user_name' => auth()->user()->name,
-                'user_id' => auth()->user()->id,
+                'user_name' => $user->name,
+                'user_id' => $user->id,
                 'amount' => $this->amount,
                 'method' => $this->method,
                 'request_id' => $withdrawal->id,
             ];
 
             // Notify user
-            auth()->user()->notify(new WithdrawalRequestSubmitted($data));
+            $user->notify(new WithdrawalRequestSubmitted($data));
 
             // Notify admins
             $admins = User::where('role', 'admin')->get();
@@ -128,13 +180,14 @@ class WithdrawalForm extends Component
         // Reset and show status
         $this->submitSection = false;
         $this->requestStatus = true;
-        $this->withdrawalStatus = WithdrawalRequest::where('user_id', auth()->user()->id)
-            ->whereIn('status', ['pending'])
+        $this->withdrawalStatus = WithdrawalRequest::where('user_id', $user->id)
+            ->where('status', 'pending')
             ->get();
 
         session()->flash('success', 'Withdrawal request submitted successfully!');
         $this->reset(['amount', 'method', 'account_number', 'user_notes']);
     }
+
 
     public function cancelRequest($id)
     {

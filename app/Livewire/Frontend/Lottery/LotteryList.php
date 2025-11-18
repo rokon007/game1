@@ -60,6 +60,8 @@ class LotteryList extends Component
             return redirect()->route('login');
         }
 
+
+
         try {
             $tickets = $this->lotteryService->purchaseTicket(
                 $this->selectedLottery,

@@ -45,7 +45,7 @@ class WithdrawalRequests extends Component
         if($this->user_credit < $this->amount){
             $this->allrt=true;
         }else{
-            $this->allrt=true;
+            $this->allrt=false;
         }
     }
 

@@ -164,6 +164,12 @@ class BuyTicketSheet extends Component
             return;
         }
 
+        // Check available balance
+        if ($user->available_balance < $game->ticket_price) {
+            session()->flash('error', 'Insufficient available balance');
+            return;
+        }
+
         try {
             // ইউজারের ব্যালেন্স থেকে কাটবে (bonus → তারপর credit)
             $user->spendBalance($game->ticket_price, 'Ticket Sheet purchase for game ID: ' . $game->id);
