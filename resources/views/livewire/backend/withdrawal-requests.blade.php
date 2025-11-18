@@ -66,7 +66,10 @@
                           <input class="form-control" type="text" wire:model="account_number" >
                         </div>
 
-
+                        <div class="col-12 mt-2">
+                            <label for="amount" class="form-label">Main Blance</label>
+                            <input class="form-control" type="text" wire:model="user_credit" >
+                        </div>
                         <div class="col-12 mt-2">
                             <label for="amount" class="form-label">Amount</label>
                             <input class="form-control" type="text" wire:model="amount" >
@@ -74,10 +77,17 @@
 
                         <div class="col-12">
                           <div class="mt-1 d-flex align-items-center gap-2">
+                            @if ($allrt)
+                            <button type="submit" class="btn btn-warning" wire:click='cancel'>
+                                <span wire:loading.delay.long wire:target="cancel" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                This cannot be accepted
+                            </button>
+                            @else
                             <button type="submit" class="btn btn-primary" wire:click='accept'>
                                 <span wire:loading.delay.long wire:target="accept" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                                 Accept
                             </button>
+                            @endif
                             <button type="submit" class="btn btn-danger" wire:click='cancel'>
                                 <span wire:loading.delay.long wire:target="cancel" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                                 Cancel
