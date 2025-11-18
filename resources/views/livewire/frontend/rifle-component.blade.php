@@ -152,7 +152,7 @@
                                                 <strong>Send money to this numbers:</strong><br>
                                                 @if($bikash_number)
                                                     <div class="number-item">
-                                                        bKash: {{ $bikash_number }}
+                                                        <span class="badge bg-danger text-dark">bKash</span>: {{ $bikash_number }}
                                                         <button class="copy-btn" onclick="copyToClipboard('{{ $bikash_number }}', this)">
                                                             <i class="fas fa-copy"></i> Copy
                                                         </button>
@@ -160,7 +160,7 @@
                                                 @endif
                                                 @if($nagad_number)
                                                     <div class="number-item">
-                                                        Nagad: {{ $nagad_number }}
+                                                        <span class="badge" style="background-color:#FF8C00;color:black;">Nagad</span>: {{ $nagad_number }}
                                                         <button class="copy-btn" onclick="copyToClipboard('{{ $nagad_number }}', this)">
                                                             <i class="fas fa-copy"></i> Copy
                                                         </button>
@@ -168,7 +168,7 @@
                                                 @endif
                                                 @if($rocket_number)
                                                     <div class="number-item">
-                                                        Rocket: {{ $rocket_number }}
+                                                        <span class="badge" style="background-color:#6495ED">Rocket</span>: {{ $rocket_number }}
                                                         <button class="copy-btn" onclick="copyToClipboard('{{ $rocket_number }}', this)">
                                                             <i class="fas fa-copy"></i> Copy
                                                         </button>
@@ -176,7 +176,7 @@
                                                 @endif
                                                 @if($upay_number)
                                                     <div class="number-item">
-                                                        Upay: {{ $upay_number }}
+                                                        <span class="badge bg-warning">Upay</span>: {{ $upay_number }}
                                                         <button class="copy-btn" onclick="copyToClipboard('{{ $upay_number }}', this)">
                                                             <i class="fas fa-copy"></i> Copy
                                                         </button>
