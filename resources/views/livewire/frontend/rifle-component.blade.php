@@ -190,10 +190,10 @@
                                                     <i class="fas fa-copy"></i> Copy
                                                 </button>
                                                 using
-                                                <span class="badge bg-info text-dark">bKash</span>,
-                                                <span class="badge bg-success">Nagad</span>,
-                                                <span class="badge bg-warning text-dark">Rocket</span>, or
-                                                <span class="badge bg-secondary">Upay</span>.
+                                                <span class="badge bg-danger text-dark">bKash</span>,
+                                                <span class="badge" style="background-color:#FF8C00;color:black;">Nagad</span>,
+                                                <span class="badge" style="background-color:#6495ED">Rocket</span>, or
+                                                <span class="badge bg-warning">Upay</span>.
                                             </div>
                                         @endif
                                     </li>
