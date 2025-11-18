@@ -141,12 +141,6 @@ class CrashGameComponent extends Component
                 return;
             }
 
-            // Check available balance
-        if (Auth::user()->available_balance < $this->userBet) {
-             $this->errorMessage = 'Insufficient available balance.';
-            return;
-        }
-
             // Check if user already has a bet in current game
             if ($this->currentGame && $this->userBet) {
                 $this->errorMessage = 'You already have a bet in this game';

@@ -204,6 +204,11 @@ class CrashGameService
             throw new Exception('Insufficient balance');
         }
 
+        // Check available balance
+        if ($user->available_balance < $betAmount) {
+            throw new Exception('Insufficient available balance');
+        }
+
         return DB::transaction(function () use ($user, $game, $betAmount) {
             // Deduct credit from user
             $user->decrement('credit', $betAmount);

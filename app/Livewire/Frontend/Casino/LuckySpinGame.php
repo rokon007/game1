@@ -190,7 +190,7 @@ class LuckySpinGame extends Component
         }
 
         // Check available balance
-        if ($user->available_balance < $this->bid_amount) {
+        if ($user->available_balance < $this->betAmount) {
             session()->flash('error', 'Insufficient available balance.');
             return;
         }
