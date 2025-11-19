@@ -198,7 +198,7 @@ class WithdrawalForm extends Component
                 ->firstOrFail();
 
             // Return amount to user's credit
-            auth()->user()->increment('credit', $withdrawal->amount);
+           // auth()->user()->increment('credit', $withdrawal->amount);
 
             // Update status to rejected (cancelled by user)
             $withdrawal->update(['status' => 'rejected', 'admin_notes' => 'Cancelled by user']);

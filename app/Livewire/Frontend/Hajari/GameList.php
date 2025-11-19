@@ -37,7 +37,7 @@ class GameList extends Component
 
         // Check available balance
         if (Auth::user()->available_balance < $game->bid_amount) {
-            session()->flash('error', 'Insufficient available balance.');
+            $this->dispatch('showToast', 'Insufficient available balance to join this game', 'error');
             return;
         }
 
