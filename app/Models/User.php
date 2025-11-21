@@ -62,9 +62,14 @@ class User extends Authenticatable implements MustVerifyEmail
             'longitude' => 'decimal:7',
         ];
 
+    // public function getTotalBalanceAttribute(): float
+    // {
+    //     return $this->credit + $this->bonus_credit;
+    // }
+
     public function getTotalBalanceAttribute(): float
     {
-        return $this->credit + $this->bonus_credit;
+        return $this->available_balance + $this->bonus_credit;
     }
 
     public function addBonusCredit(float $amount, string $details = null): void

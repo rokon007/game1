@@ -63,9 +63,9 @@ class LotteryService
             throw new Exception('Insufficient balance.');
         }
 
-        if (auth()->user()->available_balance < $totalCost) {
-            throw new Exception('Insufficient available balance.');
-        }
+        // if (auth()->user()->available_balance < $totalCost) {
+        //     throw new Exception('Insufficient available balance.');
+        // }
 
         $tickets = [];
 
