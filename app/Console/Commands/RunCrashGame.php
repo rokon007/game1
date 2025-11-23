@@ -1,5 +1,5 @@
 <?php
-// app/Console/Commands/RunCrashGame.php - UPDATED WITH NEW LOGIC DISPLAY
+// app/Console/Commands/RunCrashGame.php - FIXED FOR VPS TIMING
 
 namespace App\Console\Commands;
 
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Cache;
 class RunCrashGame extends Command
 {
     protected $signature = 'crash:run';
-    protected $description = 'Run the crash game loop with dynamic crash point';
+    protected $description = 'Run the crash game loop with exact timing';
 
     private CrashGameService $gameService;
     private CrashGameSpeedService $speedService;
@@ -31,6 +31,7 @@ class RunCrashGame extends Command
         $pid = getmypid();
         $this->info("=== Crash Game Process Started ===");
         $this->info("Process PID: {$pid}");
+        $this->info("Server Time: " . now()->toDateTimeString());
 
         if (!$this->gameService->isGameActive()) {
             $this->error('Crash game is not active!');
@@ -58,18 +59,20 @@ class RunCrashGame extends Command
             try {
                 if ($this->gameService->checkAndReloadSettings()) {
                     $this->settingsReloaded = true;
-                    $this->info('Settings changes detected!');
+                    $this->info('⚙️ Settings changes detected!');
                     $this->speedService = new CrashGameSpeedService();
                 }
 
                 $this->runGameCycle();
             } catch (\Exception $e) {
-                Log::error('Crash Game Error: ' . $e->getMessage());
+                Log::error('Crash Game Error: ' . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString()
+                ]);
                 $this->error('Error: ' . $e->getMessage());
-                sleep(5);
+                $this->preciseSleep(5.0);
             }
 
-            sleep(1);
+            $this->preciseSleep(1.0);
         }
 
         $this->cleanup();
@@ -90,8 +93,10 @@ class RunCrashGame extends Command
 
             if ($game && $game->isCrashed()) {
                 $this->displayGameSummary($game);
-                $this->info("Previous game crashed. 3 second pause...");
-                sleep(3);
+
+                // ✅ EXACT 2 second pause (not 3)
+                $this->info("⏸️  2 second pause before next game...");
+                $this->preciseSleep(2.0);
             }
 
             $game = $this->gameService->createGame();
@@ -103,8 +108,9 @@ class RunCrashGame extends Command
                 $this->info("💰 Starting fresh - No rollover");
             }
 
-            $this->info("New game created: #{$game->id}");
+            $this->info("📝 New game created: #{$game->id}");
 
+            // ✅ CRITICAL: Execute exactly 10 seconds
             $this->executeExactWaiting($game);
             $this->clearWaitingCache();
         }
@@ -115,7 +121,7 @@ class RunCrashGame extends Command
 
             $this->displayPoolInfo($game->fresh());
 
-            $this->info("Game #{$game->id} started!");
+            $this->info("🎮 Game #{$game->id} started!");
             usleep(300000);
         }
 
@@ -124,156 +130,46 @@ class RunCrashGame extends Command
         }
     }
 
-    // 🆕 UPDATED: Display with new logic
-    private function displayGameSummary(CrashGame $game): void
-    {
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->info("📊 Game #{$game->id} Summary:");
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
-        // Pool breakdown
-        $this->line("💰 Pool Composition:");
-        $this->line("   Current Round Bets:  ৳{$game->current_round_bets}");
-        $this->line("   Previous Rollover:   ৳{$game->previous_rollover}");
-        $this->line("   ─────────────────────────────────────");
-        $this->info("   Total Pool:          ৳{$game->total_bet_pool}");
-
-        // Participants
-        $cashedOut = $game->total_participants - $game->active_participants;
-        $this->line("");
-        $this->line("👥 Participants:");
-        $this->line("   Total:               {$game->total_participants}");
-        $this->line("   Cashed Out:          {$cashedOut} ✅");
-        $this->line("   Crashed:             {$game->active_participants} ❌");
-
-        // Financial summary
-        $this->line("");
-        $this->line("💵 Financial Summary:");
-        $this->line("   Total Paid to Winners: ৳{$game->total_payout}");
-
-        // Commission calculation
-        $wonBets = $game->wonBets;
-        $totalProfit = $wonBets->sum('profit');
-        $actualCommission = $game->admin_commission_amount;
-
-        $this->line("");
-        $this->line("📊 Commission Details:");
-        $this->line("   Total Profit Paid:   ৳{$totalProfit}");
-        $this->line("   Actual Commission:   ৳{$actualCommission} (10% of profits)");
-
-        // Pool status
-        $this->line("");
-        $this->line("💰 Pool Status:");
-        $this->line("   Started with:        ৳{$game->total_bet_pool}");
-        $this->line("   Paid to winners:     ৳{$game->total_payout}");
-        $this->line("   Commission:          ৳{$actualCommission}");
-        $this->line("   Remaining:           ৳{$game->remaining_pool}");
-
-        // Rollover
-        if ($game->rollover_to_next > 0) {
-            $this->info("   🔄 Rollover to Next:  ৳{$game->rollover_to_next}");
-        } else {
-            $this->line("   ⚠️  No Rollover (below minimum or disabled)");
-        }
-
-        // Admin keeps
-        $adminKeeps = $game->remaining_pool - $game->rollover_to_next + $actualCommission;
-        $this->info("");
-        $this->info("   ✅ Admin Keeps:       ৳{$adminKeeps}");
-
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    }
-
-    // 🆕 UPDATED: Display with calculation
-    private function displayPoolInfo(CrashGame $game): void
-    {
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->info("🔒 Pool Locked - Game #{$game->id}");
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
-        $this->line("📊 Pool Composition:");
-        if ($game->previous_rollover > 0) {
-            $this->line("   Previous Rollover:   ৳{$game->previous_rollover}");
-        }
-        $this->line("   Current Round Bets:  ৳{$game->current_round_bets}");
-        $this->line("   ─────────────────────────────────────");
-        $this->info("   Total Pool:          ৳{$game->total_bet_pool}");
-
-        $this->line("");
-        $this->line("💰 Commission Calculation:");
-        $this->line("   Max Commission (10%): ৳{$game->admin_commission_amount}");
-        $availablePool = $game->total_bet_pool - $game->admin_commission_amount;
-        $this->info("   Available Pool:      ৳{$availablePool}");
-
-        $this->line("");
-        $this->line("👥 Participants:         {$game->total_participants} players");
-
-        $totalActiveBets = $game->bets()->where('status', 'pending')->sum('bet_amount');
-        $this->line("   Total Active Bets:   ৳{$totalActiveBets}");
-
-        $this->line("");
-        $this->line("🎯 Crash Point Calculation:");
-        $this->line("   Formula: Available Pool ÷ Total Active Bets");
-        $this->line("   = ৳{$availablePool} ÷ ৳{$totalActiveBets}");
-        $this->info("   = {$game->crash_point}x ✅");
-
-        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    }
-
-    // private function displayPoolInfo(CrashGame $game): void
-    // {
-    //     $this->line("┌─────────────────────────────────────┐");
-    //     $this->info("🔒 Pool Locked - Game #{$game->id}");
-    //     $this->line("└─────────────────────────────────────┘");
-
-    //     $this->line("📊 Pool Composition:");
-    //     if ($game->previous_rollover > 0) {
-    //         $this->line("   Previous Rollover:   ৳{$game->previous_rollover}");
-    //     }
-    //     $this->line("   Current Round Bets:  ৳{$game->current_round_bets}");
-    //     $this->line("   ─────────────────────────────────────");
-    //     $this->info("   Total Pool:          ৳{$game->total_bet_pool}");
-
-    //     $this->line("");
-    //     $this->line("💰 Commission Calculation:");
-    //     $this->line("   Max Commission (10%): ৳{$game->admin_commission_amount}");
-    //     $availablePool = $game->total_bet_pool - $game->admin_commission_amount;
-    //     $this->info("   Available Pool:      ৳{$availablePool}");
-
-    //     $this->line("");
-    //     $this->line("👥 Participants:         {$game->total_participants} players");
-
-    //     $totalActiveBets = $game->bets()->where('status', 'pending')->sum('bet_amount');
-    //     $this->line("   Total Active Bets:   ৳{$totalActiveBets}");
-
-    //     $this->line("");
-
-    //     // ✅ Show random crash point generation
-    //     if ($totalActiveBets > 0) {
-    //         $maxPoolCrash = $availablePool / $totalActiveBets;
-    //         $this->line("🎯 Crash Point Generation:");
-    //         $this->line("   Max Pool Crash:      {$maxPoolCrash}x");
-    //         $this->line("   Random Method:       Weighted Distribution");
-    //         $this->info("   Final Crash Point:   {$game->crash_point}x ✅ (FIXED)");
-    //     } else {
-    //         $this->line("🎯 Crash Point Generation:");
-    //         $this->line("   No bets placed");
-    //         $this->line("   Random Method:       Pure Random");
-    //         $this->info("   Final Crash Point:   {$game->crash_point}x ✅ (FIXED)");
-    //     }
-
-    //     $this->line("┌─────────────────────────────────────┐");
-    // }
-
+    /**
+     * ✅ FIXED: Execute EXACTLY 10.0 seconds waiting with validation
+     */
     private function executeExactWaiting(CrashGame $game): void
     {
-        $waitingTime = 10.0;
+        $waitingTime = 10.0; // EXACTLY 10 seconds
         $waitingStartTime = microtime(true);
         $waitingEndTime = $waitingStartTime + $waitingTime;
 
+        // ✅ Store in cache with validation
         cache()->put('crash_game_waiting_start', $waitingStartTime, 60);
         cache()->put('crash_game_waiting_duration', $waitingTime, 60);
         cache()->put('crash_game_waiting_end', $waitingEndTime, 60);
+
+        // ✅ Verify cache was stored correctly
+        $verifyStart = cache()->get('crash_game_waiting_start');
+        $verifyEnd = cache()->get('crash_game_waiting_end');
+
+        if (!$verifyStart || !$verifyEnd) {
+            $this->error("❌ Cache storage failed! Retrying...");
+
+            // Retry cache storage
+            cache()->put('crash_game_waiting_start', $waitingStartTime, 60);
+            cache()->put('crash_game_waiting_end', $waitingEndTime, 60);
+
+            $verifyStart = cache()->get('crash_game_waiting_start');
+            $verifyEnd = cache()->get('crash_game_waiting_end');
+        }
+
+        $cachedDuration = $verifyEnd - $verifyStart;
+        $deviation = abs($cachedDuration - 10.0);
+
+        if ($deviation > 0.1) {
+            $this->error("⚠️ Cache timing deviation: {$deviation}s");
+            Log::warning("Cache timing issue", [
+                'expected' => 10.0,
+                'cached' => $cachedDuration,
+                'deviation' => $deviation
+            ]);
+        }
 
         $this->broadcastGameUpdate($game, 1.00, 'waiting', [
             'waiting_start' => $waitingStartTime,
@@ -282,7 +178,11 @@ class RunCrashGame extends Command
         ]);
 
         $this->info("⏱️  EXACT 10.00 second waiting started");
+        $this->info("    Start:  " . date('H:i:s.u', (int)$waitingStartTime));
+        $this->info("    End:    " . date('H:i:s.u', (int)$waitingEndTime));
 
+        // ✅ High-precision waiting loop
+        $checkCount = 0;
         while (true) {
             $currentTime = microtime(true);
             $remainingTime = $waitingEndTime - $currentTime;
@@ -296,24 +196,58 @@ class RunCrashGame extends Command
                 return;
             }
 
-            if ($remainingTime > 0.1) {
-                usleep(50000);
-            } else {
-                usleep(10000);
+            // ✅ Display progress every second
+            if ($checkCount % 20 === 0) {
+                $elapsed = $currentTime - $waitingStartTime;
+                $this->line(sprintf(
+                    "    Elapsed: %.2fs | Remaining: %.2fs",
+                    $elapsed,
+                    $remainingTime
+                ));
             }
+
+            // ✅ Dynamic sleep based on remaining time
+            if ($remainingTime > 0.5) {
+                usleep(50000); // 50ms
+            } elseif ($remainingTime > 0.1) {
+                usleep(20000); // 20ms
+            } else {
+                usleep(5000); // 5ms for final precision
+            }
+
+            $checkCount++;
         }
 
         $actualWaitTime = microtime(true) - $waitingStartTime;
-        $this->info("✅ Completed: " . number_format($actualWaitTime, 4) . " seconds");
+        $timingDeviation = abs($actualWaitTime - 10.0);
+
+        $this->info("✅ Waiting completed!");
+        $this->info("    Expected: 10.0000s");
+        $this->info("    Actual:   " . number_format($actualWaitTime, 4) . "s");
+        $this->info("    Deviation: " . number_format($timingDeviation * 1000, 2) . "ms");
+
+        if ($timingDeviation > 0.1) {
+            $this->warn("⚠️ Timing drift detected!");
+            Log::warning("Waiting time drift", [
+                'expected' => 10.0,
+                'actual' => $actualWaitTime,
+                'deviation_ms' => $timingDeviation * 1000
+            ]);
+        } else {
+            $this->info("🎯 Perfect timing!");
+        }
     }
 
+    /**
+     * ✅ FIXED: Game running with fixed crash point
+     */
     private function runGame(CrashGame $game): void
     {
         $currentMultiplier = 1.00;
         $crashPoint = (float) $game->crash_point;
 
         $speedProfile = $this->speedService->getSpeedProfileName();
-        $this->info("Running game #{$game->id} - Target Crash: {$crashPoint}x - Speed: {$speedProfile}");
+        $this->info("🚀 Running game #{$game->id} - Target Crash: {$crashPoint}x - Speed: {$speedProfile}");
 
         $this->broadcastGameUpdate($game, 1.00, 'running');
 
@@ -340,7 +274,7 @@ class RunCrashGame extends Command
 
             $currentTime = microtime(true);
             if (($currentTime - $lastBroadcastTime) * 1000 >= $broadcastIntervalMs) {
-                // Reload game to get updated crash point
+                // ✅ Reload game to check if crash point changed (due to cashouts)
                 $game->refresh();
                 $crashPoint = (float) $game->crash_point;
 
@@ -370,87 +304,122 @@ class RunCrashGame extends Command
 
             $this->error("💥 CRASHED at {$crashPoint}x!");
 
-            sleep(2);
+            // ✅ EXACT 2 second display time
+            $this->preciseSleep(2.0);
 
             $game->refresh();
 
             $houseProfit = $this->gameService->calculateHouseProfit($game);
-            $this->info("Admin Profit: ৳{$houseProfit}");
+            $this->info("💰 Admin Profit: ৳{$houseProfit}");
 
             $this->clearAllGameCache();
         }
     }
 
-    // private function runGame(CrashGame $game): void
-    // {
-    //     $currentMultiplier = 1.00;
-    //     $crashPoint = (float) $game->crash_point; // ✅ Fixed, never changes
+    /**
+     * ✅ NEW: Precise sleep function
+     */
+    private function preciseSleep(float $seconds): void
+    {
+        $target = microtime(true) + $seconds;
 
-    //     $speedProfile = $this->speedService->getSpeedProfileName();
-    //     $this->info("Running game #{$game->id} - Fixed Crash: {$crashPoint}x - Speed: {$speedProfile}");
+        while (microtime(true) < $target) {
+            $remaining = $target - microtime(true);
 
-    //     $this->broadcastGameUpdate($game, 1.00, 'running');
+            if ($remaining > 0.01) {
+                usleep(10000); // 10ms
+            } else {
+                usleep(1000); // 1ms for final precision
+            }
+        }
+    }
 
-    //     event(new \App\Events\CrashGameStarted($game, $currentMultiplier));
+    private function displayGameSummary(CrashGame $game): void
+    {
+        $this->line("┌─────────────────────────────────────┐");
+        $this->info("📊 Game #{$game->id} Summary:");
+        $this->line("└─────────────────────────────────────┘");
 
-    //     $lastBroadcastTime = microtime(true);
-    //     $broadcastIntervalMs = 100;
+        $this->line("💰 Pool Composition:");
+        $this->line("   Current Round Bets:  ৳{$game->current_round_bets}");
+        $this->line("   Previous Rollover:   ৳{$game->previous_rollover}");
+        $this->line("   ─────────────────────────────────────");
+        $this->info("   Total Pool:          ৳{$game->total_bet_pool}");
 
-    //     while ($currentMultiplier < $crashPoint) {
-    //         if (Cache::get('crash_game_stop')) {
-    //             $this->info('Stop signal received.');
-    //             break;
-    //         }
+        $cashedOut = $game->total_participants - $game->active_participants;
+        $this->line("");
+        $this->line("👥 Participants:");
+        $this->line("   Total:               {$game->total_participants}");
+        $this->line("   Cashed Out:          {$cashedOut} ✅");
+        $this->line("   Crashed:             {$game->active_participants} ❌");
 
-    //         $increment = $this->speedService->calculateDynamicIncrement($currentMultiplier);
-    //         $nextMultiplier = $currentMultiplier + $increment;
+        $this->line("");
+        $this->line("💵 Financial Summary:");
+        $this->line("   Total Paid to Winners: ৳{$game->total_payout}");
 
-    //         if ($nextMultiplier >= $crashPoint) {
-    //             $currentMultiplier = $crashPoint;
-    //             break;
-    //         }
+        $wonBets = $game->wonBets;
+        $totalProfit = $wonBets->sum('profit');
+        $actualCommission = $game->admin_commission_amount;
 
-    //         $currentMultiplier = $nextMultiplier;
+        $this->line("");
+        $this->line("📊 Commission Details:");
+        $this->line("   Total Profit Paid:   ৳{$totalProfit}");
+        $this->line("   Actual Commission:   ৳{$actualCommission} (10% of profits)");
 
-    //         $currentTime = microtime(true);
-    //         if (($currentTime - $lastBroadcastTime) * 1000 >= $broadcastIntervalMs) {
-    //             // ✅ NO crash point reload - it's fixed!
-    //             $this->broadcastGameUpdate($game, $currentMultiplier, 'running');
-    //             $lastBroadcastTime = $currentTime;
-    //         }
+        $this->line("");
+        $this->line("💰 Pool Status:");
+        $this->line("   Started with:        ৳{$game->total_bet_pool}");
+        $this->line("   Paid to winners:     ৳{$game->total_payout}");
+        $this->line("   Commission:          ৳{$actualCommission}");
+        $this->line("   Remaining:           ৳{$game->remaining_pool}");
 
-    //         if (fmod($currentMultiplier, 1.0) < $increment) {
-    //             $activePlayers = $game->active_participants;
-    //             $this->line("Current: " . number_format($currentMultiplier, 2) . "x (Fixed Crash: {$crashPoint}x, Active: {$activePlayers})");
-    //         }
+        if ($game->rollover_to_next > 0) {
+            $this->info("   🔄 Rollover to Next:  ৳{$game->rollover_to_next}");
+        } else {
+            $this->line("   ⚠️  No Rollover (below minimum or disabled)");
+        }
 
-    //         $interval = $this->speedService->getCurrentInterval();
-    //         usleep($interval * 1000);
-    //     }
+        $adminKeeps = $game->remaining_pool - $game->rollover_to_next + $actualCommission;
+        $this->info("");
+        $this->info("   ✅ Admin Keeps:       ৳{$adminKeeps}");
 
-    //     if (!Cache::get('crash_game_stop') && $currentMultiplier >= $crashPoint) {
-    //         $currentMultiplier = $crashPoint;
+        $this->line("┌─────────────────────────────────────┐");
+    }
 
-    //         $this->broadcastGameUpdate($game, $crashPoint, 'running');
-    //         usleep(100000);
+    private function displayPoolInfo(CrashGame $game): void
+    {
+        $this->line("┌─────────────────────────────────────┐");
+        $this->info("🔒 Pool Locked - Game #{$game->id}");
+        $this->line("└─────────────────────────────────────┘");
 
-    //         $this->gameService->crashGame($game);
-    //         $this->broadcastGameUpdate($game, $crashPoint, 'crashed');
+        $this->line("📊 Pool Composition:");
+        if ($game->previous_rollover > 0) {
+            $this->line("   Previous Rollover:   ৳{$game->previous_rollover}");
+        }
+        $this->line("   Current Round Bets:  ৳{$game->current_round_bets}");
+        $this->line("   ─────────────────────────────────────");
+        $this->info("   Total Pool:          ৳{$game->total_bet_pool}");
 
-    //         event(new \App\Events\CrashGameCrashed($game));
+        $this->line("");
+        $this->line("💰 Commission Calculation:");
+        $this->line("   Max Commission (10%): ৳{$game->admin_commission_amount}");
+        $availablePool = $game->total_bet_pool - $game->admin_commission_amount;
+        $this->info("   Available Pool:      ৳{$availablePool}");
 
-    //         $this->error("💥 CRASHED at {$crashPoint}x!");
+        $this->line("");
+        $this->line("👥 Participants:         {$game->total_participants} players");
 
-    //         sleep(2);
+        $totalActiveBets = $game->bets()->where('status', 'pending')->sum('bet_amount');
+        $this->line("   Total Active Bets:   ৳{$totalActiveBets}");
 
-    //         $game->refresh();
+        $this->line("");
+        $this->line("🎯 Crash Point Calculation:");
+        $this->line("   Formula: Available Pool ÷ Total Active Bets");
+        $this->line("   = ৳{$availablePool} ÷ ৳{$totalActiveBets}");
+        $this->info("   = {$game->crash_point}x ✅");
 
-    //         $houseProfit = $this->gameService->calculateHouseProfit($game);
-    //         $this->info("Admin Profit: ৳{$houseProfit}");
-
-    //         $this->clearAllGameCache();
-    //     }
-    // }
+        $this->line("┌─────────────────────────────────────┐");
+    }
 
     private function broadcastGameUpdate(CrashGame $game, float $multiplier, string $status, array $extra = []): void
     {
@@ -469,15 +438,23 @@ class RunCrashGame extends Command
         ];
 
         $data = array_merge($data, $extra);
+
+        // ✅ Store with validation
         cache()->put('crash_game_current', $data, 60);
 
-        $this->info("📡 Broadcast: {$status} @ {$multiplier}x");
+        // ✅ Verify cache was stored
+        $verify = cache()->get('crash_game_current');
+        if (!$verify) {
+            $this->error("⚠️ Cache broadcast failed! Retrying...");
+            cache()->put('crash_game_current', $data, 60);
+        }
     }
 
     private function clearAllGameCache(): void
     {
         cache()->forget('crash_game_current');
         $this->clearWaitingCache();
+        $this->info("🧹 Cache cleared");
     }
 
     private function clearWaitingCache(): void
@@ -489,12 +466,12 @@ class RunCrashGame extends Command
 
     private function cleanup(): void
     {
-        $this->info("Cleaning up...");
+        $this->info("🧹 Cleaning up...");
         Cache::forget('crash_game_running');
         Cache::forget('crash_game_pid');
         Cache::forget('crash_game_started_at');
         Cache::forget('crash_game_stop');
         $this->clearAllGameCache();
-        $this->info('Cleanup completed.');
+        $this->info('✅ Cleanup completed.');
     }
 }

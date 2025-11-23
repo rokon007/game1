@@ -39,10 +39,16 @@ class Kernel extends ConsoleKernel
              ->withoutOverlapping();
 
         // Crash game related schedules (যদি প্রয়োজন হয়)
-        $schedule->command('crash:run')
-            ->everyMinute()
-            ->withoutOverlapping()
-            ->runInBackground();
+        // $schedule->command('crash:run')
+        //     ->everyMinute()
+        //     ->withoutOverlapping()
+        //     ->runInBackground();
+
+        // ✅ Crash game daemon - প্রতি মিনিটে check করবে
+        $schedule->command('crash:daemon')
+                 ->everyMinute()
+                 ->withoutOverlapping()
+                 ->runInBackground();
     }
 
     protected function commands()
