@@ -80,48 +80,11 @@ autostart=true
 autorestart=true
 stopasgroup=true
 killasgroup=true
-numprocs=2
+numprocs=12 # To reduce memory/CPU usage, change to 2.
 startsecs=0
 stopwaitsecs=3600
 stdout_logfile=/var/log/worker-laravel.log
 stderr_logfile=/var/log/worker-laravel.log
-'''
-
-"worker-crash-game.conf" = '''
-[program:worker-crash-game]
-process_name=%(program_name)s
-command=php /app/artisan crash:run
-directory=/app
-user=www-data
-autostart=true
-autorestart=true
-stopasgroup=true
-killasgroup=true
-startsecs=5
-stopwaitsecs=30
-stdout_logfile=/var/log/worker-crash-game.log
-stderr_logfile=/var/log/worker-crash-game.log
-stdout_logfile_maxbytes=10MB
-stderr_logfile_maxbytes=10MB
-redirect_stderr=true
-priority=100
-'''
-
-"worker-scheduler.conf" = '''
-[program:worker-scheduler]
-process_name=%(program_name)s
-command=bash -c 'while true; do php /app/artisan schedule:run --verbose --no-interaction && sleep 60; done'
-directory=/app
-user=www-data
-autostart=true
-autorestart=true
-stopasgroup=true
-killasgroup=true
-startsecs=0
-stdout_logfile=/var/log/worker-scheduler.log
-stderr_logfile=/var/log/worker-scheduler.log
-redirect_stderr=true
-priority=90
 '''
 
 "php-fpm.conf" = '''
@@ -144,6 +107,8 @@ php_admin_value[max_input_time] = 60
 php_admin_value[post_max_size] = 256M
 '''
 
+
+
 "nginx.template.conf" = '''
 user www-data www-data;
 worker_processes 5;
@@ -152,7 +117,7 @@ daemon off;
 worker_rlimit_nofile 8192;
 
 events {
-  worker_connections  4096;
+  worker_connections  4096;  # Default: 1024
 }
 
 http {
@@ -167,7 +132,7 @@ http {
     error_log /var/log/nginx-error.log;
     sendfile     on;
     tcp_nopush   on;
-    server_names_hash_bucket_size 128;
+    server_names_hash_bucket_size 128; # this seems to be required for some vhosts
 
     server {
         listen ${PORT};
@@ -187,6 +152,7 @@ http {
         index index.php;
 
         charset utf-8;
+
 
         $if(NIXPACKS_PHP_FALLBACK_PATH) (
             location / {
