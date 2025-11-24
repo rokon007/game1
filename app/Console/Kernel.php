@@ -45,10 +45,10 @@ class Kernel extends ConsoleKernel
         //     ->runInBackground();
 
         // ✅ Crash game daemon - প্রতি মিনিটে check করবে
-        // $schedule->command('crash:daemon')
-        //          ->everyMinute()
-        //          ->withoutOverlapping()
-        //          ->runInBackground();
+        $schedule->command('crash:daemon')
+                 ->everyMinute()
+                 ->withoutOverlapping()
+                 ->runInBackground();
     }
 
     protected function commands()
